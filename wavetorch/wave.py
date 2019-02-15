@@ -1,6 +1,11 @@
 import torch
 from torch.nn.functional import conv2d
 
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+
+import numpy as np
+
 class WaveCell(torch.nn.Module):
 
     def __init__(self, Nt, dt, Nx, Ny, h, mask_src, mask_probe, c2=None, pml_N=20, pml_p=3.0, pml_max=0.5):
@@ -58,3 +63,32 @@ class WaveCell(torch.nn.Module):
                 loss += loss_func(un)
 
         return un, loss
+
+    def animate(self, x, block=True):
+        fig, ax = plt.subplots()
+
+        un_max = 0.0
+        uns = []
+        ims = []
+
+        with torch.no_grad():
+            un1 = torch.zeros(self.Nx, self.Ny).unsqueeze(0).unsqueeze(0)
+            un2 = torch.zeros(self.Nx, self.Ny).unsqueeze(0).unsqueeze(0)
+            for xi in x.split(1):
+                un, un1, un2 = self.step(xi, un1, un2)
+                tmp = un.detach().numpy().squeeze().transpose()
+                tmp_max = np.abs(tmp).max()
+                if tmp_max > un_max:
+                    un_max = tmp_max
+
+                uns.append(tmp)
+
+        for i in range(0, len(uns)):
+            im = plt.imshow(uns[i], cmap=plt.cm.RdBu, animated=True, vmin=-un_max, vmax=+un_max)
+            ims.append([im])
+
+        ani = animation.ArtistAnimation(fig, ims, interval=1, blit=True, repeat_delay=1000)
+
+        plt.show(block=block)
+
+        return ani
