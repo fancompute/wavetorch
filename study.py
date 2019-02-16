@@ -31,7 +31,7 @@ if __name__ == '__main__':
     args = argparser.parse_args()
 
     if args.use_cuda and torch.cuda.is_available():
-        print("Using GPU..")
+        print("Using GPU...")
         args.dev = torch.device('cuda')
     else:
         print("Using CPU...")
@@ -71,7 +71,9 @@ if __name__ == '__main__':
     def train(x):
         def closure():
             wave_model.zero_grad()
-            _, loss = wave_model(x, loss_func=integrate_probe)
+            h1 = torch.zeros(wave_model.Nx, wave_model.Ny, device=args.dev).unsqueeze(0).unsqueeze(0)
+            h2 = torch.zeros(wave_model.Nx, wave_model.Ny, device=args.dev).unsqueeze(0).unsqueeze(0)
+            _, loss = wave_model(x, (h1, h2), loss_func=integrate_probe)
             loss.backward()
             return loss
 

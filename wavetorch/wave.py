@@ -52,12 +52,11 @@ class WaveCell(torch.nn.Module):
         un = self.C1 * ( self.C2 * un1 - self.C3 * un2 + self.c2 * conv2d(un1, self.laplacian, padding=1) + self.mask_src * F )
         return un, un, un1
 
-    def forward(self, x, loss_func=None):
-        un1 = torch.zeros(self.Nx, self.Ny).unsqueeze(0).unsqueeze(0)
-        un2 = torch.zeros(self.Nx, self.Ny).unsqueeze(0).unsqueeze(0)
+    def forward(self, input, hidden, loss_func=None):
+        un1, un2 = hidden
 
         loss = 0.0
-        for xi in x.split(1):
+        for xi in input.split(1):
             un, un1, un2 = self.step(xi, un1, un2)
 
             if loss_func is not None:
