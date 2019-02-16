@@ -21,8 +21,8 @@ class WaveCell(torch.nn.Module):
             c2 = torch.ones(Nx, Ny, requires_grad=True)
         self.c2  = torch.nn.Parameter(c2)
 
-        self.mask_src = mask_src
-        self.mask_probe = mask_probe
+        self.register_buffer("mask_src", mask_src)
+        self.register_buffer("mask_probe", mask_probe)
 
         # Setup the PML/adiabatic absorber
         b_vals = pml_max * torch.linspace(0.0, 1.0, pml_N+1) ** pml_p
@@ -35,17 +35,18 @@ class WaveCell(torch.nn.Module):
         b_y[0,0,:,0:pml_N+1]   = torch.flip(b_vals, [0]).repeat(Nx,1)
         b_y[0,0,:,-pml_N-2:-1] = b_vals.repeat(Nx,1)
 
-        self.b = torch.sqrt( b_x**2 + b_y**2 )
+        self.register_buffer("b", torch.sqrt( b_x**2 + b_y**2 ))
 
         # Define the finite differencing coeffs for convenience
-        self.C1 = (self.dt**(-2) + self.b * 0.5 * self.dt**(-1)).pow(-1)
-        self.C2 = 2 * self.dt**(-2)
-        self.C3 = self.dt**(-2) - self.b * 0.5 * self.dt**(-1)
+        self.register_buffer("C1", (self.dt**(-2) + self.b * 0.5 * self.dt**(-1)).pow(-1))
+        self.register_buffer("C2", torch.tensor(2 * self.dt**(-2)))
+        self.register_buffer("C3", self.dt**(-2) - self.b * 0.5 * self.dt**(-1))
 
         # Define the laplacian conv kernel
-        self.laplacian = h**(-2) * torch.tensor([[[[0.0,  1.0, 0.0],
-                                                   [1.0, -4.0, 1.0],
-                                                   [0.0,  1.0, 0.0]]]], requires_grad=False)
+        self.register_buffer("laplacian", h**(-2) * torch.tensor([[[[0.0,  1.0, 0.0],
+                                                                    [1.0, -4.0, 1.0],
+                                                                    [0.0,  1.0, 0.0]]]],
+                                                                    requires_grad=False))
 
     def step(self, F, un1, un2):
         un = self.C1 * ( self.C2 * un1 - self.C3 * un2 + self.c2 * conv2d(un1, self.laplacian, padding=1) + self.mask_src * F )

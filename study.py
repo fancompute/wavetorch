@@ -27,7 +27,15 @@ if __name__ == '__main__':
     argparser.add_argument('--Nt', type=int, default=500)
     argparser.add_argument('--dt', type=int, default=0.707)
     argparser.add_argument('--learning_rate', type=float, default=0.1)
+    argparser.add_argument('--use-cuda', action='store_true')
     args = argparser.parse_args()
+
+    if args.use_cuda and torch.cuda.is_available():
+        print("Using GPU..")
+        args.dev = torch.device('cuda')
+    else:
+        print("Using CPU...")
+        args.dev = torch.device('cpu')
 
     h  = args.dt * 2.01 / 1.0
 
@@ -37,6 +45,8 @@ if __name__ == '__main__':
     # Nt = 500
     # t = torch.arange(0.0, args.Nt*args.dt, args.dt)
     # x = src_gaussian(t, 130*args.dt, 40*args.dt) * torch.sin(2*3.14 * t / 20 / args.dt)
+
+    x.to(args.dev)
 
     pt_src = (21, 70)
     mask_src = torch.zeros(args.Nx, args.Ny, requires_grad=False)
@@ -52,6 +62,7 @@ if __name__ == '__main__':
 
     # --- Define model
     wave_model = WaveCell(args.Nt, args.dt, args.Nx, args.Ny, h, mask_src, mask_probe, pml_max=3, pml_p=4.0, pml_N=20)
+    wave_model.to(args.dev)
 
     # --- Define optimizer
     wave_optimizer = torch.optim.LBFGS(wave_model.parameters(), lr=args.learning_rate)
