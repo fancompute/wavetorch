@@ -42,11 +42,13 @@ if __name__ == '__main__':
     # --- Calculate source
     x, _ = load_vowel('a', sr=5000)
     Nt = x.shape[0]
+    x = x.to(args.dev)
+
     # Nt = 500
     # t = torch.arange(0.0, args.Nt*args.dt, args.dt)
     # x = src_gaussian(t, 130*args.dt, 40*args.dt) * torch.sin(2*3.14 * t / 20 / args.dt)
 
-    x.to(args.dev)
+    
 
     pt_src = (21, 70)
     mask_src = torch.zeros(args.Nx, args.Ny, requires_grad=False)
@@ -57,12 +59,12 @@ if __name__ == '__main__':
     mask_probe = torch.zeros(args.Nx, args.Ny, requires_grad=False)
     mask_probe[pt_probe[0], pt_probe[1]] = 1
 
-    def integrate_probe(un):
-        return torch.sum(torch.abs(un * mask_probe).pow(2))
-
     # --- Define model
     wave_model = WaveCell(args.Nt, args.dt, args.Nx, args.Ny, h, mask_src, mask_probe, pml_max=3, pml_p=4.0, pml_N=20)
     wave_model.to(args.dev)
+
+    def integrate_probe(un):
+        return torch.sum(torch.abs(un * wave_model.mask_probe).pow(2))
 
     # --- Define optimizer
     wave_optimizer = torch.optim.LBFGS(wave_model.parameters(), lr=args.learning_rate)
