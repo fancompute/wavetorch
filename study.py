@@ -5,7 +5,7 @@ import matplotlib as mpl
 import torch
 from wavetorch.wave import WaveCell
 from wavetorch.src import src_gaussian
-from wavetorch.data import load_vowel
+from wavetorch.data import load_all_vowels
 
 import argparse
 import os
@@ -21,11 +21,17 @@ def plot_c(model):
 if __name__ == '__main__':
     # Parse command line arguments
     argparser = argparse.ArgumentParser()
-    argparser.add_argument('--N_epochs', type=int, default=1)
+    argparser.add_argument('--N_epochs', type=int, default=5)
     argparser.add_argument('--Nx', type=int, default=140)
-    argparser.add_argument('--Ny', type=int, default=140)
+    argparser.add_argument('--Ny', type=int, default=70)
     argparser.add_argument('--Nt', type=int, default=500)
-    argparser.add_argument('--dt', type=int, default=0.707)
+    argparser.add_argument('--dt', type=float, default=0.707)
+    argparser.add_argument('--probe_space', type=int, default=10)
+    argparser.add_argument('--probe_x', type=int, default=120)
+    argparser.add_argument('--probe_y', type=int, default=30)
+    argparser.add_argument('--src_x', type=int, default=21)
+    argparser.add_argument('--src_y', type=int, default=35)
+    argparser.add_argument('--sr', type=int, default=500)
     argparser.add_argument('--learning_rate', type=float, default=0.1)
     argparser.add_argument('--use-cuda', action='store_true')
     args = argparser.parse_args()
@@ -40,63 +46,58 @@ if __name__ == '__main__':
     h  = args.dt * 2.01 / 1.0
 
     # --- Calculate source
-    x, _ = load_vowel('a', sr=5000)
-    Nt = x.shape[0]
-    x = x.to(args.dev)
+    directories_str = ("./data/vowels/a", "./data/vowels/e/", "./data/vowels/o/")
 
-    # Nt = 500
-    # t = torch.arange(0.0, args.Nt*args.dt, args.dt)
-    # x = src_gaussian(t, 130*args.dt, 40*args.dt) * torch.sin(2*3.14 * t / 20 / args.dt)
+    x, y_true = load_all_vowels(directories_str, sr=args.sr, normalize=True)
+    N_classes = y_true.shape[1]
 
-    
-
-    pt_src = (21, 70)
     mask_src = torch.zeros(args.Nx, args.Ny, requires_grad=False)
-    mask_src[pt_src[0], pt_src[1]] = 1
+    mask_src[args.src_x, args.src_y] = 1
 
-    # --- Define probe and loss function
-    pt_probe = (119, 70)
-    mask_probe = torch.zeros(args.Nx, args.Ny, requires_grad=False)
-    mask_probe[pt_probe[0], pt_probe[1]] = 1
+    # --- Setup probe coords and loss func
+    probe_x = args.probe_x
+    probe_y = torch.arange(args.probe_y, args.probe_y + N_classes*args.probe_space, args.probe_space)
+
+    def integrate_probes(y):
+        return torch.sum(torch.abs(y[:,:,probe_x, probe_y]).pow(2), dim=1)
+
+    criterion = torch.nn.CrossEntropyLoss()
+    sm = torch.nn.Softmax()
 
     # --- Define model
-    wave_model = WaveCell(args.Nt, args.dt, args.Nx, args.Ny, h, mask_src, mask_probe, pml_max=3, pml_p=4.0, pml_N=20)
-    wave_model.to(args.dev)
+    model = WaveCell(args.dt, args.Nx, args.Ny, h, args.src_x, args.src_y, pml_max=3, pml_p=4.0, pml_N=20)
+    # model.to(args.dev)
 
-    def integrate_probe(un):
-        return torch.sum(torch.abs(un * wave_model.mask_probe).pow(2))
+    model.animate(x, batch_ind=0)
+    # # --- Define optimizer
+    # optimizer = torch.optim.LBFGS(model.parameters(), lr=args.learning_rate)
 
-    # --- Define optimizer
-    wave_optimizer = torch.optim.LBFGS(wave_model.parameters(), lr=args.learning_rate)
+    # #--- Define training function
+    # def train(x):
+    #     def closure():
+    #         optimizer.zero_grad()
+    #         y = model(x)
+    #         loss = criterion(integrate_probes(y), y_true.argmax(dim=1))
+    #         loss.backward()
+    #         return loss
 
-    # --- Define training function
-    def train(x):
-        def closure():
-            wave_model.zero_grad()
-            h1 = torch.zeros(wave_model.Nx, wave_model.Ny, device=args.dev).unsqueeze(0).unsqueeze(0)
-            h2 = torch.zeros(wave_model.Nx, wave_model.Ny, device=args.dev).unsqueeze(0).unsqueeze(0)
-            _, loss = wave_model(x, (h1, h2), loss_func=integrate_probe)
-            loss.backward()
-            return loss
+    #     loss = optimizer.step(closure)
 
-        loss = wave_optimizer.step(closure)
+    #     return loss
 
-        return loss
+    # # # --- Run training
+    # print("Training for %d epochs..." % args.N_epochs)
+    # t_start = time.time()
+    # for epoch in range(1, args.N_epochs + 1):
+    #     t_epoch = time.time()
 
-    # --- Run training
+    #     loss = train(x)
 
-    loss_avg = 0.0
-    print("Training for %d epochs..." % args.N_epochs)
-    t_start = time.time()
-    for epoch in range(1, args.N_epochs + 1):
-        t_epoch = time.time()
+    #     print('Epoch: %d/%d %d%%  |  %.1f sec  |  L = %.3e' % (epoch, args.N_epochs, epoch/args.N_epochs*100, time.time()-t_epoch, loss))
 
-        loss = train(x)
-        loss_avg += loss
+    # print('Total time: %.1f min' % ((time.time()-t_start)/60))
 
-        print('Epoch: %d/%d %d%%  |  %.1f sec  |  L = %.3e' % (epoch, args.N_epochs, epoch/args.N_epochs*100, time.time()-t_epoch, loss))
 
-    print('Total time: %.1f min' % ((time.time()-t_start)/60))
 
     # ani = wave_model.animate(x, block=False)
     # from matplotlib import animation
@@ -104,6 +105,6 @@ if __name__ == '__main__':
     # writer = Writer(fps=30, bitrate=256)
     # ani.save('test.mp4', writer=writer)
 
-    plot_c(wave_model)
+    # plot_c(model)
 
 
