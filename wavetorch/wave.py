@@ -33,11 +33,11 @@ class WaveCell(torch.nn.Module):
 
         b_x = torch.zeros(Nx, Ny, requires_grad=False)
         b_x[0:pml_N+1,   :] = torch.flip(b_vals, [0]).repeat(Ny,1).transpose(0, 1)
-        b_x[-pml_N-2:-1, :] = b_vals.repeat(Ny,1).transpose(0, 1)
+        b_x[(Nx-pml_N-1):Nx, :] = b_vals.repeat(Ny,1).transpose(0, 1)
 
         b_y = torch.zeros(Nx, Ny, requires_grad=False)
         b_y[:,   0:pml_N+1] = torch.flip(b_vals, [0]).repeat(Nx,1)
-        b_y[:, -pml_N-2:-1] = b_vals.repeat(Nx,1)
+        b_y[:, (Ny-pml_N-1):Ny] = b_vals.repeat(Nx,1)
 
         self.register_buffer("b", torch.sqrt( b_x**2 + b_y**2 ))
 
