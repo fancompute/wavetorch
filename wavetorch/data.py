@@ -19,19 +19,24 @@ def load_vowel(file, sr=None, normalize=True):
     return torch.tensor(data)
 
 
-def load_all_vowels(directories_str, sr=None, normalize=True):
+def load_all_vowels(directories_str, sr=None, normalize=True, num_of_each=1000):
     inputs = []
     labels = []
     for i, directory_str in enumerate(directories_str):
         directory = os.fsencode(directory_str)
         label = torch.eye(len(directories_str))[i]
 
+        num_this = 0
         for file in os.listdir(directory):
             filename = os.fsdecode(file)
             if filename.endswith(".wav"):
+                if num_this >= num_of_each:
+                    break
+
                 input = load_vowel(os.path.join(directory_str, filename), sr=sr, normalize=normalize)
                 inputs.append(input)
                 labels.append(label)
+                num_this += 1
                 continue
             else:
                 continue
