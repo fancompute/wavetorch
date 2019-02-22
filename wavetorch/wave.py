@@ -8,7 +8,7 @@ import numpy as np
 
 class WaveCell(torch.nn.Module):
 
-    def __init__(self, dt, Nx, Ny, h, src_x, src_y, c2=None, pml_N=20, pml_p=3.0, pml_max=0.5):
+    def __init__(self, dt, Nx, Ny, h, src_x, src_y, probe_x, probe_y, c2=None, pml_N=20, pml_p=3.0, pml_max=0.5):
         super(WaveCell, self).__init__()
 
         self.dt = dt
@@ -19,6 +19,8 @@ class WaveCell(torch.nn.Module):
 
         self.src_x = src_x
         self.src_y = src_y
+        self.probe_x = probe_x
+        self.probe_y = probe_y
 
         # c2 refers to the distribution of c^2 (the wave speed squared)
         # we use c^2 rather than c to save on autograd ops which perform squaring
@@ -70,6 +72,15 @@ class WaveCell(torch.nn.Module):
         un = torch.stack(un_all, dim=1)
 
         return un
+
+    def show(self, block=True):
+        fig, ax = plt.subplots(1,1)
+        h=ax.imshow(np.sqrt(self.c2.detach().numpy()).transpose(), origin="bottom")
+        plt.colorbar(h,ax=ax)
+        ax.contour(self.b.numpy().transpose()>0, levels=[0])
+        ax.plot(np.ones(len(self.probe_y)) * self.probe_x, self.probe_y.numpy(), "rs")
+        ax.plot(self.src_x, self.src_y, "ko")
+        plt.show(block=block)
 
     def animate(self, x, block=True, batch_ind=0):
         fig, ax = plt.subplots()

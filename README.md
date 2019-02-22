@@ -10,7 +10,7 @@ In this repo I am exploring the solution and optimization of the two-dimensional
 ## Example output
 
 ```
-> python ./study.py --sr 600
+> python ./study/train.py --sr 600
 Using CPU...
 Training for 5 epochs...
 Epoch: 1/5 20%  |  167.3 sec  |  L = 1.099e+00
