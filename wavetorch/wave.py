@@ -20,6 +20,8 @@ class WaveCell(torch.nn.Module):
         self.src_x = src_x
         self.src_y = src_y
 
+        # c2 refers to the distribution of c^2 (the wave speed squared)
+        # we use c^2 rather than c to save on autograd ops which perform squaring
         if c2 is None:
             c2 = torch.ones(Nx, Ny, requires_grad=True)
         self.c2  = torch.nn.Parameter(c2)
@@ -37,7 +39,7 @@ class WaveCell(torch.nn.Module):
 
         self.register_buffer("b", torch.sqrt( b_x**2 + b_y**2 ))
 
-        # Define the finite differencing coeffs for convenience
+        # Define the finite differencing coeffs (for convenience)
         self.register_buffer("A1", (self.dt**(-2) + self.b * 0.5 * self.dt**(-1)).pow(-1))
         self.register_buffer("A2", torch.tensor(2 * self.dt**(-2)))
         self.register_buffer("A3", self.dt**(-2) - self.b * 0.5 * self.dt**(-1))
