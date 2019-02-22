@@ -6,8 +6,14 @@ import torch
 from wavetorch.wave import WaveCell
 from wavetorch.data import load_all_vowels
 
+from torch.utils.data import TensorDataset, random_split, DataLoader
+
 import argparse
 import time
+
+def accuracy(out, yb):
+    preds = torch.argmax(out, dim=1)
+    return (preds == yb).float().mean()
 
 # Plot the final c distribution, which is the local propagation speed
 def plot_c(model):       
@@ -28,8 +34,11 @@ if __name__ == '__main__':
     argparser.add_argument('--probe_y', type=int, default=25)
     argparser.add_argument('--src_x', type=int, default=21)
     argparser.add_argument('--src_y', type=int, default=35)
-    argparser.add_argument('--sr', type=int, default=1500)
-    argparser.add_argument('--learning_rate', type=float, default=0.1)
+    argparser.add_argument('--sr', type=int, default=3000)
+    argparser.add_argument('--learning_rate', type=float, default=0.01)
+    argparser.add_argument('--ratio_train', type=float, default=0.5)
+    argparser.add_argument('--batch_size', type=int, default=10)
+    argparser.add_argument('--num_of_each', type=int, default=2)
     argparser.add_argument('--use-cuda', action='store_true')
     args = argparser.parse_args()
 
@@ -42,14 +51,18 @@ if __name__ == '__main__':
 
     h  = args.dt * 2.01 / 1.0
 
-    directories_str = ("./data/vowels/a",
+    directories_str = ("./data/vowels/a/",
                        "./data/vowels/e/",
                        "./data/vowels/o/")
 
-    x, y_true = load_all_vowels(directories_str, sr=args.sr, normalize=True)
-    N_classes = y_true.shape[1]
-    x = x[[1,46,91],:]
-    y_true = y_true[[1,46,91],:]
+    x, y_labels = load_all_vowels(directories_str, sr=args.sr, normalize=True, num_of_each=args.num_of_each)
+    N_samples, N_classes = y_labels.shape
+
+    full_ds = TensorDataset(x, y_labels)
+    train_ds, test_ds = random_split(full_ds, [int(args.ratio_train*N_samples), N_samples-int(args.ratio_train*N_samples)])
+
+    train_dl = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True)
+    test_dl = DataLoader(test_ds, batch_size=args.batch_size)
 
     # --- Setup probe coords and loss func
     probe_x = args.probe_x
@@ -64,34 +77,50 @@ if __name__ == '__main__':
     model = WaveCell(args.dt, args.Nx, args.Ny, h, args.src_x, args.src_y, probe_x, probe_y, pml_max=3, pml_p=4.0, pml_N=20)
     model.to(args.dev)
 
-    model.show()
+    # model.show()
 
     # --- Define optimizer
     optimizer = torch.optim.LBFGS(model.parameters(), lr=args.learning_rate)
 
-    #--- Define training function
-    def train(x):
-        def closure():
-            optimizer.zero_grad()
-            y = model(x)
-            loss = criterion(integrate_probes(y), y_true.argmax(dim=1))
-            loss.backward()
-            return loss
-
-        loss = optimizer.step(closure)
-
-        return loss
-
     # --- Run training
-    print("Training for %d epochs..." % args.N_epochs)
+    print("Using a sample rate of %d Hz (sequence length of %d)" % (args.sr, x.shape[1]))
+    print("Using %d total samples (%d of each vowel)" % (len(train_ds)+len(test_ds), args.num_of_each) )
+    print("   %d for training" % len(train_ds))
+    print("   %d for validation" % len(test_ds))
+    print(" --- ")
+    print("Now begining training for %d epochs ..." % args.N_epochs)
     t_start = time.time()
     for epoch in range(1, args.N_epochs + 1):
         t_epoch = time.time()
 
-        loss = train(x)
+        loss_batches = []
+        test_acc = []
+        train_acc = []
 
-        print('Epoch: %d/%d %d%%  |  %.1f sec  |  L = %.3e' % (epoch, args.N_epochs, epoch/args.N_epochs*100, time.time()-t_epoch, loss))
+        for xb, yb in train_dl:
+            def closure():
+                optimizer.zero_grad()
+                loss = criterion(integrate_probes(model(xb)), yb.argmax(dim=1))
+                loss.backward()
+                return loss
 
+            # Track loss
+            loss = optimizer.step(closure)
+            loss_batches.append(loss.item())
+
+            # Track train accuracy
+            with torch.no_grad():
+                train_acc.append( accuracy(integrate_probes(model(xb)), yb.argmax(dim=1)) )
+
+        # Track test accuracy
+        with torch.no_grad():
+            for xb, yb in test_dl:
+                test_acc.append( accuracy(integrate_probes(model(xb)), yb.argmax(dim=1)) )
+
+        print('Epoch: %2d/%2d  %.1f sec  |  L = %.3e ,  train_acc = %0.3f ,  val_acc = %.3f ' % 
+            (epoch, args.N_epochs, time.time()-t_epoch, np.mean(loss_batches), np.mean(train_acc), np.mean(test_acc)))
+
+    print(" --- ")
     print('Total time: %.1f min' % ((time.time()-t_start)/60))
 
     model.show()
