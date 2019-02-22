@@ -51,9 +51,6 @@ if __name__ == '__main__':
     x, y_true = load_all_vowels(directories_str, sr=args.sr, normalize=True)
     N_classes = y_true.shape[1]
 
-    mask_src = torch.zeros(args.Nx, args.Ny, requires_grad=False)
-    mask_src[args.src_x, args.src_y] = 1
-
     # --- Setup probe coords and loss func
     probe_x = args.probe_x
     probe_y = torch.arange(args.probe_y, args.probe_y + N_classes*args.probe_space, args.probe_space)
@@ -62,11 +59,10 @@ if __name__ == '__main__':
         return torch.sum(torch.abs(y[:,:,probe_x, probe_y]).pow(2), dim=1)
 
     criterion = torch.nn.CrossEntropyLoss()
-    sm = torch.nn.Softmax()
 
     # --- Define model
     model = WaveCell(args.dt, args.Nx, args.Ny, h, args.src_x, args.src_y, pml_max=3, pml_p=4.0, pml_N=20)
-    # model.to(args.dev)
+    model.to(args.dev)
 
     model.animate(x, batch_ind=0, block=True)
 
