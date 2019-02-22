@@ -68,43 +68,32 @@ if __name__ == '__main__':
     model = WaveCell(args.dt, args.Nx, args.Ny, h, args.src_x, args.src_y, pml_max=3, pml_p=4.0, pml_N=20)
     # model.to(args.dev)
 
-    model.animate(x, batch_ind=0)
-    # # --- Define optimizer
-    # optimizer = torch.optim.LBFGS(model.parameters(), lr=args.learning_rate)
+    model.animate(x, batch_ind=0, block=True)
 
-    # #--- Define training function
-    # def train(x):
-    #     def closure():
-    #         optimizer.zero_grad()
-    #         y = model(x)
-    #         loss = criterion(integrate_probes(y), y_true.argmax(dim=1))
-    #         loss.backward()
-    #         return loss
+    # --- Define optimizer
+    optimizer = torch.optim.LBFGS(model.parameters(), lr=args.learning_rate)
 
-    #     loss = optimizer.step(closure)
+    #--- Define training function
+    def train(x):
+        def closure():
+            optimizer.zero_grad()
+            y = model(x)
+            loss = criterion(integrate_probes(y), y_true.argmax(dim=1))
+            loss.backward()
+            return loss
 
-    #     return loss
+        loss = optimizer.step(closure)
 
-    # # # --- Run training
-    # print("Training for %d epochs..." % args.N_epochs)
-    # t_start = time.time()
-    # for epoch in range(1, args.N_epochs + 1):
-    #     t_epoch = time.time()
+        return loss
 
-    #     loss = train(x)
+    # --- Run training
+    print("Training for %d epochs..." % args.N_epochs)
+    t_start = time.time()
+    for epoch in range(1, args.N_epochs + 1):
+        t_epoch = time.time()
 
-    #     print('Epoch: %d/%d %d%%  |  %.1f sec  |  L = %.3e' % (epoch, args.N_epochs, epoch/args.N_epochs*100, time.time()-t_epoch, loss))
+        loss = train(x)
 
-    # print('Total time: %.1f min' % ((time.time()-t_start)/60))
+        print('Epoch: %d/%d %d%%  |  %.1f sec  |  L = %.3e' % (epoch, args.N_epochs, epoch/args.N_epochs*100, time.time()-t_epoch, loss))
 
-
-
-    # ani = wave_model.animate(x, block=False)
-    # from matplotlib import animation
-    # Writer = animation.writers['ffmpeg']
-    # writer = Writer(fps=30, bitrate=256)
-    # ani.save('test.mp4', writer=writer)
-
-    # plot_c(model)
-
-
+    print('Total time: %.1f min' % ((time.time()-t_start)/60))
