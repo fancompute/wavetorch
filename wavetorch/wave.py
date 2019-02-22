@@ -61,8 +61,9 @@ class WaveCell(torch.nn.Module):
 
     def forward(self, x):
         batch_size = x.shape[0]
-        un1 = torch.zeros(batch_size, self.Nx, self.Ny)
-        un2 = torch.zeros(batch_size, self.Nx, self.Ny)
+        device = "cuda" if next(self.parameters()).is_cuda else "cpu"
+        un1 = torch.zeros(batch_size, self.Nx, self.Ny, device=device)
+        un2 = torch.zeros(batch_size, self.Nx, self.Ny, device=device)
         un_all = []
 
         for i, xi in enumerate(x.chunk(x.size(1), dim=1)):

@@ -13,7 +13,7 @@ import time
 
 def accuracy(out, yb):
     preds = torch.argmax(out, dim=1)
-    return (preds == yb).float().mean()
+    return (preds == yb).float().mean().item()
 
 # Plot the final c distribution, which is the local propagation speed
 def plot_c(model):       
@@ -80,7 +80,7 @@ if __name__ == '__main__':
     model = WaveCell(args.dt, args.Nx, args.Ny, h, args.src_x, args.src_y, probe_x, probe_y, pml_max=3, pml_p=4.0, pml_N=20)
     model.to(args.dev)
 
-    model.animate(x)
+    #model.animate(x)
 
     # --- Define optimizer
     optimizer = torch.optim.LBFGS(model.parameters(), lr=args.learning_rate)
@@ -128,4 +128,4 @@ if __name__ == '__main__':
     print(" --- ")
     print('Total time: %.1f min' % ((time.time()-t_start)/60))
 
-    model.show()
+    #model.show()
