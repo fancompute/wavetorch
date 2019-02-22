@@ -58,6 +58,9 @@ if __name__ == '__main__':
     x, y_labels = load_all_vowels(directories_str, sr=args.sr, normalize=True, num_of_each=args.num_of_each)
     N_samples, N_classes = y_labels.shape
 
+    x = x.to(args.dev)
+    y_labels = y_labels.to(args.dev)
+
     full_ds = TensorDataset(x, y_labels)
     train_ds, test_ds = random_split(full_ds, [int(args.ratio_train*N_samples), N_samples-int(args.ratio_train*N_samples)])
 
