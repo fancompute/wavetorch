@@ -101,6 +101,8 @@ if __name__ == '__main__':
             def closure():
                 optimizer.zero_grad()
                 loss = criterion(integrate_probes(model(xb)), yb.argmax(dim=1))
+                loss += torch.sum(model.c2 < 0.1**2) + 1.0
+                loss += torch.sum(model.c2 > 1.1**2) + 1.0
                 loss.backward()
                 return loss
 
@@ -117,7 +119,7 @@ if __name__ == '__main__':
             for xb, yb in test_dl:
                 test_acc.append( accuracy(integrate_probes(model(xb)), yb.argmax(dim=1)) )
 
-        print('Epoch: %2d/%2d  %.1f sec  |  L = %.3e ,  train_acc = %0.3f ,  val_acc = %.3f ' % 
+        print('Epoch: %2d/%2d  %4.1f sec  |  L = %.3e ,  train_acc = %0.3f ,  val_acc = %.3f ' % 
             (epoch, args.N_epochs, time.time()-t_epoch, np.mean(loss_batches), np.mean(train_acc), np.mean(test_acc)))
 
     print(" --- ")
