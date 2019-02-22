@@ -26,15 +26,15 @@ if __name__ == '__main__':
     # Parse command line arguments
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--N_epochs', type=int, default=5)
-    argparser.add_argument('--Nx', type=int, default=140)
-    argparser.add_argument('--Ny', type=int, default=70)
+    argparser.add_argument('--Nx', type=int, default=160)
+    argparser.add_argument('--Ny', type=int, default=90)
     argparser.add_argument('--dt', type=float, default=0.707)
-    argparser.add_argument('--probe_space', type=int, default=10)
-    argparser.add_argument('--probe_x', type=int, default=115)
-    argparser.add_argument('--probe_y', type=int, default=25)
-    argparser.add_argument('--src_x', type=int, default=21)
-    argparser.add_argument('--src_y', type=int, default=35)
-    argparser.add_argument('--sr', type=int, default=3000)
+    argparser.add_argument('--probe_space', type=int, default=15)
+    argparser.add_argument('--probe_x', type=int, default=110)
+    argparser.add_argument('--probe_y', type=int, default=30)
+    argparser.add_argument('--src_x', type=int, default=40)
+    argparser.add_argument('--src_y', type=int, default=45)
+    argparser.add_argument('--sr', type=int, default=5000)
     argparser.add_argument('--learning_rate', type=float, default=0.01)
     argparser.add_argument('--ratio_train', type=float, default=0.5)
     argparser.add_argument('--batch_size', type=int, default=10)
@@ -77,7 +77,7 @@ if __name__ == '__main__':
     model = WaveCell(args.dt, args.Nx, args.Ny, h, args.src_x, args.src_y, probe_x, probe_y, pml_max=3, pml_p=4.0, pml_N=20)
     model.to(args.dev)
 
-    # model.show()
+    model.animate(x)
 
     # --- Define optimizer
     optimizer = torch.optim.LBFGS(model.parameters(), lr=args.learning_rate)
@@ -101,8 +101,8 @@ if __name__ == '__main__':
             def closure():
                 optimizer.zero_grad()
                 loss = criterion(integrate_probes(model(xb)), yb.argmax(dim=1))
-                loss += torch.sum(model.c2 < 0.1**2) + 1.0
-                loss += torch.sum(model.c2 > 1.1**2) + 1.0
+                # loss += torch.sum(model.c2 < 0.1**2) + 1.0
+                # loss += torch.sum(model.c2 > 1.1**2) + 1.0
                 loss.backward()
                 return loss
 
