@@ -80,6 +80,7 @@ class WaveCell(torch.nn.Module):
         ax.contour(self.b.numpy().transpose()>0, levels=[0])
         ax.plot(np.ones(len(self.probe_y)) * self.probe_x, self.probe_y.numpy(), "rs")
         ax.plot(self.src_x, self.src_y, "ko")
+        ax.set_title("Wave speed ($c$)")
         plt.show(block=block)
 
     def animate(self, x, block=True, batch_ind=0):
