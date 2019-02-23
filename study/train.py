@@ -7,7 +7,7 @@ from wavetorch.wave import WaveCell
 from wavetorch.data import load_all_vowels
 
 from torch.utils.data import TensorDataset, random_split, DataLoader
-
+from torch.nn.functional import pad
 import argparse
 import time
 
@@ -39,6 +39,7 @@ if __name__ == '__main__':
     argparser.add_argument('--ratio_train', type=float, default=0.5)
     argparser.add_argument('--batch_size', type=int, default=10)
     argparser.add_argument('--num_of_each', type=int, default=2)
+    argparser.add_argument('--pad_fact', type=float, default=1.0)
     argparser.add_argument('--use-cuda', action='store_true')
     args = argparser.parse_args()
 
@@ -56,6 +57,7 @@ if __name__ == '__main__':
                        "./data/vowels/o/")
 
     x, y_labels = load_all_vowels(directories_str, sr=args.sr, normalize=True, num_of_each=args.num_of_each)
+    x = pad(x, (1, int(x.shape[1] * args.pad_fact)))
     N_samples, N_classes = y_labels.shape
 
     x = x.to(args.dev)
