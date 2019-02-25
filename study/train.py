@@ -39,9 +39,12 @@ if __name__ == '__main__':
     argparser.add_argument('--ratio_train', type=float, default=0.5)
     argparser.add_argument('--batch_size', type=int, default=10)
     argparser.add_argument('--num_of_each', type=int, default=2)
+    argparser.add_argument('--num_threads', type=int, default=4)
     argparser.add_argument('--pad_fact', type=float, default=1.0)
     argparser.add_argument('--use-cuda', action='store_true')
     args = argparser.parse_args()
+
+    torch.set_num_threads(args.num_threads)
 
     if args.use_cuda and torch.cuda.is_available():
         print("Using GPU...")
