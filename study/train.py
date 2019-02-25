@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 
 import torch
+from wavetorch.optim import LBFGS
 from wavetorch.wave import WaveCell
 from wavetorch.data import load_all_vowels
 
@@ -74,7 +75,8 @@ if __name__ == '__main__':
     probe_y = torch.arange(args.probe_y, args.probe_y + N_classes*args.probe_space, args.probe_space)
 
     def integrate_probes(y):
-        return torch.sum(torch.abs(y[:,:,probe_x, probe_y]).pow(2), dim=1)
+        I = torch.sum(torch.abs(y[:,:,probe_x, probe_y]).pow(2), dim=1)
+        return I / torch.sum(I, dim=1, keepdim=True)
 
     criterion = torch.nn.CrossEntropyLoss()
 
@@ -85,7 +87,19 @@ if __name__ == '__main__':
     #model.animate(x)
 
     # --- Define optimizer
-    optimizer = torch.optim.LBFGS(model.parameters(), lr=args.learning_rate)
+    # c2_lb = c2_ub = torch.ones(args.Nx, args.Ny)
+    # c2_lb[model.b == 0] = 0.1**2
+    # c2_ub[model.b == 0] = 1.1**2
+
+    c2_lb = torch.ones(args.Nx, args.Ny) * 0.1**2
+    c2_ub = torch.ones(args.Nx, args.Ny) * 1.1**2
+
+    # optimizer = LBFGS(model.parameters(),
+    #                   lr=args.learning_rate, 
+    #                   line_search_fn='weak_wolfe', 
+    #                   bounds=[(c2_lb, c2_ub)])
+    # optimizer = torch.optim.LBFGS(model.parameters(), lr=args.learning_rate)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
     # --- Run training
     print("Using a sample rate of %d Hz (sequence length of %d)" % (args.sr, x.shape[1]))
