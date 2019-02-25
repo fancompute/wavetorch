@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 
 import torch
-from wavetorch.optim import LBFGS
 from wavetorch.wave import WaveCell
 from wavetorch.data import load_all_vowels
 
