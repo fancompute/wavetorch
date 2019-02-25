@@ -75,8 +75,7 @@ if __name__ == '__main__':
         y_pred = torch.cat(list_yb_pred, dim=0)
         y_truth = torch.cat(list_yb, dim=0)
 
-        cm = confusion_matrix(y_truth.argmax(dim=1).numpy(), y_pred.argmax(dim=1).numpy())
-        cm_train = cm / cm.sum(axis=1).transpose()
+        cm_train = confusion_matrix(y_truth.argmax(dim=1).numpy(), y_pred.argmax(dim=1).numpy())
 
         list_yb_pred = []
         list_yb = []
@@ -91,11 +90,11 @@ if __name__ == '__main__':
         y_pred = torch.cat(list_yb_pred, dim=0)
         y_truth = torch.cat(list_yb, dim=0)
 
-        cm = confusion_matrix(y_truth.argmax(dim=1).numpy(), y_pred.argmax(dim=1).numpy())
-        cm_test = cm / cm.sum(axis=1).transpose()
+        cm_test = confusion_matrix(y_truth.argmax(dim=1).numpy(), y_pred.argmax(dim=1).numpy())
 
-    plot_cm(cm_train, title="Training")
-    plot_cm(cm_test, title="Validation")
+    fig, axs = plt.subplots(2, 1, constrained_layout=True, figsize=(3,6))
+    plot_cm(cm_train, title="Training", normalize=True, ax=axs[0])
+    plot_cm(cm_test, title="Validation", normalize=True, ax=axs[1])
     plt.show()
 
 
