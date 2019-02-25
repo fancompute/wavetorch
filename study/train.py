@@ -145,5 +145,13 @@ if __name__ == '__main__':
 
     print(" --- ")
     print('Total time: %.1f min' % ((time.time()-t_start)/60))
-
+    
+    str_filedir = "./trained/"
+    str_filename = "model-" + time.strftime("%Y_%m_%d-%H_%M_%S") + ".pt"
+    if not os.path.exists(str_filedir):
+        os.makedirs(str_filedir)
+    str_savepath = str_filedir + str_filename
+    print("Saving model file as %s" % str_savepath)
+    torch.save(model, str_savepath)
+    
     #model.show()
