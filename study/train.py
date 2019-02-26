@@ -83,12 +83,17 @@ if __name__ == '__main__':
     print(" --- ")
     print("Now begining training for %d epochs ..." % args.N_epochs)
     t_start = time.time()
+
+    hist_loss_batches = []
+    hist_test_acc = []
+    hist_train_acc = []
+
     for epoch in range(1, args.N_epochs + 1):
         t_epoch = time.time()
 
-        loss_batches = []
-        test_acc = []
-        train_acc = []
+        loss_batches_ep = []
+        test_acc_ep = []
+        train_acc_ep = []
 
         for xb, yb in train_dl:
             def closure():
@@ -99,19 +104,23 @@ if __name__ == '__main__':
 
             # Track loss
             loss = optimizer.step(closure)
-            loss_batches.append(loss.item())
+            loss_batches_ep.append(loss.item())
 
             # Track train accuracy
             with torch.no_grad():
-                train_acc.append( accuracy(model(xb), yb.argmax(dim=1)) )
+                train_acc_ep.append( accuracy(model(xb), yb.argmax(dim=1)) )
 
         # Track test accuracy
         with torch.no_grad():
             for xb, yb in test_dl:
-                test_acc.append( accuracy(model(xb), yb.argmax(dim=1)) )
+                test_acc_ep.append( accuracy(model(xb), yb.argmax(dim=1)) )
+
+        hist_loss_batches.append(np.mean(loss_batches_ep))
+        hist_test_acc.append(np.mean(test_acc_ep))
+        hist_train_acc.append(np.mean(train_acc_ep))
 
         print('Epoch: %2d/%2d  %4.1f sec  |  L = %.3e ,  train_acc = %0.3f ,  val_acc = %.3f ' % 
-            (epoch, args.N_epochs, time.time()-t_epoch, np.mean(loss_batches), np.mean(train_acc), np.mean(test_acc)))
+            (epoch, args.N_epochs, time.time()-t_epoch, hist_loss_batches[-1], hist_test_acc[-1], hist_train_acc[-1]))
 
     print(" --- ")
     print('Total time: %.1f min' % ((time.time()-t_start)/60))
