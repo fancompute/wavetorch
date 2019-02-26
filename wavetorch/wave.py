@@ -70,8 +70,10 @@ class WaveCell(torch.nn.Module):
         y = torch.stack(y_all, dim=1)
 
         if probe_output:
+            # Return only the one-hot output
             return self.integrate_probe_points(self.probe_x, self.probe_y, y)
         else:
+            # Return the full field distribution in time
             return y
 
     @staticmethod
