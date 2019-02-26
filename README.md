@@ -1,17 +1,23 @@
 # wavetorch
 
-In this repository I am exploring the solution and optimization (learning) on the two-dimensional scalar wave equation with pytorch.
+## Overview
 
-## Contents
+This package is for solving and optimizing (learning) on the two-dimensional (2D) scalar wave equation. Vowel data from [Prof. James Hillenbrand](https://homepages.wmich.edu/~hillenbr/voweldata.html) is in `data/`, study scripts are in `study/`, and the package itself is in `wavetorch/`. This package uses `pytorch` to perform the optimization and gradient calculations.
 
-The following study scripts represent different entry points to the code.
+The best entry points are the study scripts which are described in the section below.
+
+## Formulation
+
+TODO.
+
+## Studies
 
  * `study/train.py` - Primary script for training on vowel recognition
  * `study/inference.py` - Script for performing inference from saved trained models
  * `study/vanilla_rnn.py` - Testing a vanilla RNN on the vowel recognition task (not working and very sensitive to weight initialization)
  * `study/propagation.py` - For performing basic solves of propagating waves
 
-## Example
+### Example
 
 Below is an example of running `train/train.py` from `ipython`.
 
