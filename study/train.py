@@ -10,6 +10,7 @@ from torch.utils.data import TensorDataset, random_split, DataLoader
 from torch.nn.functional import pad
 import argparse
 import time
+import os
 
 def accuracy(out, yb):
     preds = torch.argmax(out, dim=1)
