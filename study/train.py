@@ -3,25 +3,14 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 
 import torch
-from wavetorch.wave import WaveCell
-from wavetorch.data import load_all_vowels
-
 from torch.utils.data import TensorDataset, random_split, DataLoader
 from torch.nn.functional import pad
+
+from wavetorch import *
+
 import argparse
 import time
 import os
-
-def accuracy(out, yb):
-    preds = torch.argmax(out, dim=1)
-    return (preds == yb).float().mean().item()
-
-# Plot the final c distribution, which is the local propagation speed
-def plot_c(model):       
-    plt.figure()
-    plt.imshow(np.sqrt(model.c2.detach().numpy()).transpose())
-    plt.colorbar()
-    plt.show(block=False)
 
 if __name__ == '__main__':
     # Parse command line arguments
@@ -87,21 +76,7 @@ if __name__ == '__main__':
     model = WaveCell(args.dt, args.Nx, args.Ny, h, args.src_x, args.src_y, probe_x, probe_y, pml_max=3, pml_p=4.0, pml_N=20)
     model.to(args.dev)
 
-    #model.animate(x)
-
     # --- Define optimizer
-    # c2_lb = c2_ub = torch.ones(args.Nx, args.Ny)
-    # c2_lb[model.b == 0] = 0.1**2
-    # c2_ub[model.b == 0] = 1.1**2
-
-    c2_lb = torch.ones(args.Nx, args.Ny) * 0.1**2
-    c2_ub = torch.ones(args.Nx, args.Ny) * 1.1**2
-
-    # optimizer = LBFGS(model.parameters(),
-    #                   lr=args.learning_rate, 
-    #                   line_search_fn='weak_wolfe', 
-    #                   bounds=[(c2_lb, c2_ub)])
-    # optimizer = torch.optim.LBFGS(model.parameters(), lr=args.learning_rate)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
     # --- Run training
@@ -123,8 +98,6 @@ if __name__ == '__main__':
             def closure():
                 optimizer.zero_grad()
                 loss = criterion(integrate_probes(model(xb)), yb.argmax(dim=1))
-                # loss += torch.sum(model.c2 < 0.1**2) + 1.0
-                # loss += torch.sum(model.c2 > 1.1**2) + 1.0
                 loss.backward()
                 return loss
 
@@ -147,6 +120,7 @@ if __name__ == '__main__':
     print(" --- ")
     print('Total time: %.1f min' % ((time.time()-t_start)/60))
     
+    # Save model
     str_filedir = "./trained/"
     str_filename = "model-" + time.strftime("%Y_%m_%d-%H_%M_%S") + ".pt"
     if not os.path.exists(str_filedir):
@@ -155,4 +129,11 @@ if __name__ == '__main__':
     print("Saving model file as %s" % str_savepath)
     torch.save(model, str_savepath)
     
-    #model.show()
+    # Get CM
+    cm_train, cm_test = calc_cm(model, train_dl, test_dl)
+
+    print("Training CM")
+    print(cm_train)
+
+    print("Validation CM")
+    print(cm_test)

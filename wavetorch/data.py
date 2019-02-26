@@ -3,7 +3,6 @@ import librosa
 import numpy as np
 import os
 
-
 def normalize_vowel(wav_data):
     total_power = np.square(wav_data).sum()
 

@@ -1,6 +1,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 import seaborn as sns
+
+def plot_c(model):       
+    plt.figure()
+    plt.imshow(np.sqrt(model.c2.detach().numpy()).transpose())
+    plt.colorbar()
+    plt.show(block=False)
+
 
 def plot_total_field(yb):
     with torch.no_grad():
@@ -17,6 +25,7 @@ def plot_total_field(yb):
         plt.title(r"$\int \vert u{\left(x, y, t\right)} \vert^2\ dt$")
         plt.colorbar(h, extend='min')
         plt.show(block=False)
+
 
 def plot_cm(cm, ax=None, figsize=(4,4), title=None, normalize=False, labels="auto"):
     N_classes = cm.shape[0]
@@ -65,3 +74,41 @@ def plot_cm(cm, ax=None, figsize=(4,4), title=None, normalize=False, labels="aut
 
     if title is not None:
         ax.set_title(title)
+
+
+def model_show(model, block=True):
+    fig, ax = plt.subplots(1,1,figsize=(6,3))
+    h=ax.imshow(np.sqrt(model.c2.detach().numpy()).transpose(), origin="bottom", rasterized=True)
+    plt.colorbar(h,ax=ax,label="wave speed $c{(x,y)}$")
+    ax.contour(model.b.numpy().transpose()>0, levels=[0])
+    ax.plot(np.ones(len(model.probe_y)) * model.probe_x, model.probe_y.numpy(), "rs")
+    ax.plot(model.src_x, model.src_y, "ko")
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    plt.show(block=block)
+
+
+def model_animate(model, x, block=True, batch_ind=0, filename=None, interval=1, fps=30, bitrate=768):
+    fig, ax = plt.subplots()
+
+    ims = []
+    with torch.no_grad():
+        print("animate: Running forward pass...")
+        y = model.forward(x[batch_ind].unsqueeze(0))
+
+    y_max = torch.max(y).item()
+    print("animate: Making frames...")
+    for i in range(0, y.shape[1]):
+        print("animate: frame %d" % i)
+        im = plt.imshow(y[0,i,:,:].numpy().transpose(), cmap=plt.cm.RdBu, animated=True, vmin=-y_max, vmax=+y_max, origin="bottom")
+        ims.append([im])
+
+    print("animate: Writing...")
+    ani = animation.ArtistAnimation(fig, ims, interval=interval, blit=True, repeat_delay=1000)
+
+    if filename is not None:
+        Writer = animation.writers['ffmpeg']
+        ani.save(filename, writer=Writer(fps=fps, bitrate=bitrate))
+        plt.close(fig)
+    else:
+        plt.show(block=block)

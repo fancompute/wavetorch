@@ -2,28 +2,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 
-import torch
-from wavetorch.wave import WaveCell
-from wavetorch.data import load_all_vowels
-from wavetorch.plot import plot_cm
-
-from torch.utils.data import TensorDataset, random_split, DataLoader
-from torch.nn.functional import pad
-import argparse
-import time
-
 from sklearn.metrics import confusion_matrix
 
-def accuracy(out, yb):
-    preds = torch.argmax(out, dim=1)
-    return (preds == yb).float().mean().item()
+import torch
+from torch.utils.data import TensorDataset, random_split, DataLoader
+from torch.nn.functional import pad
 
-# Plot the final c distribution, which is the local propagation speed
-def plot_c(model):       
-    plt.figure()
-    plt.imshow(np.sqrt(model.c2.detach().numpy()).transpose())
-    plt.colorbar()
-    plt.show(block=False)
+from wavetorch import *
+
+import argparse
+import time
+import os
 
 if __name__ == '__main__':
     # Parse command line arguments
@@ -57,45 +46,10 @@ if __name__ == '__main__':
     train_dl = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True)
     test_dl = DataLoader(test_ds, batch_size=args.batch_size)
 
-    def integrate_probes(y):
-        I = torch.sum(torch.abs(y[:, :, model.probe_x, model.probe_y]).pow(2), dim=1)
-        return I / torch.sum(I, dim=1, keepdim=True)
-
-    with torch.no_grad():
-        list_yb_pred = []
-        list_yb = []
-        i = 1
-        for xb, yb in train_dl:
-            yb_pred = integrate_probes(model(xb))
-            list_yb_pred.append(yb_pred)
-            list_yb.append(yb)
-            print("Processing training batch %d" % i)
-            i += 1
-
-        y_pred = torch.cat(list_yb_pred, dim=0)
-        y_truth = torch.cat(list_yb, dim=0)
-
-        cm_train = confusion_matrix(y_truth.argmax(dim=1).numpy(), y_pred.argmax(dim=1).numpy())
-
-        list_yb_pred = []
-        list_yb = []
-        i = 1
-        for xb, yb in test_dl:
-            yb_pred = integrate_probes(model(xb))
-            list_yb_pred.append(yb_pred)
-            list_yb.append(yb)
-            print("Processing validation batch %d" % i)
-            i += 1
-
-        y_pred = torch.cat(list_yb_pred, dim=0)
-        y_truth = torch.cat(list_yb, dim=0)
-
-        cm_test = confusion_matrix(y_truth.argmax(dim=1).numpy(), y_pred.argmax(dim=1).numpy())
+    cm_train, cm_test = calc_cm(model, train_dl, test_dl)
 
     fig, axs = plt.subplots(1, 2, constrained_layout=True, figsize=(6,3))
     plot_cm(cm_train, title="Training", normalize=True, ax=axs[0], labels=["a", "e", "o"])
     plot_cm(cm_test, title="Validation", normalize=True, ax=axs[1], labels=["a", "e", "o"])
     plt.show(block=False)
     fig.savefig("cm.svg")
-
-
