@@ -6,17 +6,17 @@ In this repository I am exploring the solution and optimization (learning) on th
 
 The following study scripts represent different entry points to the code.
 
- * `train/train.py` - Primary script for training on vowel recognition
- * `train/inference.py` - Script for performing inference from saved trained models
- * `train/vanilla_rnn.py` - Testing a vanilla RNN on the vowel recognition task (not working and very sensitive to weight initialization)
- * `train/propagation.py` - For performing basic solves of propagating waves
+ * `study/train.py` - Primary script for training on vowel recognition
+ * `study/inference.py` - Script for performing inference from saved trained models
+ * `study/vanilla_rnn.py` - Testing a vanilla RNN on the vowel recognition task (not working and very sensitive to weight initialization)
+ * `study/propagation.py` - For performing basic solves of propagating waves
 
 ## Example
 
 Below is an example of running `train/train.py` from `ipython`.
 
 ```
-In [1]: %run ./study/train.py --N_epochs 10 --num_of_each 36 --learning_rate 0.01 --sr 5000 --ratio_train 0.5 --num_threads 16 --batch_size 9
+%run ./study/train.py --N_epochs 10 --num_of_each 36 --learning_rate 0.01 --sr 5000 --ratio_train 0.5 --num_threads 16 --batch_size 9
 ```
 
 ```
