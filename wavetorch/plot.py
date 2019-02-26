@@ -2,7 +2,23 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-def plot_cm(cm, ax=None, figsize=(4,4), title=None, normalize=False):
+def plot_total_field(yb):
+    with torch.no_grad():
+        y_tot = torch.abs(yb).pow(2).sum(dim=1)
+
+    for batch_ind in range(0, y_tot.shape[0]):
+        plt.figure(constrained_layout=True)
+        Z = y_tot[batch_ind,:,:].numpy().transpose()
+        Z = Z / Z.max()
+        h = plt.imshow(Z, 
+                       cmap=plt.cm.inferno, 
+                       origin="bottom", 
+                       norm=mpl.colors.LogNorm(vmin=1e-3, vmax=1.0))
+        plt.title(r"$\int \vert u{\left(x, y, t\right)} \vert^2\ dt$")
+        plt.colorbar(h, extend='min')
+        plt.show(block=False)
+
+def plot_cm(cm, ax=None, figsize=(4,4), title=None, normalize=False, labels="auto"):
     N_classes = cm.shape[0]
 
     if normalize:
@@ -28,7 +44,9 @@ def plot_cm(cm, ax=None, figsize=(4,4), title=None, normalize=False):
                 cbar=False,
                 mask=mask1,
                 ax=ax,
-                linecolor="#ffffff")
+                linecolor="#ffffff",
+                xticklabels=labels,
+                yticklabels=labels)
 
     sns.heatmap(cm,
                 fmt=".1f",
@@ -38,7 +56,9 @@ def plot_cm(cm, ax=None, figsize=(4,4), title=None, normalize=False):
                 cbar=False,
                 mask=mask2,
                 ax=ax,
-                linecolor="#ffffff")
+                linecolor="#ffffff",
+                xticklabels=labels,
+                yticklabels=labels)
 
     ax.set_ylabel('True label')
     ax.set_xlabel('Predicted label')
