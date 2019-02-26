@@ -119,8 +119,8 @@ if __name__ == '__main__':
         hist_test_acc.append(np.mean(test_acc_ep))
         hist_train_acc.append(np.mean(train_acc_ep))
 
-        print('Epoch: %2d/%2d  %4.1f sec   |   L = %.3e    accuracy:  %.4f (train)  %.4f (test)' % 
-            (epoch, args.N_epochs, time.time()-t_epoch, hist_loss_batches[-1], hist_train_acc[-1], hist_test_acc[-1]))
+        print('Epoch: %2d/%2d   %4.1f sec   |   L = %.3e   accuracy = %.4f (train) / %.4f (test)' % 
+                (epoch, args.N_epochs, time.time()-t_epoch, hist_loss_batches[-1], hist_train_acc[-1], hist_test_acc[-1]))
 
     print(" --- ")
     print('Total time: %.1f min' % ((time.time()-t_start)/60))
