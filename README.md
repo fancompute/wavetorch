@@ -4,11 +4,15 @@
 
 This package is for solving and optimizing (learning) on the two-dimensional (2D) scalar wave equation. Vowel data from [Prof. James Hillenbrand](https://homepages.wmich.edu/~hillenbr/voweldata.html) is in `data/`, study scripts are in `study/`, and the package itself is in `wavetorch/`. This package uses `pytorch` to perform the optimization and gradient calculations.
 
-The best entry points are the study scripts which are described in the section below.
+The best entry points to this package are the study scripts which are described below.
 
-## Formulation
+## Implementation
 
-TODO.
+ - [ ] Describe the finite difference formulations
+ - [ ] Describe how convolutions are used to implement the spatial FDs
+ - [ ] Describe the adiabatic absorber formulation
+ - [ ] Describe `WaveCell()`
+ - [ ] Describe data loading and batching
 
 ## Studies
 
@@ -44,3 +48,14 @@ Epoch:  7/10  532.0 sec  |  L = 7.032e-01 ,  train_acc = 1.000 ,  val_acc = 0.90
 ...
 
 ```
+
+## Requirements
+
+This package has the following dependencies.
+
+* `pytorch`
+* `sklearn`
+* `librosa`
+* `seaborn`
+* `matplotlib`
+* `numpy`
