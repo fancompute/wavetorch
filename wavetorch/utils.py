@@ -6,6 +6,18 @@ from sklearn.metrics import confusion_matrix
 
 import torch
 
+from const import SAVEDIR
+import time
+import os
+
+def save_model(model):
+    str_filename = "model-" + time.strftime("%Y_%m_%d-%H_%M_%S") + ".pt"
+    if not os.path.exists(SAVEDIR):
+        os.makedirs(SAVEDIR)
+    str_savepath = SAVEDIR + str_filename
+    print("Saving model file as %s" % str_savepath)
+    torch.save(model, str_savepath)
+
 
 def accuracy(out, yb):
     preds = torch.argmax(out, dim=1)
@@ -13,16 +25,13 @@ def accuracy(out, yb):
 
 
 def calc_cm(model, train_dl, test_dl, silent=False):
-    def integrate_probes(y):
-        I = torch.sum(torch.abs(y[:, :, model.probe_x, model.probe_y]).pow(2), dim=1)
-        return I / torch.sum(I, dim=1, keepdim=True)
-    
+   
     with torch.no_grad():
         list_yb_pred = []
         list_yb = []
         i = 1
         for xb, yb in train_dl:
-            yb_pred = integrate_probes(model(xb))
+            yb_pred = model(xb)
             list_yb_pred.append(yb_pred)
             list_yb.append(yb)
             if not silent: print("cm: processing training batch %d" % i)
@@ -37,7 +46,7 @@ def calc_cm(model, train_dl, test_dl, silent=False):
         list_yb = []
         i = 1
         for xb, yb in test_dl:
-            yb_pred = integrate_probes(model(xb))
+            yb_pred = model(xb)
             list_yb_pred.append(yb_pred)
             list_yb.append(yb)
             if not silent: print("cm: processing validation batch %d" % i)
@@ -50,10 +59,3 @@ def calc_cm(model, train_dl, test_dl, silent=False):
 
     return cm_train, cm_test
 
-
-# Plot the final c distribution, which is the local propagation speed
-def plot_c(model):       
-    plt.figure()
-    plt.imshow(np.sqrt(model.c2.detach().numpy()).transpose())
-    plt.colorbar()
-    plt.show(block=False)

@@ -66,10 +66,6 @@ if __name__ == '__main__':
     probe_x = args.probe_x
     probe_y = torch.arange(args.probe_y, args.probe_y + N_classes*args.probe_space, args.probe_space)
 
-    def integrate_probes(y):
-        I = torch.sum(torch.abs(y[:,:,probe_x, probe_y]).pow(2), dim=1)
-        return I / torch.sum(I, dim=1, keepdim=True)
-
     criterion = torch.nn.CrossEntropyLoss()
 
     # --- Define model
@@ -97,7 +93,7 @@ if __name__ == '__main__':
         for xb, yb in train_dl:
             def closure():
                 optimizer.zero_grad()
-                loss = criterion(integrate_probes(model(xb)), yb.argmax(dim=1))
+                loss = criterion(model(xb), yb.argmax(dim=1))
                 loss.backward()
                 return loss
 
@@ -107,12 +103,12 @@ if __name__ == '__main__':
 
             # Track train accuracy
             with torch.no_grad():
-                train_acc.append( accuracy(integrate_probes(model(xb)), yb.argmax(dim=1)) )
+                train_acc.append( accuracy(model(xb), yb.argmax(dim=1)) )
 
         # Track test accuracy
         with torch.no_grad():
             for xb, yb in test_dl:
-                test_acc.append( accuracy(integrate_probes(model(xb)), yb.argmax(dim=1)) )
+                test_acc.append( accuracy(model(xb), yb.argmax(dim=1)) )
 
         print('Epoch: %2d/%2d  %4.1f sec  |  L = %.3e ,  train_acc = %0.3f ,  val_acc = %.3f ' % 
             (epoch, args.N_epochs, time.time()-t_epoch, np.mean(loss_batches), np.mean(train_acc), np.mean(test_acc)))
@@ -120,14 +116,7 @@ if __name__ == '__main__':
     print(" --- ")
     print('Total time: %.1f min' % ((time.time()-t_start)/60))
     
-    # Save model
-    str_filedir = "./trained/"
-    str_filename = "model-" + time.strftime("%Y_%m_%d-%H_%M_%S") + ".pt"
-    if not os.path.exists(str_filedir):
-        os.makedirs(str_filedir)
-    str_savepath = str_filedir + str_filename
-    print("Saving model file as %s" % str_savepath)
-    torch.save(model, str_savepath)
+    save_model(model)
     
     # Get CM
     cm_train, cm_test = calc_cm(model, train_dl, test_dl)

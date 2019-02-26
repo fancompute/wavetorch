@@ -50,6 +50,8 @@ if __name__ == '__main__':
 
     fig, axs = plt.subplots(1, 2, constrained_layout=True, figsize=(6,3))
     plot_cm(cm_train, title="Training", normalize=True, ax=axs[0], labels=["a", "e", "o"])
+    print(cm_train)
     plot_cm(cm_test, title="Validation", normalize=True, ax=axs[1], labels=["a", "e", "o"])
+    print(cm_test)
     plt.show(block=False)
     fig.savefig("cm.svg")

@@ -3,12 +3,6 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import seaborn as sns
 
-def plot_c(model):       
-    plt.figure()
-    plt.imshow(np.sqrt(model.c2.detach().numpy()).transpose())
-    plt.colorbar()
-    plt.show(block=False)
-
 
 def plot_total_field(yb):
     with torch.no_grad():
@@ -112,3 +106,10 @@ def model_animate(model, x, block=True, batch_ind=0, filename=None, interval=1, 
         plt.close(fig)
     else:
         plt.show(block=block)
+
+
+def plot_c(model):       
+    plt.figure()
+    plt.imshow(np.sqrt(model.c2.detach().numpy()).transpose())
+    plt.colorbar()
+    plt.show(block=False)
