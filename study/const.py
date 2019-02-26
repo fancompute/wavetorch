@@ -1,0 +1,2 @@
+
+SAVEDIR = "./trained/"
