@@ -75,28 +75,37 @@ class WaveCell(torch.nn.Module):
         return un
 
     def show(self, block=True):
-        fig, ax = plt.subplots(1,1)
-        h=ax.imshow(np.sqrt(self.c2.detach().numpy()).transpose(), origin="bottom")
-        plt.colorbar(h,ax=ax)
+        fig, ax = plt.subplots(1,1,figsize=(6,3))
+        h=ax.imshow(np.sqrt(self.c2.detach().numpy()).transpose(), origin="bottom", rasterized=True)
+        plt.colorbar(h,ax=ax,label="wave speed $c{(x,y)}$")
         ax.contour(self.b.numpy().transpose()>0, levels=[0])
         ax.plot(np.ones(len(self.probe_y)) * self.probe_x, self.probe_y.numpy(), "rs")
         ax.plot(self.src_x, self.src_y, "ko")
-        ax.set_title("Wave speed ($c$)")
+        ax.set_xlabel("x")
+        ax.set_ylabel("y")
         plt.show(block=block)
 
-    def animate(self, x, block=True, batch_ind=0):
+    def animate(self, x, block=True, batch_ind=0, filename=None, interval=1, fps=30, bitrate=768):
         fig, ax = plt.subplots()
 
         ims = []
         with torch.no_grad():
+            print("animate: Running forward pass...")
             y = self.forward(x[batch_ind].unsqueeze(0))
 
         y_max = torch.max(y).item()
+        print("animate: Making frames...")
         for i in range(0, y.shape[1]):
+            print("animate: frame %d" % i)
             im = plt.imshow(y[0,i,:,:].numpy().transpose(), cmap=plt.cm.RdBu, animated=True, vmin=-y_max, vmax=+y_max, origin="bottom")
             ims.append([im])
 
-        ani = animation.ArtistAnimation(fig, ims, interval=1, blit=True, repeat_delay=1000)
-        plt.show(block=block)
+        print("animate: Writing...")
+        ani = animation.ArtistAnimation(fig, ims, interval=interval, blit=True, repeat_delay=1000)
 
-        return ani
+        if filename is not None:
+            Writer = animation.writers['ffmpeg']
+            ani.save(filename, writer=Writer(fps=fps, bitrate=bitrate))
+            plt.close(fig)
+        else:
+            plt.show(block=block)
