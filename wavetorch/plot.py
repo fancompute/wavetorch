@@ -1,8 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+import matplotlib as mpl
 import seaborn as sns
 
+import torch
 
 def plot_total_field(yb):
     with torch.no_grad():
@@ -82,27 +84,28 @@ def model_show(model, block=True):
     plt.show(block=block)
 
 
-def model_animate(model, x, block=True, batch_ind=0, filename=None, interval=1, fps=30, bitrate=768):
-    fig, ax = plt.subplots()
+def model_animate(model, x, block=True, batch_ind=0, filename=None, interval=1, fps=30, bitrate=768, crop=0.33, fig_width=8):
 
-    ims = []
     with torch.no_grad():
-        print("animate: Running forward pass...")
-        y = model.forward(x[batch_ind].unsqueeze(0))
+        y = model(x[batch_ind].unsqueeze(0), probe_output=False)
+        y_max = torch.max(y).item()
 
-    y_max = torch.max(y).item()
-    print("animate: Making frames...")
-    for i in range(0, y.shape[1]):
-        print("animate: frame %d" % i)
-        im = plt.imshow(y[0,i,:,:].numpy().transpose(), cmap=plt.cm.RdBu, animated=True, vmin=-y_max, vmax=+y_max, origin="bottom")
-        ims.append([im])
+    fig, ax = plt.subplots(1, 1, constrained_layout=True, figsize=(fig_width, fig_width*model.Ny/model.Nx))
+    im = ax.imshow(np.zeros((model.Ny, model.Nx)), cmap=plt.cm.RdBu, animated=True, vmin=-y_max, vmax=+y_max, origin="bottom")
+    h1, = ax.plot(np.ones(len(model.probe_y)) * model.probe_x, model.probe_y.numpy(), "ks", alpha=0.2)
+    h2, = ax.plot(model.src_x, model.src_y, "ko", alpha=0.2)
+    title = ax.text(0.05, 0.05, "", transform=ax.transAxes, ha="left", fontsize="large")
 
-    print("animate: Writing...")
-    ani = animation.ArtistAnimation(fig, ims, interval=interval, blit=True, repeat_delay=1000)
+    def animate(i):
+        title.set_text("Time step n = %d" % i)
+        im.set_array(y[0, i, :, :].numpy().transpose())
+        return im, title, h1, h2
+
+    anim = animation.FuncAnimation(fig, animate, interval=1, frames=int(crop*y.shape[1])-1, blit=True, repeat_delay=250)
 
     if filename is not None:
         Writer = animation.writers['ffmpeg']
-        ani.save(filename, writer=Writer(fps=fps, bitrate=bitrate))
+        anim.save(filename, writer=Writer(fps=fps, bitrate=bitrate))
         plt.close(fig)
     else:
         plt.show(block=block)
