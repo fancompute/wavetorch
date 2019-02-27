@@ -54,4 +54,3 @@ if __name__ == '__main__':
     plot_cm(cm_test, title="Validation", normalize=True, ax=axs[1], labels=["a", "e", "o"])
     print(cm_test)
     plt.show(block=False)
-    fig.savefig("cm.svg")
