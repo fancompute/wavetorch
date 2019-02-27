@@ -3,14 +3,14 @@ from torch.nn.functional import conv2d
 
 class WaveCell(torch.nn.Module):
 
-    def __init__(self, dt, Nx, Ny, h, src_x, src_y, probe_x, probe_y, c2=None, pml_N=20, pml_p=3.0, pml_max=0.5):
+    def __init__(self, dt, Nx, Ny, src_x, src_y, probe_x, probe_y, c2=None, pml_N=20, pml_p=3.0, pml_max=0.5):
         super(WaveCell, self).__init__()
 
         self.dt = dt
 
         self.Nx = Nx
         self.Ny = Ny
-        self.h  = h
+        self.h  = dt * 2.01 / 1.0
 
         self.src_x = src_x
         self.src_y = src_y
@@ -48,25 +48,34 @@ class WaveCell(torch.nn.Module):
         self.register_buffer("A3", self.dt**(-2) - self.b * 0.5 * self.dt**(-1))
 
     def step(self, x, y1, y2):
+        # Using torc.mul() lets us easily broadcast over batches
         y = torch.mul( self.A1, ( torch.mul(self.A2, y1) 
                                    - torch.mul(self.A3, y2) 
                                    + torch.mul( self.c2, conv2d(y1.unsqueeze(1), self.laplacian, padding=1).squeeze(1) ) ))
+        
+        # Insert the source
         y[:, self.src_x, self.src_y] = y[:, self.src_x, self.src_y] + x.squeeze(1)
+        
         return y, y, y1
 
     def forward(self, x, probe_output=True):
+        # hacky way of figuring out if we're on the GPU from inside the model
         device = "cuda" if next(self.parameters()).is_cuda else "cpu"
         
+        # First dim is batch
         batch_size = x.shape[0]
         
+        # init hidden states
         y1 = torch.zeros(batch_size, self.Nx, self.Ny, device=device)
         y2 = torch.zeros(batch_size, self.Nx, self.Ny, device=device)
         y_all = []
 
+        # loop through time
         for i, xi in enumerate(x.chunk(x.size(1), dim=1)):
             y, y1, y2 = self.step(xi, y1, y2)
             y_all.append(y)
 
+        # combine into output field dist 
         y = torch.stack(y_all, dim=1)
 
         if probe_output:
