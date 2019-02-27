@@ -26,7 +26,7 @@ def load_all_vowels(directories_str, sr=None, normalize=True, num_of_each=1000):
     """
     Use librosa to load all vowels from the collection of directories.
 
-    This function generates corresponding one hot target vectores, treating each
+    This function generates corresponding one hot target vectors, treating each
     directory as a distinct class. The total number of samples from each directory
     can be limited by the parameter num_of_each.
     """
