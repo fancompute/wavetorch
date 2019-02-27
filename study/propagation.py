@@ -1,35 +1,61 @@
-'''
-    No training in this study, just wave propagation videos
-'''
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+
+from sklearn.metrics import confusion_matrix
+
 import torch
-from wavetorch.wave import WaveCell
-from wavetorch.data import load_all_vowels
+from torch.utils.data import TensorDataset, random_split, DataLoader
+from torch.nn.functional import pad
+
+from wavetorch import *
 
 import argparse
+import time
+import os
 
 if __name__ == '__main__':
+    # Parse command line arguments
     argparser = argparse.ArgumentParser()
-    argparser.add_argument('--N_epochs', type=int, default=5)
-    argparser.add_argument('--Nx', type=int, default=140)
-    argparser.add_argument('--Ny', type=int, default=70)
+    argparser.add_argument('--model', type=str, default=None)
+    argparser.add_argument('--Nx', type=int, default=160)
+    argparser.add_argument('--Ny', type=int, default=90)
     argparser.add_argument('--dt', type=float, default=0.707)
-    argparser.add_argument('--src_x', type=int, default=21)
-    argparser.add_argument('--src_y', type=int, default=35)
+    argparser.add_argument('--probe_space', type=int, default=15)
+    argparser.add_argument('--probe_x', type=int, default=110)
+    argparser.add_argument('--probe_y', type=int, default=30)
+    argparser.add_argument('--src_x', type=int, default=40)
+    argparser.add_argument('--src_y', type=int, default=45)
     argparser.add_argument('--sr', type=int, default=5000)
+    argparser.add_argument('--num_of_each', type=int, default=2)
+    argparser.add_argument('--num_threads', type=int, default=4)
+    argparser.add_argument('--pad_fact', type=float, default=1.0)
+    argparser.add_argument('--use-cuda', action='store_true')
     args = argparser.parse_args()
 
-    h  = args.dt * 2.01 / 1.0
+    torch.set_num_threads(args.num_threads)
 
-    directories_str = ("./data/vowels/a",
+    # Load the data
+    directories_str = ("./data/vowels/a/",
                        "./data/vowels/e/",
                        "./data/vowels/o/")
 
-    x, _ = load_all_vowels(directories_str, sr=args.sr, normalize=True)
+    x, y_labels = load_all_vowels(directories_str, sr=args.sr, normalize=True, num_of_each=args.num_of_each)
+    x = pad(x, (1, int(x.shape[1] * args.pad_fact)))
+    N_samples, N_classes = y_labels.shape
 
-    # Without PML
-    model = WaveCell(args.dt, args.Nx, args.Ny, h, args.src_x, args.src_y, pml_max=0, pml_p=4.0, pml_N=20)
-    model.animate(x, batch_ind=0, block=True)
+    # Load the model
+    if args.model is not None:
+        model = torch.load(args.model)
+    else:
+        probe_x = args.probe_x
+        probe_y = torch.arange(args.probe_y, args.probe_y + N_classes*args.probe_space, args.probe_space)
+        model = WaveCell(args.dt, args.Nx, args.Ny, args.src_x, args.src_y, probe_x, probe_y, pml_max=3, pml_p=4.0, pml_N=20)
 
-    # With PML
-    model = WaveCell(args.dt, args.Nx, args.Ny, h, args.src_x, args.src_y, pml_max=3, pml_p=4.0, pml_N=20)
-    model.animate(x, batch_ind=0, block=True)
+    show_model(model)
+    
+    for xb, yb in DataLoader(TensorDataset(x, y_labels), batch_size=3):
+        with torch.no_grad():
+            plot_total_field(model(xb, probe_output=False))
+
+    model_animate(model, x, block=True, batch_ind=0, filename=None, interval=1, fps=30, bitrate=768)
