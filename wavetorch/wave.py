@@ -37,7 +37,7 @@ class WaveCell(torch.nn.Module):
         self.register_buffer("b", torch.sqrt( b_x**2 + b_y**2 ))
 
         # Define the laplacian conv kernel
-        self.register_buffer("laplacian", h**(-2) * torch.tensor([[[[0.0,  1.0, 0.0],
+        self.register_buffer("laplacian", self.h**(-2) * torch.tensor([[[[0.0,  1.0, 0.0],
                                                                     [1.0, -4.0, 1.0],
                                                                     [0.0,  1.0, 0.0]]]],
                                                                     requires_grad=False))
