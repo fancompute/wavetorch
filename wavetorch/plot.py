@@ -72,9 +72,13 @@ def plot_cm(cm, ax=None, figsize=(4,4), title=None, normalize=False, labels="aut
         ax.set_title(title)
 
 
-def model_show(model, block=True):
-    fig, ax = plt.subplots(1,1,figsize=(6,3))
-    h=ax.imshow(np.sqrt(model.c2.detach().numpy()).transpose(), origin="bottom", rasterized=True)
+def plot_c(model, block=False, fig_width=6):
+    fig, ax = plt.subplots(1,1,figsize=(1.1*fig_width,model.Ny/model.Nx*fig_width), constrained_layout=True)
+
+    with torch.no_grad():
+        c = model.c_min + (model.c_max-model.c_min)*model.proj(model.rho)
+
+    h=ax.imshow(c.numpy().transpose(), origin="bottom", rasterized=True)
     plt.colorbar(h,ax=ax,label="wave speed $c{(x,y)}$")
     ax.contour(model.b.numpy().transpose()>0, levels=[0])
     ax.plot(np.ones(len(model.probe_y)) * model.probe_x, model.probe_y.numpy(), "rs")
@@ -109,10 +113,3 @@ def model_animate(model, x, block=True, batch_ind=0, filename=None, interval=1, 
         plt.close(fig)
     else:
         plt.show(block=block)
-
-
-def plot_c(model):       
-    plt.figure()
-    plt.imshow(np.sqrt(model.c2.detach().numpy()).transpose())
-    plt.colorbar()
-    plt.show(block=False)

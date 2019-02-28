@@ -1,9 +1,10 @@
 import torch
 from torch.nn.functional import conv2d
+from torch import tanh
 
 class WaveCell(torch.nn.Module):
 
-    def __init__(self, dt, Nx, Ny, src_x, src_y, probe_x, probe_y, c2=None, pml_N=20, pml_p=3.0, pml_max=0.5):
+    def __init__(self, dt, Nx, Ny, src_x, src_y, probe_x, probe_y, rho=None, pml_N=20, pml_p=3.0, pml_max=0.5, c_min=1.0, c_max=1.1):
         super(WaveCell, self).__init__()
 
         self.dt = dt
@@ -17,11 +18,12 @@ class WaveCell(torch.nn.Module):
         self.probe_x = probe_x
         self.probe_y = probe_y
 
-        # c2 refers to the distribution of c^2 (the wave speed squared)
-        # we use c^2 rather than c to save on unecessary autograd ops
-        if c2 is None:
-            c2 = torch.ones(Nx, Ny, requires_grad=True)
-        self.c2  = torch.nn.Parameter(c2)
+        if rho is None:
+            rho = torch.ones(Nx, Ny)*0.5
+        self.rho = torch.nn.Parameter(rho)
+
+        self.c_min = c_min
+        self.c_max = c_max
 
         # Setup the PML/adiabatic absorber
         b_vals = pml_max * torch.linspace(0.0, 1.0, pml_N+1) ** pml_p
@@ -36,11 +38,14 @@ class WaveCell(torch.nn.Module):
 
         self.register_buffer("b", torch.sqrt( b_x**2 + b_y**2 ))
 
+        with torch.no_grad():
+            self.rho[self.b!=0] = 0.0
+
         # Define the laplacian conv kernel
         self.register_buffer("laplacian", self.h**(-2) * torch.tensor([[[[0.0,  1.0, 0.0],
-                                                                    [1.0, -4.0, 1.0],
-                                                                    [0.0,  1.0, 0.0]]]],
-                                                                    requires_grad=False))
+                                                                         [1.0, -4.0, 1.0],
+                                                                         [0.0,  1.0, 0.0]]]],
+                                                                         requires_grad=False))
 
         # Define the finite differencing coeffs (for convenience)
         self.register_buffer("A1", (self.dt**(-2) + self.b * 0.5 * self.dt**(-1)).pow(-1))
@@ -49,9 +54,10 @@ class WaveCell(torch.nn.Module):
 
     def step(self, x, y1, y2):
         # Using torc.mul() lets us easily broadcast over batches
+        c = (self.c_min + (self.c_max-self.c_min)*self.proj(self.rho))
         y = torch.mul( self.A1, ( torch.mul(self.A2, y1) 
                                    - torch.mul(self.A3, y2) 
-                                   + torch.mul( self.c2, conv2d(y1.unsqueeze(1), self.laplacian, padding=1).squeeze(1) ) ))
+                                   + torch.mul( c.pow(2), conv2d(y1.unsqueeze(1), self.laplacian, padding=1).squeeze(1) ) ))
         
         # Insert the source
         y[:, self.src_x, self.src_y] = y[:, self.src_x, self.src_y] + x.squeeze(1)
@@ -89,3 +95,7 @@ class WaveCell(torch.nn.Module):
     def integrate_probe_points(probe_x, probe_y, y):
         I = torch.sum(torch.abs(y[:, :, probe_x, probe_y]).pow(2), dim=1)
         return I / torch.sum(I, dim=1, keepdim=True)
+
+    @staticmethod
+    def proj(x, eta=torch.tensor(0.5), beta=torch.tensor(100.0)):
+        return (tanh(beta*eta) + tanh(beta*(x-eta))) / (tanh(beta*eta) + tanh(beta*(1-eta)))

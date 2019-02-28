@@ -52,7 +52,7 @@ if __name__ == '__main__':
         probe_y = torch.arange(args.probe_y, args.probe_y + N_classes*args.probe_space, args.probe_space)
         model = WaveCell(args.dt, args.Nx, args.Ny, args.src_x, args.src_y, probe_x, probe_y, pml_max=3, pml_p=4.0, pml_N=20)
 
-    show_model(model)
+    model_show(model)
     
     for xb, yb in DataLoader(TensorDataset(x, y_labels), batch_size=3):
         with torch.no_grad():

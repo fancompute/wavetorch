@@ -108,6 +108,9 @@ if __name__ == '__main__':
             loss = optimizer.step(closure)
             loss_batches_ep.append(loss.item())
 
+            with torch.no_grad():
+                model.rho[model.b!=0] = 0.0
+
             # Track train accuracy
             with torch.no_grad():
                 train_acc_ep.append( accuracy(model(xb), yb.argmax(dim=1)) )
