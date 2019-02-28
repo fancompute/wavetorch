@@ -4,7 +4,7 @@ from torch import tanh
 
 class WaveCell(torch.nn.Module):
 
-    def __init__(self, dt, Nx, Ny, src_x, src_y, probe_x, probe_y, rho=None, pml_N=20, pml_p=3.0, pml_max=0.5, c_min=1.0, c_max=1.1):
+    def __init__(self, dt, Nx, Ny, src_x, src_y, probe_x, probe_y, rho=0.5, pml_N=20, pml_p=3.0, pml_max=0.5, c_nominal=1.0, c_range=-0.1):
         super(WaveCell, self).__init__()
 
         self.dt = dt
@@ -18,12 +18,15 @@ class WaveCell(torch.nn.Module):
         self.probe_x = probe_x
         self.probe_y = probe_y
 
-        if rho is None:
-            rho = torch.ones(Nx, Ny)*0.5
-        self.rho = torch.nn.Parameter(rho)
+        # rand init seems to be no good
+        # if rho is None:
+        #     rho = torch.rand(Nx, Ny)
+        # else:
+        #     rho = torch.ones(Nx, Ny)*rho
+        self.rho = torch.nn.Parameter(rho*torch.ones(Nx, Ny))
 
-        self.c_min = c_min
-        self.c_max = c_max
+        self.c_nominal = c_nominal
+        self.c_range = c_range
 
         # Setup the PML/adiabatic absorber
         b_vals = pml_max * torch.linspace(0.0, 1.0, pml_N+1) ** pml_p
@@ -105,4 +108,4 @@ class WaveCell(torch.nn.Module):
         # apply LPF
         lpf_rho = conv2d(self.rho.unsqueeze(0).unsqueeze(0), torch.tensor([[[[0, 1/8, 0], [1/8, 1/2, 1/8], [0, 1/8, 0]]]]), padding=1).squeeze()
         #apply projection
-        return (self.c_min + (self.c_max-self.c_min)*self.proj(lpf_rho))
+        return (self.c_nominal + self.c_range*self.proj(lpf_rho))

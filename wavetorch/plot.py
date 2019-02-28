@@ -78,10 +78,10 @@ def plot_c(model, block=False, fig_width=6):
     with torch.no_grad():
         c = model.c()
 
-    h=ax.imshow(c.numpy().transpose(), origin="bottom", rasterized=True)
+    h=ax.imshow(c.numpy().transpose(), origin="bottom", rasterized=True, cmap=plt.cm.viridis_r)
     plt.colorbar(h,ax=ax,label="wave speed $c{(x,y)}$")
-    ax.contour(model.b.numpy().transpose()>0, levels=[0])
-    ax.plot(np.ones(len(model.probe_y)) * model.probe_x, model.probe_y.numpy(), "rs")
+    ax.contour(model.b.numpy().transpose()>0, levels=[0], colors=("w",), linestyles=("dotted"), alpha=0.75)
+    ax.plot(np.ones(len(model.probe_y)) * model.probe_x, model.probe_y.numpy(), "ro")
     ax.plot(model.src_x, model.src_y, "ko")
     ax.set_xlabel("x")
     ax.set_ylabel("y")
