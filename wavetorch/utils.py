@@ -9,14 +9,27 @@ import torch
 from const import SAVEDIR
 import time
 import os
+import socket
 
-def save_model(model):
-    str_filename = "model-" + time.strftime("%Y_%m_%d-%H_%M_%S") + ".pt"
+
+def save_model(model, hist_loss_batches=None, hist_train_acc=None, hist_test_acc=None):
+    str_hostname = socket.gethostname()
+    str_filename = str_hostname + "-model-" + time.strftime("%Y_%m_%d-%H_%M_%S") + ".pt"
     if not os.path.exists(SAVEDIR):
         os.makedirs(SAVEDIR)
     str_savepath = SAVEDIR + str_filename
-    print("Saving model file as %s" % str_savepath)
-    torch.save(model, str_savepath)
+    dsave = {"model": model,
+             "hist_loss_batches": hist_loss_batches,
+             "hist_train_acc": hist_train_acc,
+             "hist_test_acc": hist_test_acc }
+    print("Saving model to %s" % str_savepath)
+    torch.save(dsave, str_savepath)
+
+
+def load_model(str_filename):
+    print("Loading model from %s" % str_filename)
+    dload = torch.load(str_filename)
+    return dload["model"], dload["hist_loss_batches"], dload["hist_train_acc"], dload["hist_test_acc"]
 
 
 def accuracy(out, yb):
