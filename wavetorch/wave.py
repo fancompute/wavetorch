@@ -4,7 +4,7 @@ from torch import tanh
 
 class WaveCell(torch.nn.Module):
 
-    def __init__(self, dt, Nx, Ny, src_x, src_y, probe_x, probe_y, rho=0.5, pml_N=20, pml_p=3.0, pml_max=0.5, c_nominal=1.0, c_range=-0.1):
+    def __init__(self, dt, Nx, Ny, src_x, src_y, probe_x, probe_y, rho=None, pml_N=20, pml_p=3.0, pml_max=0.5, c_nominal=1.0, c_range=-0.1):
         super(WaveCell, self).__init__()
 
         self.dt = dt
@@ -18,44 +18,51 @@ class WaveCell(torch.nn.Module):
         self.probe_x = probe_x
         self.probe_y = probe_y
 
-        # rand init seems to be no good
-        # if rho is None:
-        #     rho = torch.rand(Nx, Ny)
-        # else:
-        #     rho = torch.ones(Nx, Ny)*rho
+        if rho is None:
+            rho = init_rand_rho(Nx, Ny)
+        else:
+            rho = torch.ones(Nx, Ny)*rho
         self.rho = torch.nn.Parameter(rho*torch.ones(Nx, Ny))
 
         self.c_nominal = c_nominal
         self.c_range = c_range
 
         # Setup the PML/adiabatic absorber
-        b_vals = pml_max * torch.linspace(0.0, 1.0, pml_N+1) ** pml_p
-
-        b_x = torch.zeros(Nx, Ny, requires_grad=False)
-        b_x[0:pml_N+1,   :] = torch.flip(b_vals, [0]).repeat(Ny,1).transpose(0, 1)
-        b_x[(Nx-pml_N-1):Nx, :] = b_vals.repeat(Ny,1).transpose(0, 1)
-
-        b_y = torch.zeros(Nx, Ny, requires_grad=False)
-        b_y[:,   0:pml_N+1] = torch.flip(b_vals, [0]).repeat(Nx,1)
-        b_y[:, (Ny-pml_N-1):Ny] = b_vals.repeat(Nx,1)
-
-        self.register_buffer("b", torch.sqrt( b_x**2 + b_y**2 ))
+        self.register_buffer("b", init_b(Nx, Ny, pml_N, pml_p, pml_max))
 
         with torch.no_grad():
+            # Null rho inside the absorber
             self.rho[self.b!=0] = 0.0
 
         # Define the laplacian conv kernel
-        self.register_buffer("laplacian", self.h**(-2) * torch.tensor([[[[0.0,  1.0, 0.0],
-                                                                         [1.0, -4.0, 1.0],
-                                                                         [0.0,  1.0, 0.0]]]],
-                                                                         requires_grad=False))
+        self.register_buffer("laplacian", self.h**(-2) * torch.tensor([[[[0.0,  1.0, 0.0], [1.0, -4.0, 1.0], [0.0,  1.0, 0.0]]]]))
 
         # Define the finite differencing coeffs (for convenience)
         self.register_buffer("A1", (self.dt**(-2) + self.b * 0.5 * self.dt**(-1)).pow(-1))
         self.register_buffer("A2", torch.tensor(2 * self.dt**(-2)))
         self.register_buffer("A3", self.dt**(-2) - self.b * 0.5 * self.dt**(-1))
 
-        
+    @staticmethod
+    def init_b(Nx, Ny, pml_N, pml_p, pml_max):
+        b_vals = pml_max * torch.linspace(0.0, 1.0, pml_N+1) ** pml_p
+
+        b_x = torch.zeros(Nx, Ny)
+        b_x[0:pml_N+1,   :] = torch.flip(b_vals, [0]).repeat(Ny,1).transpose(0, 1)
+        b_x[(Nx-pml_N-1):Nx, :] = b_vals.repeat(Ny,1).transpose(0, 1)
+
+        b_y = torch.zeros(Nx, Ny)
+        b_y[:,   0:pml_N+1] = torch.flip(b_vals, [0]).repeat(Nx,1)
+        b_y[:, (Ny-pml_N-1):Ny] = b_vals.repeat(Nx,1)
+
+        return torch.sqrt( b_x**2 + b_y**2 )
+
+    @staticmethod
+    def init_rand_rho(Nx, Ny, Nconv=10):
+        rho = torch.rand(Nx, Ny)
+        # Low pass filter a number of times to make "islands" in c
+        for i in range(Nconv):
+            rho = conv2d(rho.unsqueeze(0).unsqueeze(0), torch.tensor([[[[0, 1/8, 0], [1/8, 1/2, 1/8], [0, 1/8, 0]]]]), padding=1).squeeze()
+        return rho
 
     def step(self, x, y1, y2):
         # Using torc.mul() lets us easily broadcast over batches
