@@ -27,10 +27,11 @@ if __name__ == '__main__':
     argparser.add_argument('--sr', type=int, default=5000)
     argparser.add_argument('--learning_rate', type=float, default=0.01)
     argparser.add_argument('--ratio_train', type=float, default=0.75)
-    argparser.add_argument('--batch_size', type=int, default=9)
-    argparser.add_argument('--num_of_each', type=int, default=2)
+    argparser.add_argument('--batch_size', type=int, default=3)
+    argparser.add_argument('--train_size', type=int, default=3)
+    argparser.add_argument('--test_size', type=int, default=3)
     argparser.add_argument('--num_threads', type=int, default=4)
-    argparser.add_argument('--pad_fact', type=float, default=1.0)
+    argparser.add_argument('--pad_factor', type=float, default=1.0)
     argparser.add_argument('--c_nominal', type=float, default=1.0)
     argparser.add_argument('--c_range', type=float, default=-0.1)
     argparser.add_argument('--use-cuda', action='store_true')
@@ -52,16 +53,18 @@ if __name__ == '__main__':
                        "./data/vowels/e/",
                        "./data/vowels/o/")
 
-    x, y_labels = load_all_vowels(directories_str, sr=args.sr, normalize=True, num_of_each=args.num_of_each)
-    x = pad(x, (1, int(x.shape[1] * args.pad_fact)))
-    N_samples, N_classes = y_labels.shape
+    N_classes = len(directories_str)
 
-    x = x.to(args.dev)
-    y_labels = y_labels.to(args.dev)
+    x_train, x_test, y_train, y_test = load_all_vowels(directories_str, sr=args.sr, normalize=True, train_size=args.train_size, test_size=args.test_size, pad_factor=args.pad_factor)
+    
+    x_train = x_train.to(args.dev)
+    x_test  = x_test.to(args.dev)
+    y_train = y_train.to(args.dev)
+    y_test  = y_test.to(args.dev)
 
     # Put tensors into Datasets and then Dataloaders to let pytorch manage batching
-    full_ds = TensorDataset(x, y_labels)
-    train_ds, test_ds = random_split(full_ds, [int(args.ratio_train*N_samples), N_samples-int(args.ratio_train*N_samples)])
+    train_ds = TensorDataset(x_train, y_train)
+    test_ds = TensorDataset(x_test, y_test)
 
     train_dl = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True)
     test_dl = DataLoader(test_ds, batch_size=args.batch_size)
@@ -80,12 +83,11 @@ if __name__ == '__main__':
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
     # Run training
-    print("Using a sample rate of %d Hz (sequence length of %d)" % (args.sr, x.shape[1]))
-    print("Using %d total samples (%d of each vowel)" % (len(train_ds)+len(test_ds), args.num_of_each) )
-    print("   %d for training" % len(train_ds))
-    print("   %d for validation" % len(test_ds))
+    print("Using a sample rate of %d Hz (sequence length of %d)" % (args.sr, x_train.shape[1]))
+    print("Running %d training samples" % len(train_ds))
+    print("Running %d validation samples" % len(test_ds))
     print(" --- ")
-    print("Now begining training for %d epochs ..." % args.N_epochs)
+    print("Training for %d epochs ..." % args.N_epochs)
     t_start = time.time()
 
     hist_loss_batches = []
