@@ -19,7 +19,7 @@ class WaveCell(torch.nn.Module):
         self.probe_y = probe_y
 
         if rho is None:
-            rho = init_rand_rho(Nx, Ny)
+            rho = self.init_rand_rho(Nx, Ny)
         else:
             rho = torch.ones(Nx, Ny)*rho
         self.rho = torch.nn.Parameter(rho*torch.ones(Nx, Ny))
@@ -28,7 +28,7 @@ class WaveCell(torch.nn.Module):
         self.c_range = c_range
 
         # Setup the PML/adiabatic absorber
-        self.register_buffer("b", init_b(Nx, Ny, pml_N, pml_p, pml_max))
+        self.register_buffer("b", self.init_b(Nx, Ny, pml_N, pml_p, pml_max))
 
         with torch.no_grad():
             # Null rho inside the absorber
