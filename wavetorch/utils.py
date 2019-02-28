@@ -6,11 +6,11 @@ from sklearn.metrics import confusion_matrix
 
 import torch
 
-from const import SAVEDIR
 import time
 import os
 import socket
 
+SAVEDIR = "./trained/"
 
 def save_model(model, hist_loss_batches=None, hist_train_acc=None, hist_test_acc=None):
     str_hostname = socket.gethostname()

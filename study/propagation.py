@@ -53,8 +53,8 @@ if __name__ == '__main__':
 
     plot_c(model)
     
-    # for xb, yb in DataLoader(TensorDataset(x, y_labels), batch_size=3):
-    #     with torch.no_grad():
-    #         plot_total_field(model(xb, probe_output=False))
+    for xb, yb in DataLoader(TensorDataset(x, y_labels), batch_size=3):
+        with torch.no_grad():
+            plot_total_field(model(xb, probe_output=False))
 
-    # model_animate(model, x, block=True, batch_ind=0, filename=None, interval=1, fps=30, bitrate=768)
+    model_animate(model, x, block=True, batch_ind=0, filename=None, interval=1, fps=30, bitrate=768)
