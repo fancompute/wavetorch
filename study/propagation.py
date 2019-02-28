@@ -50,7 +50,7 @@ if __name__ == '__main__':
     else:
         probe_x = args.probe_x
         probe_y = torch.arange(args.probe_y, args.probe_y + N_classes*args.probe_space, args.probe_space)
-        model = WaveCell(args.dt, args.Nx, args.Ny, args.src_x, args.src_y, probe_x, probe_y, pml_max=3, pml_p=4.0, pml_N=20)
+        model = WaveCell(args.dt, args.Nx, args.Ny, args.src_x, args.src_y, probe_x, probe_y, rho=0.0, pml_max=3, pml_p=4.0, pml_N=20)
 
     plot_c(model)
     
