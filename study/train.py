@@ -10,6 +10,7 @@ from wavetorch import *
 
 import argparse
 import time
+from tqdm import tqdm, trange
 
 if __name__ == '__main__':
     # Parse command line arguments
@@ -88,14 +89,14 @@ if __name__ == '__main__':
     hist_test_acc = []
     hist_train_acc = []
 
-    for epoch in range(1, args.N_epochs + 1):
+    for epoch in trange(1, args.N_epochs + 1, ascii=True, desc="Training"):
         t_epoch = time.time()
 
         loss_batches_ep = []
         test_acc_ep = []
         train_acc_ep = []
 
-        for xb, yb in train_dl:
+        for xb, yb in tqdm(train_dl, ascii=True, desc="Epoch"):
             # Needed to define this for LBFGS.
             # Technically, Adam doesn't require this but we can be flexible this way
             def closure():
@@ -117,7 +118,7 @@ if __name__ == '__main__':
 
         # Track test accuracy
         with torch.no_grad():
-            for xb, yb in test_dl:
+            for xb, yb in tqdm(test_dl, ascii=True, desc="Validation"):
                 test_acc_ep.append( accuracy(model(xb), yb.argmax(dim=1)) )
 
         # Log metrics
@@ -125,7 +126,7 @@ if __name__ == '__main__':
         hist_test_acc.append(np.mean(test_acc_ep))
         hist_train_acc.append(np.mean(train_acc_ep))
 
-        print('Epoch: %2d/%2d   %4.1f sec   |   L = %.3e   accuracy = %.4f (train) / %.4f (test)' % 
+        tqdm.write('Epoch: %2d/%2d   %4.1f sec   |   L = %.3e   accuracy = %.4f (train) / %.4f (test)' % 
                 (epoch, args.N_epochs, time.time()-t_epoch, hist_loss_batches[-1], hist_train_acc[-1], hist_test_acc[-1]))
 
     # Finished training
