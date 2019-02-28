@@ -24,12 +24,13 @@ if __name__ == '__main__':
     argparser.add_argument('--num_of_each', type=int, default=2)
     argparser.add_argument('--num_threads', type=int, default=4)
     argparser.add_argument('--pad_fact', type=float, default=1.0)
+    argparser.add_argument('--cm', action='store_true')
     args = argparser.parse_args()
 
     torch.set_num_threads(args.num_threads)
 
-    # Load the model
-    model = torch.load(args.model)
+    # Load the model and the training history
+    model, hist_loss_batches, hist_train_acc, hist_test_acc = load_model(args.model)
 
     # Load the data
     directories_str = ("./data/vowels/a/",
@@ -46,11 +47,24 @@ if __name__ == '__main__':
     train_dl = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True)
     test_dl = DataLoader(test_ds, batch_size=args.batch_size)
 
-    cm_train, cm_test = calc_cm(model, train_dl, test_dl)
+    epochs = range(1,len(hist_loss_batches)+1)
 
-    fig, axs = plt.subplots(1, 2, constrained_layout=True, figsize=(6,3))
-    plot_cm(cm_train, title="Training", normalize=True, ax=axs[0], labels=["a", "e", "o"])
-    print(cm_train)
-    plot_cm(cm_test, title="Validation", normalize=True, ax=axs[1], labels=["a", "e", "o"])
-    print(cm_test)
+    fig, axs = plt.subplots(2, 1, constrained_layout=True, sharex=True, figsize=(3,4))
+    axs[0].plot(epochs, hist_loss_batches, "o-")
+    axs[0].set_ylabel("Loss")
+    axs[1].plot(epochs, hist_train_acc, "o-", label="Train")
+    axs[1].plot(epochs, hist_test_acc, "o-", label="Test")
+    axs[1].set_xlabel("Number of training epochs")
+    axs[1].set_ylabel("Accuracy")
+    axs[1].set_xticks(epochs)
+    axs[1].set_ylim([0.5, 1.0])
+    axs[1].legend(fontsize="smaller")
     plt.show(block=False)
+
+    if args.cm:
+        cm_train, cm_test = calc_cm(model, train_dl, test_dl)
+        fig, axs = plt.subplots(1, 2, constrained_layout=True, figsize=(6,3))
+        plot_cm(cm_train, title="Training set", normalize=True, ax=axs[0], labels=["a", "e", "o"])
+        plot_cm(cm_test, title="Testing set", normalize=True, ax=axs[1], labels=["a", "e", "o"])
+        plt.show(block=False)
+

@@ -16,22 +16,25 @@ if __name__ == '__main__':
     # Parse command line arguments
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--N_epochs', type=int, default=5)
-    argparser.add_argument('--Nx', type=int, default=160)
-    argparser.add_argument('--Ny', type=int, default=90)
+    argparser.add_argument('--Nx', type=int, default=140)
+    argparser.add_argument('--Ny', type=int, default=140)
     argparser.add_argument('--dt', type=float, default=0.707)
-    argparser.add_argument('--probe_space', type=int, default=15)
-    argparser.add_argument('--probe_x', type=int, default=110)
-    argparser.add_argument('--probe_y', type=int, default=30)
+    argparser.add_argument('--probe_space', type=int, default=30)
+    argparser.add_argument('--probe_x', type=int, default=100)
+    argparser.add_argument('--probe_y', type=int, default=40)
     argparser.add_argument('--src_x', type=int, default=40)
-    argparser.add_argument('--src_y', type=int, default=45)
+    argparser.add_argument('--src_y', type=int, default=70)
     argparser.add_argument('--sr', type=int, default=5000)
     argparser.add_argument('--learning_rate', type=float, default=0.01)
-    argparser.add_argument('--ratio_train', type=float, default=0.5)
-    argparser.add_argument('--batch_size', type=int, default=10)
+    argparser.add_argument('--ratio_train', type=float, default=0.75)
+    argparser.add_argument('--batch_size', type=int, default=9)
     argparser.add_argument('--num_of_each', type=int, default=2)
     argparser.add_argument('--num_threads', type=int, default=4)
     argparser.add_argument('--pad_fact', type=float, default=1.0)
+    argparser.add_argument('--c_nominal', type=float, default=1.0)
+    argparser.add_argument('--c_range', type=float, default=-0.1)
     argparser.add_argument('--use-cuda', action='store_true')
+    argparser.add_argument('--disable_progress', action='store_true')
     args = argparser.parse_args()
 
     torch.set_num_threads(args.num_threads)
@@ -70,7 +73,7 @@ if __name__ == '__main__':
     criterion = torch.nn.CrossEntropyLoss()
 
     # Define model
-    model = WaveCell(args.dt, args.Nx, args.Ny, args.src_x, args.src_y, probe_x, probe_y, pml_max=3, pml_p=4.0, pml_N=20)
+    model = WaveCell(args.dt, args.Nx, args.Ny, args.src_x, args.src_y, probe_x, probe_y, c_nominal=args.c_nominal, c_range=args.c_range)
     model.to(args.dev)
 
     # Define optimizer
@@ -89,14 +92,14 @@ if __name__ == '__main__':
     hist_test_acc = []
     hist_train_acc = []
 
-    for epoch in trange(1, args.N_epochs + 1, ascii=True, desc="Training"):
+    for epoch in trange(1, args.N_epochs + 1, ascii=True, desc="Training", disable=args.disable_progress):
         t_epoch = time.time()
 
         loss_batches_ep = []
         test_acc_ep = []
         train_acc_ep = []
 
-        for xb, yb in tqdm(train_dl, ascii=True, desc="Epoch"):
+        for xb, yb in tqdm(train_dl, ascii=True, desc="Epoch", disable=args.disable_progress):
             # Needed to define this for LBFGS.
             # Technically, Adam doesn't require this but we can be flexible this way
             def closure():
@@ -118,7 +121,7 @@ if __name__ == '__main__':
 
         # Track test accuracy
         with torch.no_grad():
-            for xb, yb in tqdm(test_dl, ascii=True, desc="Validation"):
+            for xb, yb in tqdm(test_dl, ascii=True, desc="Validation", disable=args.disable_progress):
                 test_acc_ep.append( accuracy(model(xb), yb.argmax(dim=1)) )
 
         # Log metrics
@@ -133,7 +136,7 @@ if __name__ == '__main__':
     print(" --- ")
     print('Total time: %.1f min' % ((time.time()-t_start)/60))
     
-    save_model(model)
+    save_model(model, hist_loss_batches, hist_train_acc, hist_test_acc)
     
     # Calculate and print confusion matrix
     cm_train, cm_test = calc_cm(model, train_dl, test_dl)
