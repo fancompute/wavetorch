@@ -4,7 +4,7 @@ from torch import tanh
 
 class WaveCell(torch.nn.Module):
 
-    def __init__(self, dt, Nx, Ny, src_x, src_y, probe_x, probe_y, rho=None, pml_N=20, pml_p=3.0, pml_max=0.5, c_nominal=1.0, c_range=-0.1):
+    def __init__(self, dt, Nx, Ny, src_x, src_y, probe_x, probe_y, rho=None, pml_N=20, pml_p=4.0, pml_max=3.0, c_nominal=1.0, c_range=-0.1):
         super(WaveCell, self).__init__()
 
         self.dt = dt
