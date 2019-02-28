@@ -76,7 +76,7 @@ def plot_c(model, block=False, fig_width=6):
     fig, ax = plt.subplots(1,1,figsize=(1.1*fig_width,model.Ny/model.Nx*fig_width), constrained_layout=True)
 
     with torch.no_grad():
-        c = model.c_min + (model.c_max-model.c_min)*model.proj(model.rho)
+        c = model.c()
 
     h=ax.imshow(c.numpy().transpose(), origin="bottom", rasterized=True)
     plt.colorbar(h,ax=ax,label="wave speed $c{(x,y)}$")

@@ -52,12 +52,13 @@ class WaveCell(torch.nn.Module):
         self.register_buffer("A2", torch.tensor(2 * self.dt**(-2)))
         self.register_buffer("A3", self.dt**(-2) - self.b * 0.5 * self.dt**(-1))
 
+        
+
     def step(self, x, y1, y2):
         # Using torc.mul() lets us easily broadcast over batches
-        c = (self.c_min + (self.c_max-self.c_min)*self.proj(self.rho))
         y = torch.mul( self.A1, ( torch.mul(self.A2, y1) 
                                    - torch.mul(self.A3, y2) 
-                                   + torch.mul( c.pow(2), conv2d(y1.unsqueeze(1), self.laplacian, padding=1).squeeze(1) ) ))
+                                   + torch.mul( self.c().pow(2), conv2d(y1.unsqueeze(1), self.laplacian, padding=1).squeeze(1) ) ))
         
         # Insert the source
         y[:, self.src_x, self.src_y] = y[:, self.src_x, self.src_y] + x.squeeze(1)
@@ -99,3 +100,9 @@ class WaveCell(torch.nn.Module):
     @staticmethod
     def proj(x, eta=torch.tensor(0.5), beta=torch.tensor(100.0)):
         return (tanh(beta*eta) + tanh(beta*(x-eta))) / (tanh(beta*eta) + tanh(beta*(1-eta)))
+
+    def c(self):
+        # apply LPF
+        lpf_rho = conv2d(self.rho.unsqueeze(0).unsqueeze(0), torch.tensor([[[[0, 1/8, 0], [1/8, 1/2, 1/8], [0, 1/8, 0]]]]), padding=1).squeeze()
+        #apply projection
+        return (self.c_min + (self.c_max-self.c_min)*self.proj(lpf_rho))
