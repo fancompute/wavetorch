@@ -14,9 +14,11 @@ SAVEDIR = "./trained/"
 
 def save_model(model, name, hist_loss_batches=None, hist_train_acc=None, hist_test_acc=None, args=None):
     str_hostname = socket.gethostname()
-    if name is not "":
+    if name is "":
+        name = time.strftime("%Y_%m_%d-%H_%M_%S") + "_"
+    else:
         name += "_"
-    str_filename = str_hostname + "-model-" + name + time.strftime("%Y_%m_%d-%H_%M_%S") + ".pt"
+    str_filename = str_hostname + "-model-" + name +  + ".pt"
     if not os.path.exists(SAVEDIR):
         os.makedirs(SAVEDIR)
     str_savepath = SAVEDIR + str_filename
