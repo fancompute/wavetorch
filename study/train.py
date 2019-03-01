@@ -83,9 +83,8 @@ if __name__ == '__main__':
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
     # Run training
-    print("Using a sample rate of %d Hz (sequence length of %d)" % (args.sr, x_train.shape[1]))
-    print("Running %d training samples" % len(train_ds))
-    print("Running %d validation samples" % len(test_ds))
+    for i in vars(args):
+        print("%16s - %s" % (i, vars(args)[i]))
     print(" --- ")
     print("Training for %d epochs ..." % args.N_epochs)
     t_start = time.time()
