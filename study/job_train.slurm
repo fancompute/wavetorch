@@ -13,6 +13,7 @@ echo "Job started at: $(date +'%d/%m/%y - %H:%m')"
 echo ""
 
 srun python -u ./study/train.py 						\
+					--name $SLURM_JOB_ID				\
 					--N_epochs 10 						\
 					--train_size 81 					\
 					--test_size 30 						\

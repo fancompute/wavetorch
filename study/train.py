@@ -15,6 +15,7 @@ from tqdm import tqdm, trange
 if __name__ == '__main__':
     # Parse command line arguments
     argparser = argparse.ArgumentParser()
+    argparser.add_argument('--name', type=str, default="")
     argparser.add_argument('--N_epochs', type=int, default=5)
     argparser.add_argument('--Nx', type=int, default=140)
     argparser.add_argument('--Ny', type=int, default=140)
@@ -42,10 +43,10 @@ if __name__ == '__main__':
 
     # figure out which device we're on
     if args.use_cuda and torch.cuda.is_available():
-        print("Using GPU...")
+        print("Using GPU")
         args.dev = torch.device('cuda')
     else:
-        print("Using CPU...")
+        print("Using CPU")
         args.dev = torch.device('cpu')
 
     # Each dir corresponds to a distinct class and is automatically given a corresponding one hot
@@ -83,24 +84,25 @@ if __name__ == '__main__':
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
     # Run training
+    print("-"*80)
     for i in vars(args):
-        print("%16s - %s" % (i, vars(args)[i]))
-    print(" --- ")
-    print("Training for %d epochs ..." % args.N_epochs)
+        print("%16s = %s" % (i, vars(args)[i]))
+    print("-"*80 + "\n")
+    print("Training for %d epochs \n" % args.N_epochs)
     t_start = time.time()
 
     hist_loss_batches = []
     hist_test_acc = []
     hist_train_acc = []
 
-    for epoch in trange(1, args.N_epochs + 1, ascii=True, desc="Training", disable=args.disable_progress):
+    for epoch in trange(1, args.N_epochs + 1, ascii=True, desc="Job", disable=args.disable_progress, ncols=80):
         t_epoch = time.time()
 
         loss_batches_ep = []
         test_acc_ep = []
         train_acc_ep = []
 
-        for xb, yb in tqdm(train_dl, ascii=True, desc="Epoch", disable=args.disable_progress):
+        for xb, yb in tqdm(train_dl, ascii=True, desc="Training", disable=args.disable_progress, ncols=80):
             # Needed to define this for LBFGS.
             # Technically, Adam doesn't require this but we can be flexible this way
             def closure():
@@ -121,7 +123,7 @@ if __name__ == '__main__':
 
         # Track test accuracy
         with torch.no_grad():
-            for xb, yb in tqdm(test_dl, ascii=True, desc="Validation", disable=args.disable_progress):
+            for xb, yb in tqdm(test_dl, ascii=True, desc="Testing", disable=args.disable_progress, ncols=80):
                 test_acc_ep.append( accuracy(model(xb), yb.argmax(dim=1)) )
 
         # Log metrics
@@ -133,10 +135,10 @@ if __name__ == '__main__':
                 (epoch, args.N_epochs, time.time()-t_epoch, hist_loss_batches[-1], hist_train_acc[-1], hist_test_acc[-1]))
 
     # Finished training
-    print(" --- ")
+    print("-"*80 + "\n")
     print('Total time: %.1f min' % ((time.time()-t_start)/60))
     
-    save_model(model, hist_loss_batches, hist_train_acc, hist_test_acc, args)
+    save_model(model, args.name, hist_loss_batches, hist_train_acc, hist_test_acc, args)
     
     # Calculate and print confusion matrix
     cm_test = calc_cm(model, test_dl)
