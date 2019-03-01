@@ -153,8 +153,10 @@ if __name__ == '__main__':
     cm_test = calc_cm(model, test_dl)
     cm_train = calc_cm(model, train_dl)
 
-    print("Training CM")
+    print("Confusion matrix for training dataset:")
     print(cm_train)
+    print('\n')
 
-    print("Validation CM")
+    print("Confusion matrix for testing dataset:")
     print(cm_test)
+    print('\n')
