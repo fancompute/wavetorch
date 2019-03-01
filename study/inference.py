@@ -6,7 +6,6 @@ from sklearn.metrics import confusion_matrix
 
 import torch
 from torch.utils.data import TensorDataset, random_split, DataLoader
-from torch.nn.functional import pad
 
 from wavetorch import *
 
