@@ -26,7 +26,6 @@ if __name__ == '__main__':
     argparser.add_argument('--src_y', type=int, default=70)
     argparser.add_argument('--sr', type=int, default=5000)
     argparser.add_argument('--learning_rate', type=float, default=0.01)
-    argparser.add_argument('--ratio_train', type=float, default=0.75)
     argparser.add_argument('--batch_size', type=int, default=3)
     argparser.add_argument('--train_size', type=int, default=3)
     argparser.add_argument('--test_size', type=int, default=3)
@@ -138,7 +137,7 @@ if __name__ == '__main__':
     print(" --- ")
     print('Total time: %.1f min' % ((time.time()-t_start)/60))
     
-    save_model(model, hist_loss_batches, hist_train_acc, hist_test_acc)
+    save_model(model, hist_loss_batches, hist_train_acc, hist_test_acc, args)
     
     # Calculate and print confusion matrix
     cm_train, cm_test = calc_cm(model, train_dl, test_dl)
