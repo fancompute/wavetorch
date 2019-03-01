@@ -10,7 +10,6 @@ from wavetorch import *
 
 import argparse
 import time
-from tqdm import tqdm, trange
 
 if __name__ == '__main__':
     # Parse command line arguments
@@ -84,10 +83,10 @@ if __name__ == '__main__':
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
     # Run training
-    print("-"*80)
+    print("="*90)
     for i in vars(args):
         print("%16s = %s" % (i, vars(args)[i]))
-    print("-"*80 + "\n")
+    print("-"*90 + "\n")
     print("Training for %d epochs \n" % args.N_epochs)
     t_start = time.time()
 
@@ -95,14 +94,15 @@ if __name__ == '__main__':
     hist_test_acc = []
     hist_train_acc = []
 
-    for epoch in trange(1, args.N_epochs + 1, ascii=True, desc="Job", disable=args.disable_progress, ncols=80):
+    for epoch in range(1, args.N_epochs + 1):
         t_epoch = time.time()
 
         loss_batches_ep = []
         test_acc_ep = []
         train_acc_ep = []
 
-        for xb, yb in tqdm(train_dl, ascii=True, desc="Training", disable=args.disable_progress, ncols=80):
+        num = 1
+        for xb, yb in train_dl:
             # Needed to define this for LBFGS.
             # Technically, Adam doesn't require this but we can be flexible this way
             def closure():
@@ -120,22 +120,29 @@ if __name__ == '__main__':
             # Track train accuracy
             with torch.no_grad():
                 train_acc_ep.append( accuracy(model(xb), yb.argmax(dim=1)) )
+            
+            print("     training batch %2d/%2d:   accuracy = %.4f" % (num, len(train_dl), train_acc_ep[-1]))
+            num += 1
+
 
         # Track test accuracy
         with torch.no_grad():
-            for xb, yb in tqdm(test_dl, ascii=True, desc="Testing", disable=args.disable_progress, ncols=80):
+            num = 1
+            for xb, yb in test_dl:
                 test_acc_ep.append( accuracy(model(xb), yb.argmax(dim=1)) )
+                print("   validation batch %2d/%2d:   accuracy = %.4f" % (num, len(test_dl), test_acc_ep[-1]))
+                num += 1
 
         # Log metrics
         hist_loss_batches.append(np.mean(loss_batches_ep))
         hist_test_acc.append(np.mean(test_acc_ep))
         hist_train_acc.append(np.mean(train_acc_ep))
 
-        tqdm.write('Epoch: %2d/%2d   %4.1f sec   |   L = %.3e   accuracy = %.4f (train) / %.4f (test)' % 
+        print('Epoch: %2d/%2d   %4.1f sec   |   L = %.3e   accuracy = %.4f (train) / %.4f (test) \n' % 
                 (epoch, args.N_epochs, time.time()-t_epoch, hist_loss_batches[-1], hist_train_acc[-1], hist_test_acc[-1]))
 
     # Finished training
-    print("-"*80 + "\n")
+    print("="*90 + "\n")
     print('Total time: %.1f min' % ((time.time()-t_start)/60))
     
     save_model(model, args.name, hist_loss_batches, hist_train_acc, hist_test_acc, args)
