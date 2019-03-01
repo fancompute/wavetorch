@@ -14,7 +14,7 @@ import time
 if __name__ == '__main__':
     # Parse command line arguments
     argparser = argparse.ArgumentParser()
-    argparser.add_argument('--name', type=str, default="")
+    argparser.add_argument('--name', type=str, default=None)
     argparser.add_argument('--N_epochs', type=int, default=5)
     argparser.add_argument('--Nx', type=int, default=140)
     argparser.add_argument('--Ny', type=int, default=140)
@@ -87,19 +87,19 @@ if __name__ == '__main__':
     for i in vars(args):
         print("%16s = %s" % (i, vars(args)[i]))
     print("-"*90 + "\n")
-    print("Training for %d epochs \n" % args.N_epochs)
     t_start = time.time()
 
-    hist_loss_batches = []
-    hist_test_acc = []
-    hist_train_acc = []
+    history = {"loss": [],
+               "loss_avg": [],
+               "acc_train": [],
+               "acc_train_avg": [],
+               "acc_test_avg": []}
 
     for epoch in range(1, args.N_epochs + 1):
         t_epoch = time.time()
+        print('Epoch: %2d/%2d' % (epoch, args.N_epochs))
 
-        loss_batches_ep = []
-        test_acc_ep = []
-        train_acc_ep = []
+        test_acc_tmp = []
 
         num = 1
         for xb, yb in train_dl:
@@ -113,39 +113,39 @@ if __name__ == '__main__':
 
             # Track loss
             loss = optimizer.step(closure)
-            loss_batches_ep.append(loss.item())
+            history["loss"].append(loss.item())
 
             model.clip_pml_rho()
 
             # Track train accuracy
             with torch.no_grad():
-                train_acc_ep.append( accuracy(model(xb), yb.argmax(dim=1)) )
+                history["acc_train"].append( accuracy(model(xb), yb.argmax(dim=1)) )
             
-            print("     training batch %2d/%2d:   accuracy = %.4f" % (num, len(train_dl), train_acc_ep[-1]))
+            print(" ... Training batch   %2d/%2d   |   L = %.3e   accuracy = %.4f" % (num, len(train_dl), history["loss"][-1], history["acc_train"][-1]))
             num += 1
-
 
         # Track test accuracy
         with torch.no_grad():
             num = 1
             for xb, yb in test_dl:
-                test_acc_ep.append( accuracy(model(xb), yb.argmax(dim=1)) )
-                print("   validation batch %2d/%2d:   accuracy = %.4f" % (num, len(test_dl), test_acc_ep[-1]))
+                test_acc_tmp.append( accuracy(model(xb), yb.argmax(dim=1)) )
+                print(" ... Validation batch %2d/%2d   |   accuracy = %.4f" % (num, len(test_dl), test_acc_tmp[-1]))
                 num += 1
 
         # Log metrics
-        hist_loss_batches.append(np.mean(loss_batches_ep))
-        hist_test_acc.append(np.mean(test_acc_ep))
-        hist_train_acc.append(np.mean(train_acc_ep))
+        history["acc_test_avg"].append( np.mean(test_acc_tmp) )
+        history["loss_avg"].append( np.mean(history["loss"][-args.batch_size:]) )
+        history["acc_train_avg"].append( np.mean(history["acc_train"][-args.batch_size:]) )
 
-        print('Epoch: %2d/%2d   %4.1f sec   |   L = %.3e   accuracy = %.4f (train) / %.4f (test) \n' % 
-                (epoch, args.N_epochs, time.time()-t_epoch, hist_loss_batches[-1], hist_train_acc[-1], hist_test_acc[-1]))
+        print(" ... ")
+        print('elapsed: %4.1f sec   |   L = %.3e   accuracy = %.4f (train) / %.4f (test) \n' % 
+                (time.time()-t_epoch, history["loss_avg"][-1], history["acc_train_avg"][-1], history["acc_test_avg"][-1]))
 
     # Finished training
     print("="*90 + "\n")
     print('Total time: %.1f min' % ((time.time()-t_start)/60))
     
-    save_model(model, args.name, hist_loss_batches, hist_train_acc, hist_test_acc, args)
+    save_model(model, args.name, history, args)
     
     # Calculate and print confusion matrix
     cm_test = calc_cm(model, test_dl)

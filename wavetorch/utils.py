@@ -12,20 +12,17 @@ import socket
 
 SAVEDIR = "./trained/"
 
-def save_model(model, name, hist_loss_batches=None, hist_train_acc=None, hist_test_acc=None, args=None):
+def save_model(model, name=None, history=None, args=None):
     str_hostname = socket.gethostname()
-    if name is "":
-        name = time.strftime("%Y_%m_%d-%H_%M_%S") + "_"
-    else:
-        name += "_"
-    str_filename = str_hostname + "-model-" + name +  + ".pt"
+    if name is None:
+        name = time.strftime("%Y_%m_%d-%H_%M_%S")
+
+    str_filename = 'model_' + str_hostname + '_' + name +  '.pt'
     if not os.path.exists(SAVEDIR):
         os.makedirs(SAVEDIR)
     str_savepath = SAVEDIR + str_filename
     dsave = {"model": model,
-             "hist_loss_batches": hist_loss_batches,
-             "hist_train_acc": hist_train_acc,
-             "hist_test_acc": hist_test_acc, 
+             "history": history,
              "args": args}
     print("Saving model to %s" % str_savepath)
     torch.save(dsave, str_savepath)
@@ -34,7 +31,7 @@ def save_model(model, name, hist_loss_batches=None, hist_train_acc=None, hist_te
 def load_model(str_filename):
     print("Loading model from %s" % str_filename)
     dload = torch.load(str_filename)
-    return dload["model"], dload["hist_loss_batches"], dload["hist_train_acc"], dload["hist_test_acc"], dload["args"]
+    return dload["model"], dload["history"], dload["args"]
 
 
 def accuracy(out, yb):
