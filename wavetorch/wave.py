@@ -4,7 +4,7 @@ from torch import tanh
 
 class WaveCell(torch.nn.Module):
 
-    def __init__(self, dt, Nx, Ny, src_x, src_y, probe_x, probe_y, rho=None, pml_N=20, pml_p=4.0, pml_max=3.0, c_nominal=1.0, c_range=-0.1):
+    def __init__(self, dt, Nx, Ny, src_x, src_y, probe_x, probe_y, pml_N=20, pml_p=4.0, pml_max=3.0, c0=1.0, c1=0.9, binarized=True):
         super(WaveCell, self).__init__()
 
         self.dt = dt
@@ -18,21 +18,23 @@ class WaveCell(torch.nn.Module):
         self.probe_x = probe_x
         self.probe_y = probe_y
 
-        if rho is None:
-            rho = self.init_rand_rho(Nx, Ny)
-        else:
-            rho = torch.ones(Nx, Ny)*rho
-        self.rho = torch.nn.Parameter(rho)
-
-        self.c_nominal = c_nominal
-        self.c_range = c_range
+        self.binarized = binarized
+        self.c0 = c0
+        self.c1 = c1
 
         # Setup the PML/adiabatic absorber
         self.register_buffer("b", self.init_b(Nx, Ny, pml_N, pml_p, pml_max))
 
-        with torch.no_grad():
-            # Null rho inside the absorber
-            self.rho[self.b!=0] = 0.0
+        # if binarized, rho represents the density
+        # if NOT binarized, rho directly represents c
+        # bounds on c are not enforced for unbinarized
+        if binarized:
+            rho = self.init_rho_rand(Nx, Ny)
+        else:
+            rho = torch.ones(Nx, Ny) * c0
+
+        self.rho = torch.nn.Parameter(rho)
+        self.clip_pml_rho()
 
         # Define the laplacian conv kernel
         self.register_buffer("laplacian", self.h**(-2) * torch.tensor([[[[0.0,  1.0, 0.0], [1.0, -4.0, 1.0], [0.0,  1.0, 0.0]]]]))
@@ -41,6 +43,26 @@ class WaveCell(torch.nn.Module):
         self.register_buffer("A1", (self.dt**(-2) + self.b * 0.5 * self.dt**(-1)).pow(-1))
         self.register_buffer("A2", torch.tensor(2 * self.dt**(-2)))
         self.register_buffer("A3", self.dt**(-2) - self.b * 0.5 * self.dt**(-1))
+
+    def clip_pml_rho(self):
+        with torch.no_grad():
+            if self.binarized:
+                self.rho[self.b!=0] = 0.0
+            else:
+                self.rho[self.b!=0] = self.c0
+
+    @staticmethod
+    def proj(x, eta=torch.tensor(0.5), beta=torch.tensor(100.0)):
+        return (tanh(beta*eta) + tanh(beta*(x-eta))) / (tanh(beta*eta) + tanh(beta*(1-eta)))
+
+    def c(self):
+        if self.binarized:
+            # apply LPF
+            lpf_rho = conv2d(self.rho.unsqueeze(0).unsqueeze(0), torch.tensor([[[[0, 1/8, 0], [1/8, 1/2, 1/8], [0, 1/8, 0]]]]), padding=1).squeeze()
+            #apply projection
+            return (self.c0 + (self.c1-self.c0)*self.proj(lpf_rho))
+        else:
+            return self.rho
 
     @staticmethod
     def init_b(Nx, Ny, pml_N, pml_p, pml_max):
@@ -57,7 +79,7 @@ class WaveCell(torch.nn.Module):
         return torch.sqrt( b_x**2 + b_y**2 )
 
     @staticmethod
-    def init_rand_rho(Nx, Ny, Nconv=10):
+    def init_rho_rand(Nx, Ny, Nconv=10):
         rho = torch.rand(Nx, Ny)
         # Low pass filter a number of times to make "islands" in c
         for i in range(Nconv):
@@ -108,12 +130,4 @@ class WaveCell(torch.nn.Module):
         I = torch.sum(torch.abs(y[:, :, probe_x, probe_y]).pow(2), dim=1)
         return I / torch.sum(I, dim=1, keepdim=True)
 
-    @staticmethod
-    def proj(x, eta=torch.tensor(0.5), beta=torch.tensor(100.0)):
-        return (tanh(beta*eta) + tanh(beta*(x-eta))) / (tanh(beta*eta) + tanh(beta*(1-eta)))
 
-    def c(self):
-        # apply LPF
-        lpf_rho = conv2d(self.rho.unsqueeze(0).unsqueeze(0), torch.tensor([[[[0, 1/8, 0], [1/8, 1/2, 1/8], [0, 1/8, 0]]]]), padding=1).squeeze()
-        #apply projection
-        return (self.c_nominal + self.c_range*self.proj(lpf_rho))

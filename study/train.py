@@ -31,10 +31,11 @@ if __name__ == '__main__':
     argparser.add_argument('--test_size', type=int, default=3)
     argparser.add_argument('--num_threads', type=int, default=4)
     argparser.add_argument('--pad_factor', type=float, default=1.0)
-    argparser.add_argument('--c_nominal', type=float, default=1.0)
-    argparser.add_argument('--c_range', type=float, default=-0.1)
+    argparser.add_argument('--c0', type=float, default=1.0)
+    argparser.add_argument('--c1', type=float, default=0.9)
     argparser.add_argument('--use-cuda', action='store_true')
     argparser.add_argument('--disable_progress', action='store_true')
+    argparser.add_argument('--binarized', action='store_true')
     args = argparser.parse_args()
 
     torch.set_num_threads(args.num_threads)
@@ -75,7 +76,7 @@ if __name__ == '__main__':
     criterion = torch.nn.CrossEntropyLoss()
 
     # Define model
-    model = WaveCell(args.dt, args.Nx, args.Ny, args.src_x, args.src_y, probe_x, probe_y, c_nominal=args.c_nominal, c_range=args.c_range)
+    model = WaveCell(args.dt, args.Nx, args.Ny, args.src_x, args.src_y, probe_x, probe_y, c0=args.c0, c1=args.c1, binarized=args.binarized)
     model.to(args.dev)
 
     # Define optimizer
@@ -113,8 +114,7 @@ if __name__ == '__main__':
             loss = optimizer.step(closure)
             loss_batches_ep.append(loss.item())
 
-            with torch.no_grad():
-                model.rho[model.b!=0] = 0.0
+            model.clip_pml_rho()
 
             # Track train accuracy
             with torch.no_grad():
@@ -140,7 +140,8 @@ if __name__ == '__main__':
     save_model(model, hist_loss_batches, hist_train_acc, hist_test_acc, args)
     
     # Calculate and print confusion matrix
-    cm_train, cm_test = calc_cm(model, train_dl, test_dl)
+    cm_test = calc_cm(model, test_dl)
+    cm_train = calc_cm(model, train_dl)
 
     print("Training CM")
     print(cm_train)

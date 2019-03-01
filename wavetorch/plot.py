@@ -74,10 +74,7 @@ def plot_cm(cm, ax=None, figsize=(4,4), title=None, normalize=False, labels="aut
 
 def plot_c(model, block=False, fig_width=6):
     fig, ax = plt.subplots(1,1,figsize=(1.1*fig_width,model.Ny/model.Nx*fig_width), constrained_layout=True)
-
-    with torch.no_grad():
-        c = model.c()
-
+    c = model.c().detach()
     h=ax.imshow(c.numpy().transpose(), origin="bottom", rasterized=True, cmap=plt.cm.viridis_r)
     plt.colorbar(h,ax=ax,label="wave speed $c{(x,y)}$")
     ax.contour(model.b.numpy().transpose()>0, levels=[0], colors=("w",), linestyles=("dotted"), alpha=0.75)

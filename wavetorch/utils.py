@@ -22,7 +22,7 @@ def save_model(model, hist_loss_batches=None, hist_train_acc=None, hist_test_acc
              "hist_loss_batches": hist_loss_batches,
              "hist_train_acc": hist_train_acc,
              "hist_test_acc": hist_test_acc, 
-             "args", args}
+             "args": args}
     print("Saving model to %s" % str_savepath)
     torch.save(dsave, str_savepath)
 
@@ -38,38 +38,20 @@ def accuracy(out, yb):
     return (preds == yb).float().mean().item()
 
 
-def calc_cm(model, train_dl, test_dl, silent=False):
-   
+def calc_cm(model, dataloader, verbose=True):
     with torch.no_grad():
         list_yb_pred = []
         list_yb = []
         i = 1
-        for xb, yb in train_dl:
+        for xb, yb in dataloader:
             yb_pred = model(xb)
             list_yb_pred.append(yb_pred)
             list_yb.append(yb)
-            if not silent: print("cm: processing training batch %d" % i)
+            if verbose: print("cm: processing batch %d" % i)
             i += 1
 
         y_pred = torch.cat(list_yb_pred, dim=0)
         y_truth = torch.cat(list_yb, dim=0)
 
-        cm_train = confusion_matrix(y_truth.argmax(dim=1).numpy(), y_pred.argmax(dim=1).numpy())
-
-        list_yb_pred = []
-        list_yb = []
-        i = 1
-        for xb, yb in test_dl:
-            yb_pred = model(xb)
-            list_yb_pred.append(yb_pred)
-            list_yb.append(yb)
-            if not silent: print("cm: processing validation batch %d" % i)
-            i += 1
-
-        y_pred = torch.cat(list_yb_pred, dim=0)
-        y_truth = torch.cat(list_yb, dim=0)
-
-        cm_test = confusion_matrix(y_truth.argmax(dim=1).numpy(), y_pred.argmax(dim=1).numpy())
-
-    return cm_train, cm_test
+    return confusion_matrix(y_truth.argmax(dim=1).numpy(), y_pred.argmax(dim=1).numpy())
 

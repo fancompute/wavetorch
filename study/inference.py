@@ -18,30 +18,34 @@ if __name__ == '__main__':
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--model', type=str, required=True)
     argparser.add_argument('--sr', type=int, default=5000)
-    argparser.add_argument('--ratio_train', type=float, default=0.5)
-    argparser.add_argument('--batch_size', type=int, default=10)
-    argparser.add_argument('--num_of_each', type=int, default=2)
+    argparser.add_argument('--batch_size', type=int, default=6)
     argparser.add_argument('--num_threads', type=int, default=4)
-    argparser.add_argument('--pad_fact', type=float, default=1.0)
+    argparser.add_argument('--pad_factor', type=float, default=1.0)
+    argparser.add_argument('--train_size', type=int, default=3)
+    argparser.add_argument('--test_size', type=int, default=30)
     argparser.add_argument('--cm', action='store_true')
+    argparser.add_argument('--show', action='store_true')
     args = argparser.parse_args()
 
     torch.set_num_threads(args.num_threads)
 
     # Load the model and the training history
-    model, hist_loss_batches, hist_train_acc, hist_test_acc = load_model(args.model)
+    model, hist_loss_batches, hist_train_acc, hist_test_acc, args_trained = load_model(args.model)
+    if args.show:
+        plot_c(model, block=True)
 
     # Load the data
     directories_str = ("./data/vowels/a/",
                        "./data/vowels/e/",
                        "./data/vowels/o/")
 
-    x, y_labels = load_all_vowels(directories_str, sr=args.sr, normalize=True, num_of_each=args.num_of_each)
-    x = pad(x, (1, int(x.shape[1] * args.pad_fact)))
-    N_samples, N_classes = y_labels.shape
+    N_classes = len(directories_str)
 
-    full_ds = TensorDataset(x, y_labels)
-    train_ds, test_ds = random_split(full_ds, [int(args.ratio_train*N_samples), N_samples-int(args.ratio_train*N_samples)])
+    x_train, x_test, y_train, y_test = load_all_vowels(directories_str, sr=args.sr, normalize=True, train_size=args.train_size, test_size=args.test_size, pad_factor=args.pad_factor)
+
+    # Put tensors into Datasets and then Dataloaders to let pytorch manage batching
+    train_ds = TensorDataset(x_train, y_train)
+    test_ds = TensorDataset(x_test, y_test)
 
     train_dl = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True)
     test_dl = DataLoader(test_ds, batch_size=args.batch_size)
@@ -61,9 +65,8 @@ if __name__ == '__main__':
     plt.show(block=False)
 
     if args.cm:
-        cm_train, cm_test = calc_cm(model, train_dl, test_dl)
-        fig, axs = plt.subplots(1, 2, constrained_layout=True, figsize=(6,3))
-        plot_cm(cm_train, title="Training set", normalize=True, ax=axs[0], labels=["a", "e", "o"])
-        plot_cm(cm_test, title="Testing set", normalize=True, ax=axs[1], labels=["a", "e", "o"])
+        cm_test = calc_cm(model, test_dl)
+        fig, axs = plt.subplots(1, 1, constrained_layout=True, figsize=(3.5,3.5))
+        plot_cm(cm_test, title="Testing set", normalize=True, ax=axs, labels=["a", "e", "o"])
         plt.show(block=False)
 
