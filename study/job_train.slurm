@@ -12,5 +12,12 @@ export PYTHONPATH=$(pwd)
 echo "Job started at: $(date +'%d/%m/%y - %H:%m')"
 echo ""
 
-srun python -u ./study/train.py --N_epochs 10 --train_size 90 --test_size 21 --batch_size 9 --num_threads $SLURM_CPUS_PER_TASK --c_range=-0.25
-
+srun python -u ./study/train.py 						\
+					--N_epochs 10 						\
+					--train_size 81 					\
+					--test_size 30 						\
+					--batch_size 9 						\
+					--num_threads $SLURM_CPUS_PER_TASK 	\
+					--c0 1.0							\
+					--c1 0.9 							\
+					--binarized
