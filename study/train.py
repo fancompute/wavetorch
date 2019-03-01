@@ -34,7 +34,6 @@ if __name__ == '__main__':
     argparser.add_argument('--c0', type=float, default=1.0)
     argparser.add_argument('--c1', type=float, default=0.9)
     argparser.add_argument('--use-cuda', action='store_true')
-    argparser.add_argument('--disable_progress', action='store_true')
     argparser.add_argument('--binarized', action='store_true')
     args = argparser.parse_args()
 
@@ -42,10 +41,10 @@ if __name__ == '__main__':
 
     # figure out which device we're on
     if args.use_cuda and torch.cuda.is_available():
-        print("Using GPU")
+        print("Using GPU \n")
         args.dev = torch.device('cuda')
     else:
-        print("Using CPU")
+        print("Using CPU \n")
         args.dev = torch.device('cpu')
 
     # Each dir corresponds to a distinct class and is automatically given a corresponding one hot
@@ -83,23 +82,19 @@ if __name__ == '__main__':
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
     # Run training
-    print("="*90)
     for i in vars(args):
-        print("%16s = %s" % (i, vars(args)[i]))
-    print("-"*90 + "\n")
+        print('%16s = %s' % (i, vars(args)[i]))
+    print('\n')
     t_start = time.time()
 
     history = {"loss": [],
                "loss_avg": [],
                "acc_train": [],
-               "acc_train_avg": [],
-               "acc_test_avg": []}
+               "acc_test": []}
 
     for epoch in range(1, args.N_epochs + 1):
         t_epoch = time.time()
         print('Epoch: %2d/%2d' % (epoch, args.N_epochs))
-
-        test_acc_tmp = []
 
         num = 1
         for xb, yb in train_dl:
@@ -116,34 +111,41 @@ if __name__ == '__main__':
             history["loss"].append(loss.item())
 
             model.clip_pml_rho()
-
-            # Track train accuracy
-            with torch.no_grad():
-                history["acc_train"].append( accuracy(model(xb), yb.argmax(dim=1)) )
             
-            print(" ... Training batch   %2d/%2d   |   L = %.3e   accuracy = %.4f" % (num, len(train_dl), history["loss"][-1], history["acc_train"][-1]))
+            print(" ... Training batch   %2d/%2d   |   loss = %.3e" % (num, len(train_dl), history["loss"][-1]))
             num += 1
 
-        # Track test accuracy
+
+        print(" ... Computing accuracies ")
         with torch.no_grad():
+            acc_tmp = []
             num = 1
-            for xb, yb in test_dl:
-                test_acc_tmp.append( accuracy(model(xb), yb.argmax(dim=1)) )
-                print(" ... Validation batch %2d/%2d   |   accuracy = %.4f" % (num, len(test_dl), test_acc_tmp[-1]))
+            for xb, yb in train_dl:
+                acc_tmp.append( accuracy(model(xb), yb.argmax(dim=1)) )
+                print(" ... Training %2d/%2d " % (num, len(test_dl)))
                 num += 1
 
+            history["acc_train"].append( np.mean(acc_tmp) )
+
+            acc_tmp = []
+            num = 1
+            for xb, yb in test_dl:
+                acc_tmp.append( accuracy(model(xb), yb.argmax(dim=1)) )
+                print(" ... Testing  %2d/%2d " % (num, len(test_dl)))
+                num += 1
+
+            history["acc_test"].append( np.mean(acc_tmp) )
+
         # Log metrics
-        history["acc_test_avg"].append( np.mean(test_acc_tmp) )
+        
         history["loss_avg"].append( np.mean(history["loss"][-args.batch_size:]) )
-        history["acc_train_avg"].append( np.mean(history["acc_train"][-args.batch_size:]) )
 
         print(" ... ")
-        print('elapsed: %4.1f sec   |   L = %.3e   accuracy = %.4f (train) / %.4f (test) \n' % 
-                (time.time()-t_epoch, history["loss_avg"][-1], history["acc_train_avg"][-1], history["acc_test_avg"][-1]))
+        print(' ... elapsed time: %4.1f sec   |   loss = %.3e   accuracy = %.4f (train) / %.4f (test) \n' % 
+                (time.time()-t_epoch, history["loss_avg"][-1], history["acc_train"][-1], history["acc_test"][-1]))
 
     # Finished training
-    print("="*90 + "\n")
-    print('Total time: %.1f min' % ((time.time()-t_start)/60))
+    print('Total time: %.1f min\n' % ((time.time()-t_start)/60))
     
     save_model(model, args.name, history, args)
     
