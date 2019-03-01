@@ -22,7 +22,7 @@ class WaveCell(torch.nn.Module):
             rho = self.init_rand_rho(Nx, Ny)
         else:
             rho = torch.ones(Nx, Ny)*rho
-        self.rho = torch.nn.Parameter(rho*torch.ones(Nx, Ny))
+        self.rho = torch.nn.Parameter(rho)
 
         self.c_nominal = c_nominal
         self.c_range = c_range
@@ -64,11 +64,11 @@ class WaveCell(torch.nn.Module):
             rho = conv2d(rho.unsqueeze(0).unsqueeze(0), torch.tensor([[[[0, 1/8, 0], [1/8, 1/2, 1/8], [0, 1/8, 0]]]]), padding=1).squeeze()
         return rho
 
-    def step(self, x, y1, y2):
+    def step(self, x, y1, y2, c):
         # Using torc.mul() lets us easily broadcast over batches
         y = torch.mul( self.A1, ( torch.mul(self.A2, y1) 
                                    - torch.mul(self.A3, y2) 
-                                   + torch.mul( self.c().pow(2), conv2d(y1.unsqueeze(1), self.laplacian, padding=1).squeeze(1) ) ))
+                                   + torch.mul( c.pow(2), conv2d(y1.unsqueeze(1), self.laplacian, padding=1).squeeze(1) ) ))
         
         # Insert the source
         y[:, self.src_x, self.src_y] = y[:, self.src_x, self.src_y] + x.squeeze(1)
@@ -88,8 +88,9 @@ class WaveCell(torch.nn.Module):
         y_all = []
 
         # loop through time
+        c = self.c()
         for i, xi in enumerate(x.chunk(x.size(1), dim=1)):
-            y, y1, y2 = self.step(xi, y1, y2)
+            y, y1, y2 = self.step(xi, y1, y2, c)
             y_all.append(y)
 
         # combine into output field dist 
