@@ -6,21 +6,29 @@ import seaborn as sns
 
 import torch
 
-def plot_total_field(yb):
+def plot_total_field(model, yb, ylabel, block=False, ax=None, fig_width=4):
     with torch.no_grad():
         y_tot = torch.abs(yb).pow(2).sum(dim=1)
 
-    for batch_ind in range(0, y_tot.shape[0]):
-        plt.figure(constrained_layout=True)
-        Z = y_tot[batch_ind,:,:].numpy().transpose()
+        if ax is None:
+            fig, ax= plt.subplots(1, 1, constrained_layout=True, figsize=(1.1*fig_width,model.Ny/model.Nx*fig_width))
+
+        Z = y_tot[0,:,:].numpy().transpose()
         Z = Z / Z.max()
-        h = plt.imshow(Z, 
-                       cmap=plt.cm.inferno, 
-                       origin="bottom", 
-                       norm=mpl.colors.LogNorm(vmin=1e-3, vmax=1.0))
-        plt.title(r"$\int \vert u{\left(x, y, t\right)} \vert^2\ dt$")
-        plt.colorbar(h, extend='min')
-        plt.show(block=False)
+        h = ax.imshow(Z, cmap=plt.cm.inferno,  origin="bottom",  norm=mpl.colors.LogNorm(vmin=1e-3, vmax=1.0))
+        ax.contour(model.b.numpy().transpose()>0, levels=[0], colors=("w",), linestyles=("dotted"), alpha=0.75)
+        pts_x = np.ones(len(model.probe_y)) * model.probe_x
+        pts_y = model.probe_y.numpy()
+        for i in range(0,len(pts_x)):
+            if ylabel[0,i].item() == 1:
+                color = "#98df8a"
+            else:
+                color = "#7f7f7f"
+            ax.plot(pts_x[i], pts_y[i], "o", color=color, mew=0)
+        ax.plot(model.src_x, model.src_y, "o", mew=0, color="#7f7f7f")
+        plt.colorbar(h, extend='min', ax=ax, aspect=10)
+        if ax is not None:
+            plt.show(block=block)
 
 
 def plot_cm(cm, ax=None, figsize=(4,4), title=None, normalize=False, labels="auto"):
