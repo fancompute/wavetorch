@@ -37,14 +37,12 @@ def plot_total_field(model, yb, ylabel, block=False, ax=None, fig_width=4):
         Z = Z / Z.max()
         h = ax.imshow(Z, cmap=plt.cm.inferno,  origin="bottom",  norm=mpl.colors.LogNorm(vmin=1e-3, vmax=1.0))
         ax.contour(model.b.numpy().transpose()>0, levels=[0], colors=("w",), linestyles=("dotted"), alpha=0.75)
-        pts_x = np.ones(len(model.probe_y)) * model.probe_x
-        pts_y = model.probe_y.numpy()
-        for i in range(0,len(pts_x)):
+        for i in range(0, len(model.px)):
             if ylabel[0,i].item() == 1:
                 color = "#98df8a"
             else:
                 color = "#7f7f7f"
-            ax.plot(pts_x[i], pts_y[i], "o", color=color, mew=0)
+            ax.plot(model.px[i], model.py[i], "o", color=color, mew=0)
         ax.plot(model.src_x, model.src_y, "o", mew=0, color="#7f7f7f")
         plt.colorbar(h, extend='min', ax=ax, aspect=10)
         if ax is not None:
@@ -106,7 +104,7 @@ def plot_c(model, block=False, fig_width=6):
     h=ax.imshow(c.numpy().transpose(), origin="bottom", rasterized=True, cmap=plt.cm.viridis_r)
     plt.colorbar(h,ax=ax,label="wave speed $c{(x,y)}$")
     ax.contour(model.b.numpy().transpose()>0, levels=[0], colors=("w",), linestyles=("dotted"), alpha=0.75)
-    ax.plot(np.ones(len(model.probe_y)) * model.probe_x, model.probe_y.numpy(), "ro")
+    ax.plot(model.px, model.py, "ro")
     ax.plot(model.src_x, model.src_y, "ko")
     ax.set_xlabel("x")
     ax.set_ylabel("y")
@@ -121,7 +119,7 @@ def model_animate(model, x, block=True, batch_ind=0, filename=None, interval=1, 
 
     fig, ax = plt.subplots(1, 1, constrained_layout=True, figsize=(fig_width, fig_width*model.Ny/model.Nx))
     im = ax.imshow(np.zeros((model.Ny, model.Nx)), cmap=plt.cm.RdBu, animated=True, vmin=-y_max, vmax=+y_max, origin="bottom")
-    h1, = ax.plot(np.ones(len(model.probe_y)) * model.probe_x, model.probe_y.numpy(), "ks", alpha=0.2)
+    h1, = ax.plot(model.px, model.py, "ks", alpha=0.2)
     h2, = ax.plot(model.src_x, model.src_y, "ko", alpha=0.2)
     title = ax.text(0.05, 0.05, "", transform=ax.transAxes, ha="left", fontsize="large")
 

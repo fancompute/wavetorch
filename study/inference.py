@@ -13,29 +13,60 @@ from wavetorch import *
 if __name__ == '__main__':
     # Parse command line arguments
     argparser = argparse.ArgumentParser()
-    argparser.add_argument('--model', type=str, default=None)
-    argparser.add_argument('--sr', type=int, default=5000)
-    argparser.add_argument('--batch_size', type=int, default=6)
-    argparser.add_argument('--num_threads', type=int, default=4)
-    argparser.add_argument('--pad_factor', type=float, default=1.0)
-    argparser.add_argument('--Nx', type=int, default=140)
-    argparser.add_argument('--Ny', type=int, default=140)
-    argparser.add_argument('--dt', type=float, default=0.707)
-    argparser.add_argument('--probe_space', type=int, default=30)
-    argparser.add_argument('--probe_x', type=int, default=100)
-    argparser.add_argument('--probe_y', type=int, default=40)
-    argparser.add_argument('--src_x', type=int, default=40)
-    argparser.add_argument('--src_y', type=int, default=70)
-    argparser.add_argument('--c0', type=float, default=1.0)
-    argparser.add_argument('--c1', type=float, default=0.9)
-    argparser.add_argument('--cm', action='store_true')
-    argparser.add_argument('--show', action='store_true')
-    argparser.add_argument('--hist', action='store_true')
-    argparser.add_argument('--save', action='store_true')
-    argparser.add_argument('--field', action='store_true')
-    argparser.add_argument('--animate', action='store_true')
-    argparser.add_argument('--ft', action='store_true')
-    argparser.add_argument('--binarized', action='store_true')
+    argparser.add_argument('--model', type=str, default=None,
+                                help='Model file to load. If not specified a blank model is created')
+    argparser.add_argument('--batch_size', type=int, default=3, 
+                                help='Batch size used during training and testing')
+    argparser.add_argument('--num_threads', type=int, default=4,
+                                help='Number of threads')
+
+    argparser.add_argument('--cm', action='store_true',
+                                help='Plot the confusion matrix over the whole dataset')
+    argparser.add_argument('--show', action='store_true',
+                                help='Show the model (distribution of wave speed)')
+    argparser.add_argument('--hist', action='store_true',
+                                help='Plot the training history from the loaded model')
+    argparser.add_argument('--fields', action='store_true',
+                                help='Plot the field distrubtion for three classes, STFTs, and simulation energy')
+    argparser.add_argument('--save', action='store_true',
+                                help='Save figures')
+
+    # Data options
+    argparser.add_argument('--sr', type=int, default=10000,
+                                help='Sampling rate to use for vowel data')
+    argparser.add_argument('--pad_factor', type=float, default=0.0,
+                                help='Amount of zero-padding applied to vowels in units of original length. For example, a value of 1 would double the sample length')
+    
+    # Simulation options
+    argparser.add_argument('--c0', type=float, default=1.0,
+                                help='Background wave speed')
+    argparser.add_argument('--c1', type=float, default=0.9,
+                                help='Second wave speed value used with --c0 when --binarized')
+    argparser.add_argument('--Nx', type=int, default=140,
+                                help='Number of grid cells in x-dimension of simulation domain')
+    argparser.add_argument('--Ny', type=int, default=140,
+                                help='Number of grid cells in y-dimension of simulation domain')
+    argparser.add_argument('--dt', type=float, default=0.707,
+                                help='Time step (spatial step size is determined automatically)')
+    argparser.add_argument('--px', type=int, nargs='*',
+                                help='Probe x-coordinates in grid cells')
+    argparser.add_argument('--py', type=int, nargs='*',
+                                help='Probe y-coordinates in grid cells')
+    argparser.add_argument('--pd', type=int, default=30,
+                                help='Spacing, in number grid cells, between probe points')
+    argparser.add_argument('--src_x', type=int, default=None,
+                                help='Source x-coordinate in grid cells')
+    argparser.add_argument('--src_y', type=int, default=None,
+                                help='Source y-coordinate in grid cells')
+    argparser.add_argument('--binarized', action='store_true',
+                                help='Binarize the distribution of wave speed between --c0 and --c1')
+    argparser.add_argument('--pml_N', type=int, default=20,
+                                help='PML thickness in grid cells')
+    argparser.add_argument('--pml_p', type=float, default=4.0,
+                                help='PML polynomial order')
+    argparser.add_argument('--pml_max', type=float, default=3.0,
+                                help='PML max dampening')
+
     args = argparser.parse_args()
 
     torch.set_num_threads(args.num_threads)
@@ -51,9 +82,9 @@ if __name__ == '__main__':
         sr = args_trained.sr
         pad_factor = args_trained.pad_factor
     else:
-        probe_x = args.probe_x
-        probe_y = torch.arange(args.probe_y, args.probe_y + N_classes*args.probe_space, args.probe_space)
-        model = WaveCell(args.dt, args.Nx, args.Ny, args.src_x, args.src_y, probe_x, probe_y, c0=args.c0, c1=args.c1, binarized=args.binarized)
+        px, py = setup_probe_coords(N_classes, args.px, args.py, args.pd, args.Nx, args.Ny, args.pml_N)
+        src_x, src_y = setup_src_coords(args.src_x, args.src_y, args.Nx, args.Ny, args.pml_N)
+        model = WaveCell(args.dt, args.Nx, args.Ny, src_x, src_y, px, py, pml_N=args.pml_N, pml_p=args.pml_p, pml_max=args.pml_max, c0=args.c0, c1=args.c1, binarized=args.binarized)
         sr = args.sr
         pad_factor = args.pad_factor
 
@@ -96,12 +127,12 @@ if __name__ == '__main__':
         else:
             plt.show(block=False)
 
-    if args.field:
+    if args.fields:
         fig, axs = plt.subplots(3, 4, constrained_layout=True, figsize=(6,5))
         for xb, yb in DataLoader(train_ds, batch_size=1):
             with torch.no_grad():
                 field_dist = model(xb, probe_output=False)
-                probe_series = field_dist[0, :, model.probe_x, model.probe_y]
+                probe_series = field_dist[0, :, model.px, model.py]
                 plot_total_field(model, field_dist, yb, ax=axs[yb.argmax().item(), 0])
                 plot_stft_spectrum(xb.numpy().squeeze(), sr=args.sr, ax=axs[yb.argmax().item(), 1])
                 plot_stft_spectrum(probe_series[:,yb.argmax().item()].numpy(), sr=args.sr, ax=axs[yb.argmax().item(), 2])

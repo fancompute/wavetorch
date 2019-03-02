@@ -1,11 +1,79 @@
 import torch
 from torch.nn.functional import conv2d
 from torch import tanh
+import time
+import numpy as np
+from .utils import accuracy
+
+def train(model, optimizer, criterion, train_dl, test_dl, N_epochs, batch_size):
+    history = {"loss": [],
+               "loss_avg": [],
+               "acc_train": [],
+               "acc_test": []}
+
+    t_start = time.time()
+    for epoch in range(1, N_epochs + 1):
+        t_epoch = time.time()
+        print('Epoch: %2d/%2d' % (epoch, N_epochs))
+
+        num = 1
+        for xb, yb in train_dl:
+            # Needed to define this for LBFGS.
+            # Technically, Adam doesn't require this but we can be flexible this way
+            def closure():
+                optimizer.zero_grad()
+                loss = criterion(model(xb), yb.argmax(dim=1))
+                loss.backward()
+                return loss
+
+            # Track loss
+            loss = optimizer.step(closure)
+            history["loss"].append(loss.item())
+
+            model.clip_pml_rho()
+            
+            print(" ... Training batch   %2d/%2d   |   loss = %.3e" % (num, len(train_dl), history["loss"][-1]))
+            num += 1
+
+
+        print(" ... Computing accuracies ")
+        with torch.no_grad():
+            acc_tmp = []
+            num = 1
+            for xb, yb in train_dl:
+                acc_tmp.append( accuracy(model(xb), yb.argmax(dim=1)) )
+                print(" ... Training %2d/%2d " % (num, len(test_dl)))
+                num += 1
+
+            history["acc_train"].append( np.mean(acc_tmp) )
+
+            acc_tmp = []
+            num = 1
+            for xb, yb in test_dl:
+                acc_tmp.append( accuracy(model(xb), yb.argmax(dim=1)) )
+                print(" ... Testing  %2d/%2d " % (num, len(test_dl)))
+                num += 1
+
+            history["acc_test"].append( np.mean(acc_tmp) )
+
+        # Log metrics
+        
+        history["loss_avg"].append( np.mean(history["loss"][-batch_size:]) )
+
+        print(" ... ")
+        print(' ... elapsed time: %4.1f sec   |   loss = %.3e   accuracy = %.4f (train) / %.4f (test) \n' % 
+                (time.time()-t_epoch, history["loss_avg"][-1], history["acc_train"][-1], history["acc_test"][-1]))
+
+    # Finished training
+    print('Total time: %.1f min\n' % ((time.time()-t_start)/60))
+
+    return history
 
 class WaveCell(torch.nn.Module):
 
-    def __init__(self, dt, Nx, Ny, src_x, src_y, probe_x, probe_y, pml_N=20, pml_p=4.0, pml_max=3.0, c0=1.0, c1=0.9, binarized=True):
+    def __init__(self, dt, Nx, Ny, src_x, src_y, px, py, pml_N=20, pml_p=4.0, pml_max=3.0, c0=1.0, c1=0.9, binarized=True):
         super(WaveCell, self).__init__()
+        assert(len(px)==len(py))
 
         self.dt = dt
 
@@ -15,8 +83,8 @@ class WaveCell(torch.nn.Module):
 
         self.src_x = src_x
         self.src_y = src_y
-        self.probe_x = probe_x
-        self.probe_y = probe_y
+        self.px = px
+        self.py = py
 
         self.binarized = binarized
         self.c0 = c0
@@ -120,14 +188,14 @@ class WaveCell(torch.nn.Module):
 
         if probe_output:
             # Return only the one-hot output
-            return self.integrate_probe_points(self.probe_x, self.probe_y, y)
+            return self.integrate_probe_points(self.px, self.py, y)
         else:
             # Return the full field distribution in time
             return y
 
     @staticmethod
-    def integrate_probe_points(probe_x, probe_y, y):
-        I = torch.sum(torch.abs(y[:, :, probe_x, probe_y]).pow(2), dim=1)
+    def integrate_probe_points(px, py, y):
+        I = torch.sum(torch.abs(y[:, :, px, py]).pow(2), dim=1)
         return I / torch.sum(I, dim=1, keepdim=True)
 
 
