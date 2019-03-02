@@ -27,8 +27,9 @@ As an example, the following command (issued via ipython) can be used to train t
 ```
 %run ./study/train.py --N_epochs 5 --batch_size 3 --train_size 12 --test_size 12
 ```
+**WARNING:** depending on the batch size and the sample rate for the vowel data, determined by the `--sr` option, the gradient computation may require significant amounts of memory. Using too large of a value for either of these parameters may cause your computer to lock up.
 
-The model will be trained and the progress will be printed to the screen. After training, the optimized model will be saved to a file along with the training history and all of the input arguments.
+After issuing the above command, the model will be optimized and the progress will be printed to the screen. After training, the model will be saved to a file, along with the training history and all of the input arguments.
 
 The following command can be issued to load a previously saved model file:
 ```
