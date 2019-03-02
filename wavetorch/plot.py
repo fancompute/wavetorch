@@ -3,8 +3,28 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import matplotlib as mpl
 import seaborn as sns
+import librosa
+import librosa.display
 
 import torch
+
+def plot_stft_spectrum(y, n_fft=512, block=False, ax=None, sr=None):
+    show=False
+    if ax is None:
+        fig, ax= plt.subplots(1, 1, constrained_layout=True, figsize=(4,3))
+        show = True
+
+    data_stft = np.abs(librosa.stft(y, n_fft=n_fft))
+    librosa.display.specshow(librosa.amplitude_to_db(data_stft, ref=np.max),
+                             y_axis='linear',
+                             x_axis='time',
+                             sr=sr, 
+                             ax=ax,
+                             cmap="cividis")
+    # plt.colorbar(h, format='%+2.0f dB', ax=ax)
+    if show:
+        plt.show(block=block)
+
 
 def plot_total_field(model, yb, ylabel, block=False, ax=None, fig_width=4):
     with torch.no_grad():

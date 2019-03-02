@@ -34,6 +34,7 @@ if __name__ == '__main__':
     argparser.add_argument('--save', action='store_true')
     argparser.add_argument('--field', action='store_true')
     argparser.add_argument('--animate', action='store_true')
+    argparser.add_argument('--ft', action='store_true')
     argparser.add_argument('--binarized', action='store_true')
     args = argparser.parse_args()
 
@@ -96,13 +97,20 @@ if __name__ == '__main__':
             plt.show(block=False)
 
     if args.field:
-        fig, axs = plt.subplots(3,1,constrained_layout=True, figsize=(3.5*1.15, 3.5*3*model.Ny/model.Nx))
+        fig, axs = plt.subplots(3, 4, constrained_layout=True, figsize=(6,5))
         for xb, yb in DataLoader(train_ds, batch_size=1):
             with torch.no_grad():
-                fig = plot_total_field(model, model(xb, probe_output=False), yb, ax=axs[yb.argmax().item()])
+                field_dist = model(xb, probe_output=False)
+                probe_series = field_dist[0, :, model.probe_x, model.probe_y]
+                plot_total_field(model, field_dist, yb, ax=axs[yb.argmax().item(), 0])
+                plot_stft_spectrum(xb.numpy().squeeze(), sr=args.sr, ax=axs[yb.argmax().item(), 1])
+                plot_stft_spectrum(probe_series[:,yb.argmax().item()].numpy(), sr=args.sr, ax=axs[yb.argmax().item(), 2])
+                axs[yb.argmax().item(),3].semilogy(field_dist.squeeze().abs().pow(2).sum(dim=1).sum(dim=1).numpy())
+                axs[yb.argmax().item(),3].set_xlabel("Time")
 
-    if args.animate:
-        for xb, yb in DataLoader(train_ds, batch_size=1):
-            with torch.no_grad():
-                model_animate(model, xb, block=True, batch_ind=0, filename=None, interval=1, fps=30, bitrate=768)
+        axs[0,0].set_title("Field distribution $\int dt$")
+        axs[0,1].set_title("STFT input")
+        axs[0,2].set_title("STFT reciever")
+        axs[0,3].set_title("Simulation energy")
+        plt.show(block=False)
 
