@@ -38,12 +38,16 @@ The following command can be issued to load a previously saved model file:
 Additionally, several options can be passed to this script to view various results.
 
 The `--show` option will display the distribution of the wave speed, like so:
+![](../master/img/c.png)
 
 The `--hist` option will display the training history, if it was saved with the model, like so:
+![](../master/img/hist.png)
 
 The `--cm` option will display a confusion matrix, computed over the entire dataset, like so:
+![](../master/img/cm.png)
 
 The `--fields` option will display an integrated field distribution for the vowel classes, along with spectral information for the time series data, like so:
+![](../master/img/fields.png)
 
 ## Requirements
 
