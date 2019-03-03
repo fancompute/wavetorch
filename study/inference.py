@@ -111,7 +111,8 @@ if __name__ == '__main__':
     if args.hist:
         epochs = range(1,len(history["acc_test"])+1)
         fig, axs = plt.subplots(2, 1, constrained_layout=True, sharex=True, figsize=(3,4))
-        axs[0].plot(epochs, history["loss_avg"], "o-")
+        axs[0].plot(epochs, history["loss_train"], "o-", label="Train")
+        axs[0].plot(epochs, history["loss_test"], "o-", label="Test")
         axs[0].set_ylabel("Loss")
         axs[1].plot(epochs, history["acc_train"], "o-", label="Train")
         axs[1].plot(epochs, history["acc_test"], "o-", label="Test")
