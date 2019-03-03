@@ -85,6 +85,9 @@ if __name__ == '__main__':
         model, history, args_trained = load_model(args.model)
         sr = args_trained.sr
         pad_factor = args_trained.pad_factor
+        for i in vars(args_trained):
+            print('%16s = %s' % (i, vars(args_trained)[i]))
+        print('\n')
     else:
         px, py = setup_probe_coords(N_classes, args.px, args.py, args.pd, args.Nx, args.Ny, args.pml_N)
         src_x, src_y = setup_src_coords(args.src_x, args.src_y, args.Nx, args.Ny, args.pml_N)
@@ -132,7 +135,7 @@ if __name__ == '__main__':
             plt.show(block=False)
 
     if args.fields:
-        fig, axs = plt.subplots(3, 4, constrained_layout=True, figsize=(6,5))
+        fig, axs = plt.subplots(3, 4, constrained_layout=True, figsize=(8,5))
         for xb, yb in DataLoader(train_ds, batch_size=1):
             with torch.no_grad():
                 field_dist = model(xb, probe_output=False)
