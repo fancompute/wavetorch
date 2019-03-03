@@ -71,7 +71,7 @@ def train(model, optimizer, criterion, train_dl, test_dl, N_epochs, batch_size):
 
 class WaveCell(torch.nn.Module):
 
-    def __init__(self, dt, Nx, Ny, src_x, src_y, px, py, pml_N=20, pml_p=4.0, pml_max=3.0, c0=1.0, c1=0.9, binarized=True):
+    def __init__(self, dt, Nx, Ny, src_x, src_y, px, py, pml_N=20, pml_p=4.0, pml_max=3.0, c0=1.0, c1=0.9, binarized=True, init_rand=True):
         super(WaveCell, self).__init__()
         assert(len(px)==len(py))
 
@@ -87,6 +87,7 @@ class WaveCell(torch.nn.Module):
         self.py = py
 
         self.binarized = binarized
+        self.init_rand = init_rand
         self.c0 = c0
         self.c1 = c1
 
@@ -97,9 +98,15 @@ class WaveCell(torch.nn.Module):
         # if NOT binarized, rho directly represents c
         # bounds on c are not enforced for unbinarized
         if binarized:
-            rho = self.init_rho_rand(Nx, Ny)
-        else:
-            rho = torch.ones(Nx, Ny) * c0
+            if init_rand:
+                rho = self.init_rho_rand(Nx, Ny)
+            else:
+                rho = torch.ones(Nx, Ny) * 0.5
+        else: # not binarized
+            if init_rand:
+                rho = c0 + 0.1 * torch.rand(Nx, Ny) - 0.1 * torch.rand(Nx, Ny)
+            else:
+                rho = torch.ones(Nx, Ny) * c0
 
         self.rho = torch.nn.Parameter(rho)
         self.clip_pml_rho()
