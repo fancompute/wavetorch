@@ -111,24 +111,34 @@ def plot_c(model, block=False, fig_width=6):
     plt.show(block=block)
 
 
-def model_animate(model, x, block=True, batch_ind=0, filename=None, interval=1, fps=30, bitrate=768, crop=0.33, fig_width=8):
+def animate_fields(model, field_dist, ylabel, block=True, filename=None, interval=1, fps=30, bitrate=768, crop=0.9, fig_width=6):
 
-    with torch.no_grad():
-        y = model(x[batch_ind].unsqueeze(0), probe_output=False)
-        y_max = torch.max(y).item()
+    field_max = field_dist.max().item()
 
     fig, ax = plt.subplots(1, 1, constrained_layout=True, figsize=(fig_width, fig_width*model.Ny/model.Nx))
-    im = ax.imshow(np.zeros((model.Ny, model.Nx)), cmap=plt.cm.RdBu, animated=True, vmin=-y_max, vmax=+y_max, origin="bottom")
-    h1, = ax.plot(model.px, model.py, "ks", alpha=0.2)
-    h2, = ax.plot(model.src_x, model.src_y, "ko", alpha=0.2)
+    im = ax.imshow(np.zeros((model.Ny, model.Nx)), cmap=plt.cm.RdBu, animated=True, vmin=-field_max, vmax=+field_max, origin="bottom")
+    
+    markers = []
+    for i in range(0, len(model.px)):
+        if ylabel[0,i].item() == 1:
+            color = "#98df8a"
+        else:
+            color = "#7f7f7f"
+        marker, = ax.plot(model.px[i], model.py[i], "o", color=color)
+        markers.append(marker)
+
+    marker, =ax.plot(model.src_x, model.src_y, "o", color="#7f7f7f")
+    markers.append(marker)
+    markers = tuple(markers)
+
     title = ax.text(0.05, 0.05, "", transform=ax.transAxes, ha="left", fontsize="large")
 
     def animate(i):
         title.set_text("Time step n = %d" % i)
-        im.set_array(y[0, i, :, :].numpy().transpose())
-        return im, title, h1, h2
+        im.set_array(field_dist[0, i, :, :].numpy().transpose())
+        return (im, title, *markers)
 
-    anim = animation.FuncAnimation(fig, animate, interval=1, frames=int(crop*y.shape[1])-1, blit=True, repeat_delay=250)
+    anim = animation.FuncAnimation(fig, animate, interval=interval, frames=int(crop*field_dist.shape[1])-1, blit=True, repeat_delay=10)
 
     if filename is not None:
         Writer = animation.writers['ffmpeg']
