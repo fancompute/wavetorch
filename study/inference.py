@@ -28,6 +28,8 @@ if __name__ == '__main__':
                                 help='Plot the training history from the loaded model')
     argparser.add_argument('--fields', action='store_true',
                                 help='Plot the field distrubtion for three classes, STFTs, and simulation energy')
+    argparser.add_argument('--animate', action='store_true',
+                                help='Animate the field for the  classes')
     argparser.add_argument('--save', action='store_true',
                                 help='Save figures')
 
@@ -60,6 +62,8 @@ if __name__ == '__main__':
                                 help='Source y-coordinate in grid cells')
     argparser.add_argument('--binarized', action='store_true',
                                 help='Binarize the distribution of wave speed between --c0 and --c1')
+    argparser.add_argument('--init_rand', action='store_true',
+                                help='Use a random initialization for c')
     argparser.add_argument('--pml_N', type=int, default=20,
                                 help='PML thickness in grid cells')
     argparser.add_argument('--pml_p', type=float, default=4.0,
@@ -84,7 +88,7 @@ if __name__ == '__main__':
     else:
         px, py = setup_probe_coords(N_classes, args.px, args.py, args.pd, args.Nx, args.Ny, args.pml_N)
         src_x, src_y = setup_src_coords(args.src_x, args.src_y, args.Nx, args.Ny, args.pml_N)
-        model = WaveCell(args.dt, args.Nx, args.Ny, src_x, src_y, px, py, pml_N=args.pml_N, pml_p=args.pml_p, pml_max=args.pml_max, c0=args.c0, c1=args.c1, binarized=args.binarized)
+        model = WaveCell(args.dt, args.Nx, args.Ny, src_x, src_y, px, py, pml_N=args.pml_N, pml_p=args.pml_p, pml_max=args.pml_max, c0=args.c0, c1=args.c1, binarized=args.binarized, init_rand=args.init_rand)
         sr = args.sr
         pad_factor = args.pad_factor
 
@@ -145,3 +149,9 @@ if __name__ == '__main__':
         axs[0,3].set_title("Simulation energy")
         plt.show(block=False)
 
+    if args.animate:
+        fig, axs = plt.subplots(3, 4, constrained_layout=True, figsize=(6,5))
+        for xb, yb in DataLoader(train_ds, batch_size=1):
+            with torch.no_grad():
+                field_dist = model(xb, probe_output=False)
+                animate_fields(model, field_dist, yb)

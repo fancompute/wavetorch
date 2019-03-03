@@ -60,6 +60,8 @@ if __name__ == '__main__':
                                 help='Source y-coordinate in grid cells')
     argparser.add_argument('--binarized', action='store_true',
                                 help='Binarize the distribution of wave speed between --c0 and --c1')
+    argparser.add_argument('--init_rand', action='store_true',
+                                help='Use a random initialization for c')
     argparser.add_argument('--pml_N', type=int, default=20,
                                 help='PML thickness in grid cells')
     argparser.add_argument('--pml_p', type=float, default=4.0,
@@ -109,7 +111,7 @@ if __name__ == '__main__':
     px, py = setup_probe_coords(N_classes, args.px, args.py, args.pd, args.Nx, args.Ny, args.pml_N)
     src_x, src_y = setup_src_coords(args.src_x, args.src_y, args.Nx, args.Ny, args.pml_N)
 
-    model = WaveCell(args.dt, args.Nx, args.Ny, src_x, src_y, px, py, pml_N=args.pml_N, pml_p=args.pml_p, pml_max=args.pml_max, c0=args.c0, c1=args.c1, binarized=args.binarized)
+    model = WaveCell(args.dt, args.Nx, args.Ny, src_x, src_y, px, py, pml_N=args.pml_N, pml_p=args.pml_p, pml_max=args.pml_max, c0=args.c0, c1=args.c1, binarized=args.binarized, init_rand=args.init_rand)
     model.to(args.dev)
 
     ### Train
