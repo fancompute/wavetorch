@@ -44,7 +44,7 @@ def plot_total_field(model, yb, ylabel, block=False, ax=None, fig_width=4):
                 color = "#7f7f7f"
             ax.plot(model.px[i], model.py[i], "o", color=color, mew=0)
         ax.plot(model.src_x, model.src_y, "o", mew=0, color="#7f7f7f")
-        plt.colorbar(h, extend='min', ax=ax, aspect=10)
+        plt.colorbar(h, extend='min', ax=ax, aspect=17)
         if ax is not None:
             plt.show(block=block)
 
