@@ -42,7 +42,7 @@ def train(model, optimizer, criterion, train_dl, test_dl, N_epochs, batch_size):
             num = 1
             for xb, yb in train_dl:
                 acc_tmp.append( accuracy(model(xb), yb.argmax(dim=1)) )
-                print(" ... Training %2d/%2d " % (num, len(test_dl)))
+                print(" ... Training %2d/%2d " % (num, len(train_dl)))
                 num += 1
 
             history["acc_train"].append( np.mean(acc_tmp) )
