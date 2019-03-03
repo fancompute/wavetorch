@@ -6,8 +6,9 @@ import numpy as np
 from .utils import accuracy
 
 def train(model, optimizer, criterion, train_dl, test_dl, N_epochs, batch_size):
-    history = {"loss": [],
-               "loss_avg": [],
+    history = {"loss_iter": [],
+               "loss_train": [],
+               "loss_test": [],
                "acc_train": [],
                "acc_test": []}
 
@@ -28,13 +29,14 @@ def train(model, optimizer, criterion, train_dl, test_dl, N_epochs, batch_size):
 
             # Track loss
             loss = optimizer.step(closure)
-            history["loss"].append(loss.item())
+            history["loss_iter"].append(loss.item())
 
             model.clip_pml_rho()
             
-            print(" ... Training batch   %2d/%2d   |   loss = %.3e" % (num, len(train_dl), history["loss"][-1]))
+            print(" ... Training batch   %2d/%2d   |   loss = %.3e" % (num, len(train_dl), history["loss_iter"][-1]))
             num += 1
 
+        history["loss_train"].append( np.mean(history["loss_iter"][-batch_size:]) )
 
         print(" ... Computing accuracies ")
         with torch.no_grad():
@@ -48,21 +50,21 @@ def train(model, optimizer, criterion, train_dl, test_dl, N_epochs, batch_size):
             history["acc_train"].append( np.mean(acc_tmp) )
 
             acc_tmp = []
+            loss_tmp = []
             num = 1
             for xb, yb in test_dl:
-                acc_tmp.append( accuracy(model(xb), yb.argmax(dim=1)) )
+                pred = model(xb)
+                loss_tmp.append( criterion(pred, yb.argmax(dim=1)) )
+                acc_tmp.append( accuracy(pred, yb.argmax(dim=1)) )
                 print(" ... Testing  %2d/%2d " % (num, len(test_dl)))
                 num += 1
 
-            history["acc_test"].append( np.mean(acc_tmp) )
-
-        # Log metrics
-        
-        history["loss_avg"].append( np.mean(history["loss"][-batch_size:]) )
+        history["loss_test"].append( np.mean(loss_tmp) )
+        history["acc_test"].append( np.mean(acc_tmp) )
 
         print(" ... ")
-        print(' ... elapsed time: %4.1f sec   |   loss = %.3e   accuracy = %.4f (train) / %.4f (test) \n' % 
-                (time.time()-t_epoch, history["loss_avg"][-1], history["acc_train"][-1], history["acc_test"][-1]))
+        print(' ... elapsed time: %4.1f sec   |   loss = %.4e (train) / %.4e (test)   accuracy = %.4f (train) / %.4f (test) \n' % 
+                (time.time()-t_epoch, history["loss_train"][-1], history["loss_test"][-1], history["acc_train"][-1], history["acc_test"][-1]))
 
     # Finished training
     print('Total time: %.1f min\n' % ((time.time()-t_start)/60))
