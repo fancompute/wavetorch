@@ -31,7 +31,7 @@ def train(model, optimizer, criterion, train_dl, test_dl, N_epochs, batch_size):
             loss = optimizer.step(closure)
             history["loss_iter"].append(loss.item())
 
-            model.clip_pml_rho()
+            model.clip_to_design_region()
             
             print(" ... Training batch   %2d/%2d   |   loss = %.3e" % (num, len(train_dl), history["loss_iter"][-1]))
             num += 1
@@ -73,9 +73,12 @@ def train(model, optimizer, criterion, train_dl, test_dl, N_epochs, batch_size):
 
 class WaveCell(torch.nn.Module):
 
-    def __init__(self, dt, Nx, Ny, src_x, src_y, px, py, pml_N=20, pml_p=4.0, pml_max=3.0, c0=1.0, c1=0.9, binarized=True, init_rand=True):
+    def __init__(
+            self, dt, Nx, Ny, src_x, src_y, px, py, 
+            pml_N=20, pml_p=4.0, pml_max=3.0, c0=1.0, c1=0.9,
+            binarized=True, init_rand=True, design_region=None):
         super(WaveCell, self).__init__()
-        assert(len(px)==len(py))
+        assert len(px)==len(py), "Length of probe x and y coordinate vectors must be the same"
 
         self.dt = dt
 
@@ -96,6 +99,14 @@ class WaveCell(torch.nn.Module):
         # Setup the PML/adiabatic absorber
         self.register_buffer("b", self.init_b(Nx, Ny, pml_N, pml_p, pml_max))
 
+        if design_region is not None:
+            # Use specified design region
+            assert design_region.shape == (Nx, Ny), "Design region mask dims must match spatial dims"
+            self.design_region = design_region * (self.b == 0)
+        else:
+            # Use all non-PML area as the design region
+            self.design_region = (self.b == 0)
+
         # if binarized, rho represents the density
         # if NOT binarized, rho directly represents c
         # bounds on c are not enforced for unbinarized
@@ -111,7 +122,7 @@ class WaveCell(torch.nn.Module):
                 rho = torch.ones(Nx, Ny) * c0
 
         self.rho = torch.nn.Parameter(rho)
-        self.clip_pml_rho()
+        self.clip_to_design_region()
 
         # Define the laplacian conv kernel
         self.register_buffer("laplacian", self.h**(-2) * torch.tensor([[[[0.0,  1.0, 0.0], [1.0, -4.0, 1.0], [0.0,  1.0, 0.0]]]]))
@@ -121,12 +132,12 @@ class WaveCell(torch.nn.Module):
         self.register_buffer("A2", torch.tensor(2 * self.dt**(-2)))
         self.register_buffer("A3", self.dt**(-2) - self.b * 0.5 * self.dt**(-1))
 
-    def clip_pml_rho(self):
+    def clip_to_design_region(self):
         with torch.no_grad():
             if self.binarized:
-                self.rho[self.b!=0] = 0.0
+                self.rho[self.design_region==0] = 0.0
             else:
-                self.rho[self.b!=0] = self.c0
+                self.rho[self.design_region==0] = self.c0
 
     @staticmethod
     def proj(x, eta=torch.tensor(0.5), beta=torch.tensor(100.0)):
