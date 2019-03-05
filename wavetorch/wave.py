@@ -13,25 +13,27 @@ def train(model, optimizer, criterion, train_dl, test_dl, N_epochs, batch_size):
                "acc_test": []}
 
     t_start = time.time()
-    for epoch in range(1, N_epochs + 1):
+    for epoch in range(0, N_epochs + 1):
         t_epoch = time.time()
         print('Epoch: %2d/%2d' % (epoch, N_epochs))
 
         num = 1
         for xb, yb in train_dl:
-            # Needed to define this for LBFGS.
-            # Technically, Adam doesn't require this but we can be flexible this way
             def closure():
                 optimizer.zero_grad()
                 loss = criterion(model(xb), yb.argmax(dim=1))
                 loss.backward()
                 return loss
 
-            # Track loss
-            loss = optimizer.step(closure)
-            history["loss_iter"].append(loss.item())
+            if epoch == 0: # Don't take a step and just characterize the starting structure
+                print(" ... No optimizer step is taken on epoch 0")
+                with torch.no_grad():
+                    loss = criterion(model(xb), yb.argmax(dim=1))
+            else:
+                loss = optimizer.step(closure)
+                model.clip_to_design_region()
 
-            model.clip_to_design_region()
+            history["loss_iter"].append(loss.item())
             
             print(" ... Training batch   %2d/%2d   |   loss = %.3e" % (num, len(train_dl), history["loss_iter"][-1]))
             num += 1

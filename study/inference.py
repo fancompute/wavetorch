@@ -118,9 +118,8 @@ if __name__ == '__main__':
         axs[1].plot(epochs, history["acc_test"], "o-", label="Test")
         axs[1].set_xlabel("Number of training epochs")
         axs[1].set_ylabel("Accuracy")
-        axs[1].set_xticks(epochs)
-        axs[1].set_ylim([0.5, 1.0])
-        axs[1].legend(fontsize="smaller")
+        axs[1].set_ylim(top=1.01)
+        axs[0].legend()
         if args.save:
             fig.savefig(os.path.splitext(args.model)[0] + '_hist.png', dpi=300)
         else:
