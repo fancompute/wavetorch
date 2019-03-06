@@ -32,7 +32,7 @@ def load_selected_vowels(str_classes, gender='both', sr=None, normalize=True, tr
         train_size_w = int(train_size/2)
         train_size_m = train_size - train_size_w
         test_size_w  = int(test_size/2)
-        test_size_m  = train_size - test_size_m
+        test_size_m  = train_size - test_size_w
     else:
         train_size_w = train_size_m = train_size
         test_size_w  = test_size_m  = test_size
