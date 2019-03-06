@@ -16,7 +16,10 @@ The best entry points to this package are the study scripts which are described 
 
 ## Usage
 
-This package has been reorganized from the previous study scripts to use a common entry point. Now, the module has a training and inference mode. As an example, issuing the following command via ipython will train the model for 5 epochs:
+This package has been reorganized from the previous study scripts to use a common entry point. Now, the module has a training and inference mode. 
+
+### Training
+Issuing the following command via ipython will train the model for 5 epochs:
 ```
 %run -m wavetorch train --N_epochs 5 --batch_size 3 --train_size 12 --test_size 12
 ```
@@ -84,22 +87,26 @@ optional arguments:
 
 After issuing the above command, the model will be optimized and the progress will be printed to the screen. After training, the model will be saved to a file, along with the training history and all of the input arguments.
 
+### Inference
 The following command can be issued to load a previously saved model file:
 ```
-%run ./study/inference.py --model <PATH_TO_MODEL>
+%run -m wavetorch inference --model <PATH_TO_MODEL>
 ```
-Additionally, several options can be passed to this script to view various results.
+Alternatively, training can be performed directly from the command line by issuing the command
+```
+python -m wavetorch inference --model <PATH_TO_MODEL>
+```
 
-The `--show` option will display the distribution of the wave speed, like so:
+Adding the `--show` option will display the distribution of the wave speed, like so:
 ![](../master/img/c.png)
 
-The `--hist` option will display the training history, if it was saved with the model, like so:
+Adding the `--hist` option will display the training history, if it was saved with the model, like so:
 ![](../master/img/hist.png)
 
-The `--cm` option will display a confusion matrix, computed over the entire dataset, like so:
+Adding the `--cm` option will display the training and testing set confusion matrics which were saved from the training run:
 ![](../master/img/cm.png)
 
-The `--fields` option will display an integrated field distribution for the vowel classes, along with spectral information for the time series data, like so:
+Adding the `--fields` option will display an integrated field distribution for the vowel classes, along with spectral information for the time series data, like so:
 ![](../master/img/fields.png)
 
 ## Requirements
