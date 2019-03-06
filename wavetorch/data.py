@@ -23,7 +23,7 @@ def load_vowel(file, sr=None, normalize=True):
 
     return data
 
-def load_selected_vowels(str_classes, gender='both', sr=None, normalize=True, train_size=3, test_size=3, dir='./data/', ext='.wav'):
+def load_selected_vowels(str_classes, gender='both', sr=None, normalize=True, train_size=3, test_size=3, dir='data/vowels/', ext='.wav'):
    
     assert gender in ['women', 'men', 'both'], "gender must be either 'women', 'men', or 'both'"
 
@@ -58,8 +58,9 @@ def load_selected_vowels(str_classes, gender='both', sr=None, normalize=True, tr
             inputs_m.append(input)
             labels_m.append(label)
 
-    x_women_train, x_women_test, y_women_train, y_women_test = sklearn.model_selection.train_test_split(inputs_w, labels_w, train_size=train_size_w, test_size=test_size_w, stratify=labels_w)
     x_men_train, x_men_test, y_men_train, y_men_test = sklearn.model_selection.train_test_split(inputs_m, labels_m, train_size=train_size_m, test_size=test_size_m, stratify=labels_m)
+    x_women_train, x_women_test, y_women_train, y_women_test = sklearn.model_selection.train_test_split(inputs_w, labels_w, train_size=train_size_w, test_size=test_size_w, stratify=labels_w)
+    
 
     if gender is 'both':
         x_train = [torch.tensor(x) for x in x_women_train + x_men_train]

@@ -47,7 +47,7 @@ def setup_probe_coords(N_classes, px, py, pd, Nx, Ny, Npml):
     raise ValueError("px = {}, py = {}, pd = {} is an invalid probe configuration".format(pd))
 
 
-def save_model(model, name=None, history=None, args=None):
+def save_model(model, name=None, history=None, args=None, cm_train=None, cm_test=None):
     str_hostname = socket.gethostname()
     if name is None:
         name = time.strftime("%Y_%m_%d-%H_%M_%S")
@@ -58,7 +58,9 @@ def save_model(model, name=None, history=None, args=None):
     str_savepath = SAVEDIR + str_filename
     dsave = {"model": model,
              "history": history,
-             "args": args}
+             "args": args,
+             "cm_train": cm_train,
+             "cm_test": cm_test}
     print("Saving model to %s" % str_savepath)
     torch.save(dsave, str_savepath)
 
@@ -66,7 +68,7 @@ def save_model(model, name=None, history=None, args=None):
 def load_model(str_filename):
     print("Loading model from %s" % str_filename)
     dload = torch.load(str_filename)
-    return dload["model"], dload["history"], dload["args"]
+    return dload["model"], dload["history"], dload["args"], dload["cm_train"], dload["cm_test"]
 
 
 def accuracy(out, yb):

@@ -68,29 +68,29 @@ def plot_cm(cm, ax=None, figsize=(4,4), title=None, normalize=False, labels="aut
     pal2 = sns.blend_palette(["#f7f7f7", "#fddbc7", "#f4a582", "#d6604d", "#b2182b", "#67001f"], as_cmap=True)
 
     sns.heatmap(cm,
-                fmt=".1f",
+                fmt=fmt,
                 annot=True,
-                cmap=pal1,
-                linewidths=1,
+                cmap=pal2,
+                linewidths=0,
                 cbar=False,
-                mask=mask1,
+                mask=mask2,
                 ax=ax,
-                linecolor="#ffffff",
                 xticklabels=labels,
                 yticklabels=labels)
 
     sns.heatmap(cm,
-                fmt=".1f",
+                fmt=fmt,
                 annot=True,
-                cmap=pal2,
-                linewidths=1,
+                cmap=pal1,
+                linewidths=0,
                 cbar=False,
-                mask=mask2,
+                mask=mask1,
                 ax=ax,
-                linecolor="#ffffff",
                 xticklabels=labels,
                 yticklabels=labels)
 
+    for _, spine in ax.spines.items():
+        spine.set_visible(True)
     ax.set_ylabel('True label')
     ax.set_xlabel('Predicted label')
 
