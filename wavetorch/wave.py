@@ -5,73 +5,6 @@ import time
 import numpy as np
 from .utils import accuracy
 
-def train(model, optimizer, criterion, train_dl, test_dl, N_epochs, batch_size):
-    history = {"loss_iter": [],
-               "loss_train": [],
-               "loss_test": [],
-               "acc_train": [],
-               "acc_test": []}
-
-    t_start = time.time()
-    for epoch in range(0, N_epochs + 1):
-        t_epoch = time.time()
-        print('Epoch: %2d/%2d' % (epoch, N_epochs))
-
-        num = 1
-        for xb, yb in train_dl:
-            def closure():
-                optimizer.zero_grad()
-                loss = criterion(model(xb), yb.argmax(dim=1))
-                loss.backward()
-                return loss
-
-            if epoch == 0: # Don't take a step and just characterize the starting structure
-                print(" ... No optimizer step is taken on epoch 0")
-                with torch.no_grad():
-                    loss = criterion(model(xb), yb.argmax(dim=1))
-            else:
-                loss = optimizer.step(closure)
-                model.clip_to_design_region()
-
-            history["loss_iter"].append(loss.item())
-            
-            print(" ... Training batch   %2d/%2d   |   loss = %.3e" % (num, len(train_dl), history["loss_iter"][-1]))
-            num += 1
-
-        history["loss_train"].append( np.mean(history["loss_iter"][-batch_size:]) )
-
-        print(" ... Computing accuracies ")
-        with torch.no_grad():
-            acc_tmp = []
-            num = 1
-            for xb, yb in train_dl:
-                acc_tmp.append( accuracy(model(xb), yb.argmax(dim=1)) )
-                print(" ... Training %2d/%2d " % (num, len(train_dl)))
-                num += 1
-
-            history["acc_train"].append( np.mean(acc_tmp) )
-
-            acc_tmp = []
-            loss_tmp = []
-            num = 1
-            for xb, yb in test_dl:
-                pred = model(xb)
-                loss_tmp.append( criterion(pred, yb.argmax(dim=1)) )
-                acc_tmp.append( accuracy(pred, yb.argmax(dim=1)) )
-                print(" ... Testing  %2d/%2d " % (num, len(test_dl)))
-                num += 1
-
-        history["loss_test"].append( np.mean(loss_tmp) )
-        history["acc_test"].append( np.mean(acc_tmp) )
-
-        print(" ... ")
-        print(' ... elapsed time: %4.1f sec   |   loss = %.4e (train) / %.4e (test)   accuracy = %.4f (train) / %.4f (test) \n' % 
-                (time.time()-t_epoch, history["loss_train"][-1], history["loss_test"][-1], history["acc_train"][-1], history["acc_test"][-1]))
-
-    # Finished training
-    print('Total time: %.1f min\n' % ((time.time()-t_start)/60))
-
-    return history
 
 class WaveCell(torch.nn.Module):
 
@@ -221,3 +154,104 @@ class WaveCell(torch.nn.Module):
         return I / torch.sum(I, dim=1, keepdim=True)
 
 
+def train(model, optimizer, criterion, train_dl, test_dl, N_epochs, batch_size):
+    
+    history = {"loss_iter": [],
+               "loss_train": [],
+               "loss_test": [],
+               "acc_train": [],
+               "acc_test": []}
+
+    t_start = time.time()
+    for epoch in range(0, N_epochs + 1):
+        t_epoch = time.time()
+        print('Epoch: %2d/%2d' % (epoch, N_epochs))
+
+        num = 1
+        for xb, yb in train_dl:
+            def closure():
+                optimizer.zero_grad()
+                loss = criterion(model(xb), yb.argmax(dim=1))
+                loss.backward()
+                return loss
+
+            if epoch == 0: # Don't take a step and just characterize the starting structure
+                print(" ... No optimizer step is taken on epoch 0")
+                with torch.no_grad():
+                    loss = criterion(model(xb), yb.argmax(dim=1))
+            else: # Take an optimization step
+                loss = optimizer.step(closure)
+                model.clip_to_design_region()
+
+            history["loss_iter"].append(loss.item())
+            
+            print(" ... Training batch   %2d/%2d   |   loss = %.3e" % (num, len(train_dl), history["loss_iter"][-1]))
+            num += 1
+
+        history["loss_train"].append( np.mean(history["loss_iter"][-batch_size:]) )
+
+        print(" ... Computing accuracies ")
+        with torch.no_grad():
+            acc_tmp = []
+            num = 1
+            for xb, yb in train_dl:
+                acc_tmp.append( accuracy(model(xb), yb.argmax(dim=1)) )
+                print(" ... Training %2d/%2d " % (num, len(train_dl)))
+                num += 1
+
+            history["acc_train"].append( np.mean(acc_tmp) )
+
+            acc_tmp = []
+            loss_tmp = []
+            num = 1
+            for xb, yb in test_dl:
+                pred = model(xb)
+                loss_tmp.append( criterion(pred, yb.argmax(dim=1)) )
+                acc_tmp.append( accuracy(pred, yb.argmax(dim=1)) )
+                print(" ... Testing  %2d/%2d " % (num, len(test_dl)))
+                num += 1
+
+        history["loss_test"].append( np.mean(loss_tmp) )
+        history["acc_test"].append( np.mean(acc_tmp) )
+
+        print(" ... ")
+        print(' ... elapsed time: %4.1f sec   |   loss = %.4e (train) / %.4e (test)   accuracy = %.4f (train) / %.4f (test) \n' % 
+                (time.time()-t_epoch, history["loss_train"][-1], history["loss_test"][-1], history["acc_train"][-1], history["acc_test"][-1]))
+
+    print('Total time: %.1f min\n' % ((time.time()-t_start)/60))
+
+    return history
+
+
+def setup_src_coords(src_x, src_y, Nx, Ny, Npml):
+    if (src_x is not None) and (src_y is not None):
+        # Coordinate are specified
+        return src_x, src_y
+    else:
+        # Center at left
+        return Npml+20, int(Ny/2)
+
+
+def setup_probe_coords(N_classes, px, py, pd, Nx, Ny, Npml):
+    if (py is not None) and (px is not None):
+        # All probe coordinate are specified
+        assert len(px) == len(py), "Length of px and py must match"
+
+        return px, py
+
+    if (py is None) and (pd is not None):
+        # Center the probe array in y
+        span = (N_classes-1)*pd
+        y0 = int((Ny-span)/2)
+        assert y0 > Npml, "Bottom element of array is inside the PML"
+        y = [y0 + i*pd for i in range(N_classes)]
+
+        if px is not None:
+            assert len(px) == 1, "If py is not specified then px must be of length 1"
+            x = [px[0] for i in range(N_classes)]
+        else:
+            x = [Nx-Npml-20 for i in range(N_classes)]
+
+        return x, y
+
+    raise ValueError("px = {}, py = {}, pd = {} is an invalid probe configuration".format(pd))

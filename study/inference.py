@@ -29,8 +29,8 @@ if __name__ == '__main__':
         print('\n')
     else:
         N_classes = len(args.vowels)
-        px, py = wavetorch.utils.setup_probe_coords(N_classes, args.px, args.py, args.pd, args.Nx, args.Ny, args.pml_N)
-        src_x, src_y = wavetorch.utils.setup_src_coords(args.src_x, args.src_y, args.Nx, args.Ny, args.pml_N)
+        px, py = wavetorch.wave.setup_probe_coords(N_classes, args.px, args.py, args.pd, args.Nx, args.Ny, args.pml_N)
+        src_x, src_y = wavetorch.wave.setup_src_coords(args.src_x, args.src_y, args.Nx, args.Ny, args.pml_N)
         model = wavetorch.utils.WaveCell(args.dt, args.Nx, args.Ny, src_x, src_y, px, py, pml_N=args.pml_N, pml_p=args.pml_p, pml_max=args.pml_max, c0=args.c0, c1=args.c1, binarized=args.binarized, init_rand=args.init_rand)
         sr = args.sr
         gender = args.gender
