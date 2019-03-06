@@ -21,7 +21,62 @@ The following scripts represent the primary entry points to this package:
 * `study/train.py` - script for training on vowel recognition
 * `study/inference.py` - script for performing inference from saved models and for plotting field patterns; this script can also be used to simulate propagating waves on a "blank" model (if no model is specified for loading)
 
-These scripts have a lot of options which can be summarized by passing the `--help` flag.
+These scripts have a lot of options which can be summarized by passing the `--help` flag:
+```
+usage: train.py [-h] [--name NAME] [--N_epochs N_EPOCHS]
+                [--learning_rate LEARNING_RATE] [--batch_size BATCH_SIZE]
+                [--train_size TRAIN_SIZE] [--test_size TEST_SIZE]
+                [--num_threads NUM_THREADS] [--use-cuda] [--sr SR]
+                [--gender GENDER] [--vowels [VOWELS [VOWELS ...]]] [--c0 C0]
+                [--c1 C1] [--Nx NX] [--Ny NY] [--dt DT] [--px [PX [PX ...]]]
+                [--py [PY [PY ...]]] [--pd PD] [--src_x SRC_X] [--src_y SRC_Y]
+                [--binarized] [--design_region] [--init_rand] [--pml_N PML_N]
+                [--pml_p PML_P] [--pml_max PML_MAX] [--cm] [--show] [--hist]
+                [--fields] [--animate] [--save]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --name NAME           Name to add to saved model file. If unspecified a
+                        date/time stamp is used
+  --N_epochs N_EPOCHS   Number of training epochs
+  --learning_rate LEARNING_RATE
+                        Optimizer learning rate
+  --batch_size BATCH_SIZE
+                        Batch size used during training and testing
+  --train_size TRAIN_SIZE
+                        Size of randomly selected training set
+  --test_size TEST_SIZE
+                        Size of randomly selected testing set
+  --num_threads NUM_THREADS
+                        Number of threads
+  --use-cuda            Use CUDA to perform computations
+  --sr SR               Sampling rate to use for vowel data
+  --gender GENDER       Which gender to use for vowel data. Options are:
+                        women, men, or both
+  --vowels [VOWELS [VOWELS ...]]
+                        Which vowel classes to run on
+  --c0 C0               Background wave speed
+  --c1 C1               Second wave speed value used with --c0 when
+                        --binarized
+  --Nx NX               Number of grid cells in x-dimension of simulation
+                        domain
+  --Ny NY               Number of grid cells in y-dimension of simulation
+                        domain
+  --dt DT               Time step (spatial step size is determined
+                        automatically)
+  --px [PX [PX ...]]    Probe x-coordinates in grid cells
+  --py [PY [PY ...]]    Probe y-coordinates in grid cells
+  --pd PD               Spacing, in number grid cells, between probe points
+  --src_x SRC_X         Source x-coordinate in grid cells
+  --src_y SRC_Y         Source y-coordinate in grid cells
+  --binarized           Binarize the distribution of wave speed between --c0
+                        and --c1
+  --design_region       Set design region
+  --init_rand           Use a random initialization for c
+  --pml_N PML_N         PML thickness in grid cells
+  --pml_p PML_P         PML polynomial order
+  --pml_max PML_MAX     PML max dampening
+```
 
 As an example, the following command (issued via ipython) can be used to train the model for 5 epochs:
 ```
