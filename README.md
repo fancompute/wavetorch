@@ -19,13 +19,13 @@ The best entry points to this package are the study scripts which are described 
 This package has been reorganized from the previous study scripts to use a common entry point. Now, the module has a training and inference mode. 
 
 ### Training
-Issuing the following command via ipython will train the model for 5 epochs:
+Issuing the following command via ipython will train the model for 10 epochs:
 ```
-%run -m wavetorch train --N_epochs 5 --batch_size 3 --train_size 12 --test_size 12
+%run -m wavetorch train --design_region --binarized --gender both --N_epochs 10 --test_size 12 --train_size 24
 ```
 Alternatively, training can be performed directly from the command line by issuing the command
 ```
-python -m wavetorch train --N_epochs 5 --batch_size 3 --train_size 12 --test_size 12
+python -m wavetorch train --design_region --binarized --gender both --N_epochs 10 --test_size 12 --train_size 24
 ```
 Many additional options are available for training and these will be printed to the screen when the `-h` or `--help` flags are issued:
 ```
@@ -97,20 +97,20 @@ After issuing the above command, the model will be optimized and the progress wi
 ### Inference
 The following command can be issued to load a previously saved model file:
 ```
-%run -m wavetorch inference --model <PATH_TO_MODEL>
+%run -m wavetorch inference --name <PATH_TO_MODEL>
 ```
 Alternatively, training can be performed directly from the command line by issuing the command
 ```
-python -m wavetorch inference --model <PATH_TO_MODEL>
+python -i -m wavetorch inference --name <PATH_TO_MODEL>
 ```
 
 Adding the `--show` option will display the distribution of the wave speed, like so:
 ![](../master/img/c.png)
 
-Adding the `--hist` option will display the training history, if it was saved with the model, like so:
+Adding the `--hist` option will display the training history, like so:
 ![](../master/img/hist.png)
 
-Adding the `--cm` option will display the training and testing set confusion matrics which were saved from the training run:
+Adding the `--cm` option will display the confusion matrix over the training and testing datasets, like so:
 ![](../master/img/cm.png)
 
 Adding the `--fields` option will display an integrated field distribution for the vowel classes, along with spectral information for the time series data, like so:
