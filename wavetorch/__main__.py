@@ -18,7 +18,7 @@ subargs = parser.add_subparsers(prog='wavetorch', title="commands", dest="comman
 # Global options
 args_global = argparse.ArgumentParser(add_help=False)
 args_global.add_argument('--name', type=str, default=None,
-                            help='Name to use when saving or loading the model file')
+                            help='Name to use when saving or loading the model file. If not specified when saving a time and date stamp is used')
 args_global.add_argument('--num_threads', type=int, default=4,
                             help='Number of threads to use')
 args_global.add_argument('--use-cuda', action='store_true',
@@ -30,9 +30,9 @@ args_data = argparse.ArgumentParser(add_help=False)
 args_data.add_argument('--sr', type=int, default=10000,
                             help='Sampling rate to use for vowel data')
 args_data.add_argument('--gender', type=str, default='men',
-                            help='Which gender to use for vowel data. Options are: women, men, or both')
+                            help='Which gender to pull vowel data from. Can be one of women, men, or both. If both, training and testing datasets distributed equally over the genders')
 args_data.add_argument('--vowels', type=str, nargs='*', default=['ei', 'iy', 'oa'],
-                            help='Which vowel classes to run on')
+                            help='Which vowel classes to train on. Can be any elements from the set: [ae, eh, ih, oo, ah, ei, iy, uh, aw, er, oa, uw]. Defaults to [ei, iy, oa]')
 ###
 
 # Simulation options
@@ -40,13 +40,13 @@ args_sim = argparse.ArgumentParser(add_help=False)
 args_sim.add_argument('--binarized', action='store_true',
                             help='Binarize the distribution of wave speed between --c0 and --c1')
 args_sim.add_argument('--design_region', action='store_true',
-                            help='Set design region')
+                            help='Use the (currently hardcoded) design region which sits between the src and probes with a 5 gride cell buffer')
 args_sim.add_argument('--init_rand', action='store_true',
-                            help='Use a random initialization for c')
+                            help='Use a random initialization for the distribution of c')
 args_sim.add_argument('--c0', type=float, default=1.0,
-                            help='Background wave speed')
+                            help='Wave speed background value')
 args_sim.add_argument('--c1', type=float, default=0.9,
-                            help='Second wave speed value used with --c0 when --binarized')
+                            help='Wave speed value to use with --c0 when --binarized ')
 args_sim.add_argument('--Nx', type=int, default=140,
                             help='Number of grid cells in x-dimension of simulation domain')
 args_sim.add_argument('--Ny', type=int, default=140,
@@ -64,11 +64,11 @@ args_sim.add_argument('--src_x', type=int, default=None,
 args_sim.add_argument('--src_y', type=int, default=None,
                             help='Source y-coordinate in grid cells')
 args_sim.add_argument('--pml_N', type=int, default=20,
-                            help='PML thickness in grid cells')
+                            help='PML thickness in number of grid cells')
 args_sim.add_argument('--pml_p', type=float, default=4.0,
                             help='PML polynomial order')
 args_sim.add_argument('--pml_max', type=float, default=3.0,
-                            help='PML max dampening')
+                            help='PML max dampening factor')
 ###
 
 ### Training moode
@@ -80,9 +80,9 @@ args_train.add_argument('--lr', type=float, default=0.001,
 args_train.add_argument('--batch_size', type=int, default=3, 
                             help='Batch size used during training and testing')
 args_train.add_argument('--train_size', type=int, default=3,
-                            help='Size of randomly selected training set')
+                            help='Size of randomly selected training set. Ideally, this should be a multiple of the number of vowel casses')
 args_train.add_argument('--test_size', type=int, default=3,
-                            help='Size of randomly selected testing set')
+                            help='Size of randomly selected testing set. Ideally, this should be a multiple of the number of vowel casses')
 ###
 
 ### Inference mode
@@ -157,7 +157,7 @@ class WaveTorch(object):
         else: # Let the design region be the enire non-PML area
             design_region = None
 
-        model = core.WaveCell(args.dt, args.Nx, args.Ny, src_x, src_y, px, py, pml_N=args.pml_N, pml_p=args.pml_p, pml_max=args.pml_max, c0=args.c0, c1=args.c1, binarized=args.binarized, init_rand=args.init_rand, design_region=design_region)
+        model = coreeCell(args.dt, args.Nx, args.Ny, src_x, src_y, px, py, pml_N=args.pml_N, pml_p=args.pml_p, pml_max=args.pml_max, c0=args.c0, c1=args.c1, binarized=args.binarized, init_rand=args.init_rand, design_region=design_region)
         model.to(args.dev)
 
         ### Train
@@ -188,7 +188,7 @@ class WaveTorch(object):
             N_classes = len(args.vowels)
             px, py = core.setup_probe_coords(N_classes, args.px, args.py, args.pd, args.Nx, args.Ny, args.pml_N)
             src_x, src_y = core.setup_src_coords(args.src_x, args.src_y, args.Nx, args.Ny, args.pml_N)
-            model = core.WaveCell(args.dt, args.Nx, args.Ny, src_x, src_y, px, py, pml_N=args.pml_N, pml_p=args.pml_p, pml_max=args.pml_max, c0=args.c0, c1=args.c1, binarized=args.binarized, init_rand=args.init_rand)
+            model = coreeCell(args.dt, args.Nx, args.Ny, src_x, src_y, px, py, pml_N=args.pml_N, pml_p=args.pml_p, pml_max=args.pml_max, c0=args.c0, c1=args.c1, binarized=args.binarized, init_rand=args.init_rand)
             sr = args.sr
             gender = args.gender
             vowels = args.vowels

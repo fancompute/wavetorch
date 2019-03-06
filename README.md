@@ -29,35 +29,40 @@ python -m wavetorch train --N_epochs 5 --batch_size 3 --train_size 12 --test_siz
 ```
 Many additional options are available for training and these will be printed to the screen when the `-h` or `--help` flags are issued:
 ```
-usage: __main__.py train [-h] [--name NAME] [--num_threads NUM_THREADS]
-                         [--use-cuda] [--sr SR] [--gender GENDER]
-                         [--vowels [VOWELS [VOWELS ...]]] [--binarized]
-                         [--design_region] [--init_rand] [--c0 C0] [--c1 C1]
-                         [--Nx NX] [--Ny NY] [--dt DT] [--px [PX [PX ...]]]
-                         [--py [PY [PY ...]]] [--pd PD] [--src_x SRC_X]
-                         [--src_y SRC_Y] [--pml_N PML_N] [--pml_p PML_P]
-                         [--pml_max PML_MAX] [--N_epochs N_EPOCHS] [--lr LR]
-                         [--batch_size BATCH_SIZE] [--train_size TRAIN_SIZE]
-                         [--test_size TEST_SIZE]
+usage: wavetorch train [-h] [--name NAME] [--num_threads NUM_THREADS]
+                       [--use-cuda] [--sr SR] [--gender GENDER]
+                       [--vowels [VOWELS [VOWELS ...]]] [--binarized]
+                       [--design_region] [--init_rand] [--c0 C0] [--c1 C1]
+                       [--Nx NX] [--Ny NY] [--dt DT] [--px [PX [PX ...]]]
+                       [--py [PY [PY ...]]] [--pd PD] [--src_x SRC_X]
+                       [--src_y SRC_Y] [--pml_N PML_N] [--pml_p PML_P]
+                       [--pml_max PML_MAX] [--N_epochs N_EPOCHS] [--lr LR]
+                       [--batch_size BATCH_SIZE] [--train_size TRAIN_SIZE]
+                       [--test_size TEST_SIZE]
 
 optional arguments:
   -h, --help            show this help message and exit
-  --name NAME           Name to use when saving or loading the model file
+  --name NAME           Name to use when saving or loading the model file. If
+                        not specified when saving a time and date stamp is
+                        used
   --num_threads NUM_THREADS
                         Number of threads to use
   --use-cuda            Use CUDA to perform computations
   --sr SR               Sampling rate to use for vowel data
-  --gender GENDER       Which gender to use for vowel data. Options are:
-                        women, men, or both
+  --gender GENDER       Which gender to pull vowel data from. Can be one of
+                        women, men, or both. If both, training and testing
+                        datasets distributed equally over the genders
   --vowels [VOWELS [VOWELS ...]]
-                        Which vowel classes to run on
+                        Which vowel classes to train on. Can be any elements
+                        from the set: [ae, eh, ih, oo, ah, ei, iy, uh, aw, er,
+                        oa, uw]. Defaults to [ei, iy, oa]
   --binarized           Binarize the distribution of wave speed between --c0
                         and --c1
-  --design_region       Set design region
-  --init_rand           Use a random initialization for c
-  --c0 C0               Background wave speed
-  --c1 C1               Second wave speed value used with --c0 when
-                        --binarized
+  --design_region       Use the (currently hardcoded) design region which sits
+                        between the src and probes with a 5 gride cell buffer
+  --init_rand           Use a random initialization for the distribution of c
+  --c0 C0               Wave speed background value
+  --c1 C1               Wave speed value to use with --c0 when --binarized
   --Nx NX               Number of grid cells in x-dimension of simulation
                         domain
   --Ny NY               Number of grid cells in y-dimension of simulation
@@ -69,17 +74,19 @@ optional arguments:
   --pd PD               Spacing, in number grid cells, between probe points
   --src_x SRC_X         Source x-coordinate in grid cells
   --src_y SRC_Y         Source y-coordinate in grid cells
-  --pml_N PML_N         PML thickness in grid cells
+  --pml_N PML_N         PML thickness in number of grid cells
   --pml_p PML_P         PML polynomial order
-  --pml_max PML_MAX     PML max dampening
+  --pml_max PML_MAX     PML max dampening factor
   --N_epochs N_EPOCHS   Number of training epochs
   --lr LR               Optimizer learning rate
   --batch_size BATCH_SIZE
                         Batch size used during training and testing
   --train_size TRAIN_SIZE
-                        Size of randomly selected training set
+                        Size of randomly selected training set. Ideally, this
+                        should be a multiple of the number of vowel casses
   --test_size TEST_SIZE
-                        Size of randomly selected testing set
+                        Size of randomly selected testing set. Ideally, this
+                        should be a multiple of the number of vowel casses
 ```
 
 **WARNING:** depending on the batch size and the sample rate for the vowel data, determined by the `--sr` option, the gradient computation may require significant amounts of memory. Using too large of a value for either of these parameters may cause your computer to lock up.
