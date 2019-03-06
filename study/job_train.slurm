@@ -17,7 +17,7 @@ export PYTHONPATH=$(pwd)
 echo "Job started at: $(date +'%d/%m/%y - %H:%m')"
 echo ""
 
-srun python -m -u wavetorch train --num_threads $SLURM_CPUS_PER_TASK --name $SLURM_JOB_ID \
+srun python -u -m wavetorch train --num_threads $SLURM_CPUS_PER_TASK --name $SLURM_JOB_ID \
     --lr 0.001 \
     --N_epochs 20 \
     --gender men \
