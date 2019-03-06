@@ -3,6 +3,7 @@ import librosa
 import numpy as np
 import os
 import sklearn
+import glob
 
 def normalize_vowel(wav_data):
     total_power = np.square(wav_data).sum()
@@ -20,34 +21,65 @@ def load_vowel(file, sr=None, normalize=True):
     if normalize:
         data = normalize_vowel(data)
 
-    return torch.tensor(data)
+    return data
 
+def load_selected_vowels(str_classes, gender='both', sr=None, normalize=True, train_size=3, test_size=3, dir='./data/', ext='.wav'):
+   
+    assert gender in ['women', 'men', 'both'], "gender must be either 'women', 'men', or 'both'"
 
-def load_all_vowels(directories_str, sr=None, normalize=True, train_size=3, test_size=3, pad_factor=1.0):
-    """
-    Use librosa to load all vowels from the collection of directories.
-    """
-    
-    inputs = []
-    labels = []
-    for i, directory_str in enumerate(directories_str):
-        directory = os.fsencode(directory_str)
-        label = torch.eye(len(directories_str))[i]
+    if gender is 'both':
+        # split evenly between the genders
+        train_size_w = int(train_size/2)
+        train_size_m = train_size - train_size_w
+        test_size_w  = int(test_size/2)
+        test_size_m  = train_size - test_size_w
+    else:
+        train_size_w = train_size_m = train_size
+        test_size_w  = test_size_m  = test_size
 
-        for file in os.listdir(directory):
-            filename = os.fsdecode(file)
-            if filename.endswith(".wav"):
-                input = load_vowel(os.path.join(directory_str, filename), sr=sr, normalize=normalize)
-                inputs.append(input)
-                labels.append(label)
-                continue
-            else:
-                continue
+    inputs_w = []
+    labels_w = []
+    inputs_m = []
+    labels_m = []
+    for i, str_class in enumerate(str_classes):
+        label = np.eye(len(str_classes))[i]
 
-    x_all = torch.nn.utils.rnn.pad_sequence(inputs, batch_first=True)
-    x_all = torch.nn.functional.pad(x_all, (1, int(x_all.shape[1] * pad_factor))).numpy()
-    y_all = torch.nn.utils.rnn.pad_sequence(labels, batch_first=True).numpy()
+        # Women
+        files = os.path.join(dir, 'w*' + str_class + ext)
+        for file in glob.glob(files):
+            input = load_vowel(file, sr=sr, normalize=normalize)
+            inputs_w.append(input)
+            labels_w.append(label)
 
-    x_train, x_test, y_train, y_test = sklearn.model_selection.train_test_split(x_all, y_all, train_size=train_size, test_size=test_size, stratify=y_all)
+        # Men
+        files = os.path.join(dir, 'm*' + str_class + ext)
+        for file in glob.glob(files):
+            input = load_vowel(file, sr=sr, normalize=normalize)
+            inputs_m.append(input)
+            labels_m.append(label)
 
-    return torch.tensor(x_train), torch.tensor(x_test), torch.tensor(y_train), torch.tensor(y_test)
+    x_women_train, x_women_test, y_women_train, y_women_test = sklearn.model_selection.train_test_split(inputs_w, labels_w, train_size=train_size_w, test_size=test_size_w, stratify=labels_w)
+    x_men_train, x_men_test, y_men_train, y_men_test = sklearn.model_selection.train_test_split(inputs_m, labels_m, train_size=train_size_m, test_size=test_size_m, stratify=labels_m)
+
+    if gender is 'both':
+        x_train = [torch.tensor(x) for x in x_women_train + x_men_train]
+        x_test  = [torch.tensor(x) for x in x_women_test + x_men_test]
+        y_train = [torch.tensor(y) for y in y_women_train + y_men_train]
+        y_test  = [torch.tensor(y) for y in y_women_test + y_men_test]
+    elif gender is 'women':
+        x_train = [torch.tensor(x) for x in x_women_train]
+        x_test  = [torch.tensor(x) for x in x_women_test]
+        y_train = [torch.tensor(y) for y in y_women_train]
+        y_test  = [torch.tensor(y) for y in y_women_test]
+    else:
+        x_train = [torch.tensor(x) for x in x_men_train]
+        x_test  = [torch.tensor(x) for x in x_men_test]
+        y_train = [torch.tensor(y) for y in y_men_train]
+        y_test  = [torch.tensor(y) for y in y_men_test]
+
+    x_train = torch.nn.utils.rnn.pad_sequence(x_train, batch_first=True)
+    x_test  = torch.nn.utils.rnn.pad_sequence(x_test, batch_first=True)
+    y_train = torch.nn.utils.rnn.pad_sequence(y_train, batch_first=True)
+    y_test  = torch.nn.utils.rnn.pad_sequence(y_test, batch_first=True)
+
+    return x_train, x_test, y_train, y_test

@@ -34,6 +34,10 @@ if __name__ == '__main__':
     # Data options
     argparser.add_argument('--sr', type=int, default=10000,
                                 help='Sampling rate to use for vowel data')
+    argparser.add_argument('--gender', type=str, default='men',
+                                help='Which gender to use for vowel data. Options are: women, men, or both')
+    argparser.add_argument('--vowels', type=str, nargs='*', default=['ei', 'iy', 'oa'],
+                                help='Which vowel classes to run on')
     argparser.add_argument('--pad_factor', type=float, default=0.0,
                                 help='Amount of zero-padding applied to vowels in units of original length. For example, a value of 1 would double the sample length')
 
@@ -86,18 +90,19 @@ if __name__ == '__main__':
     print('\n')
 
     ### Load data
-    directories_str = ("./data/vowels/a/",
-                       "./data/vowels/e/",
-                       "./data/vowels/o/")
+    N_classes = len(args.vowels)
 
-    N_classes = len(directories_str)
+    x_train, x_test, y_train, y_test = load_selected_vowels(
+                                            args.vowels,
+                                            gender=args.gender, 
+                                            sr=args.sr, 
+                                            normalize=True, 
+                                            train_size=args.train_size, 
+                                            test_size=args.test_size, 
+                                            dir='./data/', 
+                                            ext='.wav'
+                                        )
 
-    x_train, x_test, y_train, y_test = load_all_vowels(directories_str, sr=args.sr,
-                                                                        normalize=True, 
-                                                                        train_size=args.train_size, 
-                                                                        test_size=args.test_size, 
-                                                                        pad_factor=args.pad_factor)
-    
     x_train = x_train.to(args.dev)
     x_test  = x_test.to(args.dev)
     y_train = y_train.to(args.dev)
