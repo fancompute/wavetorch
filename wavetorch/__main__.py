@@ -12,8 +12,8 @@ from . import core
 from . import data
 from . import viz
 
-args = argparse.ArgumentParser() 
-subargs = args.add_subparsers(title="commands", dest="command") 
+parser = argparse.ArgumentParser() 
+subargs = parser.add_subparsers(prog='wavetorch', title="commands", dest="command") 
 
 # Global options
 args_global = argparse.ArgumentParser(add_help=False)
@@ -101,23 +101,30 @@ args_inference.add_argument('--save', action='store_true',
                             help='Save figures')
 ###
 
-if __name__ == "__main__":
-    args = args.parse_args()
+class WaveTorch(object):
 
-    if args.use_cuda and torch.cuda.is_available():
-        args.dev = torch.device('cuda')
-    else:
-        args.dev = torch.device('cpu')
+    def __init__(self):
+        args = parser.parse_args()
 
-    torch.set_num_threads(args.num_threads)
+        if args.use_cuda and torch.cuda.is_available():
+            args.dev = torch.device('cuda')
+        else:
+            args.dev = torch.device('cpu')
 
-    ### Print summary of args for logging
-    for i in vars(args):
-        print('%16s = %s' % (i, vars(args)[i]))
-    print('\n')
+        torch.set_num_threads(args.num_threads)
 
-    if args.command == 'train':
+        for i in vars(args):
+            print('%16s = %s' % (i, vars(args)[i]))
+        print('\n')
 
+        if not hasattr(self, args.command):
+            print('Unrecognized command')
+            parser.print_help()
+            exit(1)
+
+        getattr(self, args.command)(args)
+
+    def train(self, args):
         N_classes = len(args.vowels)
 
         x_train, x_test, y_train, y_test = data.load_selected_vowels(
@@ -165,8 +172,7 @@ if __name__ == "__main__":
         ### Save model and results
         core.save_model(model, args.name, history, args, cm_train, cm_test)
 
-    if args.command == 'inference':
-
+    def inference(self, args):
         if args.name is not None:
             model, history, args_trained, cm_train, cm_test = core.load_model(args.name)
             N_classes = len(args_trained.vowels)
@@ -255,4 +261,7 @@ if __name__ == "__main__":
                 with torch.no_grad():
                     field_dist = model(xb, probe_output=False)
                     animate_fields(model, field_dist, yb)
+
+if __name__ == '__main__':
+    WaveTorch()
 
