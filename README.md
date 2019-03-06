@@ -16,45 +16,42 @@ The best entry points to this package are the study scripts which are described 
 
 ## Usage
 
-The following scripts represent the primary entry points to this package: 
-
-* `study/train.py` - script for training on vowel recognition
-* `study/inference.py` - script for performing inference from saved models and for plotting field patterns; this script can also be used to simulate propagating waves on a "blank" model (if no model is specified for loading)
-
-These scripts have a lot of options which can be summarized by passing the `--help` flag:
+This package has been reorganized from the previous study scripts to use a common entry point. Now, the module has a training and inference mode. As an example, issuing the following command via ipython will train the model for 5 epochs:
 ```
-usage: train.py [-h] [--name NAME] [--N_epochs N_EPOCHS]
-                [--learning_rate LEARNING_RATE] [--batch_size BATCH_SIZE]
-                [--train_size TRAIN_SIZE] [--test_size TEST_SIZE]
-                [--num_threads NUM_THREADS] [--use-cuda] [--sr SR]
-                [--gender GENDER] [--vowels [VOWELS [VOWELS ...]]] [--c0 C0]
-                [--c1 C1] [--Nx NX] [--Ny NY] [--dt DT] [--px [PX [PX ...]]]
-                [--py [PY [PY ...]]] [--pd PD] [--src_x SRC_X] [--src_y SRC_Y]
-                [--binarized] [--design_region] [--init_rand] [--pml_N PML_N]
-                [--pml_p PML_P] [--pml_max PML_MAX] [--cm] [--show] [--hist]
-                [--fields] [--animate] [--save]
+%run -m wavetorch train --N_epochs 5 --batch_size 3 --train_size 12 --test_size 12
+```
+Alternatively, training can be performed directly from the command line by issuing the command
+```
+python -m wavetorch train --N_epochs 5 --batch_size 3 --train_size 12 --test_size 12
+```
+Many additional options are available for training and these will be printed to the screen when the `-h` or `--help` flags are issued:
+```
+usage: __main__.py train [-h] [--name NAME] [--num_threads NUM_THREADS]
+                         [--use-cuda] [--sr SR] [--gender GENDER]
+                         [--vowels [VOWELS [VOWELS ...]]] [--binarized]
+                         [--design_region] [--init_rand] [--c0 C0] [--c1 C1]
+                         [--Nx NX] [--Ny NY] [--dt DT] [--px [PX [PX ...]]]
+                         [--py [PY [PY ...]]] [--pd PD] [--src_x SRC_X]
+                         [--src_y SRC_Y] [--pml_N PML_N] [--pml_p PML_P]
+                         [--pml_max PML_MAX] [--N_epochs N_EPOCHS] [--lr LR]
+                         [--batch_size BATCH_SIZE] [--train_size TRAIN_SIZE]
+                         [--test_size TEST_SIZE]
 
 optional arguments:
   -h, --help            show this help message and exit
-  --name NAME           Name to add to saved model file. If unspecified a
-                        date/time stamp is used
-  --N_epochs N_EPOCHS   Number of training epochs
-  --learning_rate LEARNING_RATE
-                        Optimizer learning rate
-  --batch_size BATCH_SIZE
-                        Batch size used during training and testing
-  --train_size TRAIN_SIZE
-                        Size of randomly selected training set
-  --test_size TEST_SIZE
-                        Size of randomly selected testing set
+  --name NAME           Name to use when saving or loading the model file
   --num_threads NUM_THREADS
-                        Number of threads
+                        Number of threads to use
   --use-cuda            Use CUDA to perform computations
   --sr SR               Sampling rate to use for vowel data
   --gender GENDER       Which gender to use for vowel data. Options are:
                         women, men, or both
   --vowels [VOWELS [VOWELS ...]]
                         Which vowel classes to run on
+  --binarized           Binarize the distribution of wave speed between --c0
+                        and --c1
+  --design_region       Set design region
+  --init_rand           Use a random initialization for c
   --c0 C0               Background wave speed
   --c1 C1               Second wave speed value used with --c0 when
                         --binarized
@@ -69,21 +66,20 @@ optional arguments:
   --pd PD               Spacing, in number grid cells, between probe points
   --src_x SRC_X         Source x-coordinate in grid cells
   --src_y SRC_Y         Source y-coordinate in grid cells
-  --binarized           Binarize the distribution of wave speed between --c0
-                        and --c1
-  --design_region       Set design region
-  --init_rand           Use a random initialization for c
   --pml_N PML_N         PML thickness in grid cells
   --pml_p PML_P         PML polynomial order
   --pml_max PML_MAX     PML max dampening
+  --N_epochs N_EPOCHS   Number of training epochs
+  --lr LR               Optimizer learning rate
+  --batch_size BATCH_SIZE
+                        Batch size used during training and testing
+  --train_size TRAIN_SIZE
+                        Size of randomly selected training set
+  --test_size TEST_SIZE
+                        Size of randomly selected testing set
 ```
 
-As an example, the following command (issued via ipython) can be used to train the model for 5 epochs:
-```
-%run ./study/train.py --N_epochs 5 --batch_size 3 --train_size 12 --test_size 12
-```
 **WARNING:** depending on the batch size and the sample rate for the vowel data, determined by the `--sr` option, the gradient computation may require significant amounts of memory. Using too large of a value for either of these parameters may cause your computer to lock up.
-
 **Note:** The model trained in this example will not perform very well because we used very few training examples.
 
 After issuing the above command, the model will be optimized and the progress will be printed to the screen. After training, the model will be saved to a file, along with the training history and all of the input arguments.
