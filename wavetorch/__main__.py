@@ -25,16 +25,6 @@ args_global.add_argument('--use-cuda', action='store_true',
                             help='Use CUDA to perform computations')
 ###
 
-# Data options
-args_data = argparse.ArgumentParser(add_help=False)
-args_data.add_argument('--sr', type=int, default=10000,
-                            help='Sampling rate to use for vowel data')
-args_data.add_argument('--gender', type=str, default='men',
-                            help='Which gender to pull vowel data from. Can be one of women, men, or both. If both, training and testing datasets distributed equally over the genders')
-args_data.add_argument('--vowels', type=str, nargs='*', default=['ei', 'iy', 'oa'],
-                            help='Which vowel classes to train on. Can be any elements from the set: [ae, eh, ih, oo, ah, ei, iy, uh, aw, er, oa, uw]. Defaults to [ei, iy, oa]')
-###
-
 # Simulation options
 args_sim = argparse.ArgumentParser(add_help=False)
 args_sim.add_argument('--binarized', action='store_true',
@@ -72,7 +62,7 @@ args_sim.add_argument('--pml_max', type=float, default=3.0,
 ###
 
 ### Training moode
-args_train = subargs.add_parser('train', parents=[args_global, args_data, args_sim])
+args_train = subargs.add_parser('train', parents=[args_global, args_sim])
 args_train.add_argument('--N_epochs', type=int, default=5, 
                             help='Number of training epochs')
 args_train.add_argument('--lr', type=float, default=0.001, 
@@ -83,10 +73,16 @@ args_train.add_argument('--train_size', type=int, default=3,
                             help='Size of randomly selected training set. Ideally, this should be a multiple of the number of vowel casses')
 args_train.add_argument('--test_size', type=int, default=3,
                             help='Size of randomly selected testing set. Ideally, this should be a multiple of the number of vowel casses')
+args_train.add_argument('--sr', type=int, default=10000,
+                            help='Sampling rate to use for vowel data')
+args_train.add_argument('--gender', type=str, default='men',
+                            help='Which gender to pull vowel data from. Can be one of women, men, or both. If both, training and testing datasets distributed equally over the genders')
+args_train.add_argument('--vowels', type=str, nargs='*', default=['ei', 'iy', 'oa'],
+                            help='Which vowel classes to train on. Can be any elements from the set: [ae, eh, ih, oo, ah, ei, iy, uh, aw, er, oa, uw]. Defaults to [ei, iy, oa]')
 ###
 
 ### Inference mode
-args_inference = subargs.add_parser('inference', parents=[args_global, args_data])
+args_inference = subargs.add_parser('inference', parents=[args_global])
 args_inference.add_argument('--cm', action='store_true',
                             help='Plot the confusion matrix over the whole dataset')
 args_inference.add_argument('--show', action='store_true',
@@ -157,7 +153,7 @@ class WaveTorch(object):
         else: # Let the design region be the enire non-PML area
             design_region = None
 
-        model = coreeCell(args.dt, args.Nx, args.Ny, src_x, src_y, px, py, pml_N=args.pml_N, pml_p=args.pml_p, pml_max=args.pml_max, c0=args.c0, c1=args.c1, binarized=args.binarized, init_rand=args.init_rand, design_region=design_region)
+        model = core.WaveCell(args.dt, args.Nx, args.Ny, src_x, src_y, px, py, pml_N=args.pml_N, pml_p=args.pml_p, pml_max=args.pml_max, c0=args.c0, c1=args.c1, binarized=args.binarized, init_rand=args.init_rand, design_region=design_region)
         model.to(args.dev)
 
         ### Train
@@ -173,42 +169,23 @@ class WaveTorch(object):
         core.save_model(model, args.name, history, args, cm_train, cm_test)
 
     def inference(self, args):
-        if args.name is not None:
-            model, history, args_trained, cm_train, cm_test = core.load_model(args.name)
-            N_classes = len(args_trained.vowels)
-            sr = args_trained.sr
-            gender = args_trained.gender
-            vowels = args_trained.vowels
-            train_size = args_trained.train_size
-            test_size = args_trained.test_size
-            for i in vars(args_trained):
-                print('%16s = %s' % (i, vars(args_trained)[i]))
-            print('\n')
-        else:
-            N_classes = len(args.vowels)
-            px, py = core.setup_probe_coords(N_classes, args.px, args.py, args.pd, args.Nx, args.Ny, args.pml_N)
-            src_x, src_y = core.setup_src_coords(args.src_x, args.src_y, args.Nx, args.Ny, args.pml_N)
-            model = coreeCell(args.dt, args.Nx, args.Ny, src_x, src_y, px, py, pml_N=args.pml_N, pml_p=args.pml_p, pml_max=args.pml_max, c0=args.c0, c1=args.c1, binarized=args.binarized, init_rand=args.init_rand)
-            sr = args.sr
-            gender = args.gender
-            vowels = args.vowels
-            train_size = args.train_size
-            test_size = args.test_size
+        if args.name is None:
+            raise ValueError("--name must be specified to load a model")
 
-        x_train, x_test, y_train, y_test = data.load_selected_vowels(
-                                                vowels,
-                                                gender=gender, 
-                                                sr=sr, 
-                                                normalize=True, 
-                                                train_size=N_classes, 
-                                                test_size=N_classes
-                                            )
+        model, history, args_trained, cm_train, cm_test = core.load_model(args.name)
+        N_classes = len(args_trained.vowels)
+        sr = args_trained.sr
+        gender = args_trained.gender
+        vowels = args_trained.vowels
+        train_size = args_trained.train_size
+        test_size = args_trained.test_size
 
-        # Put tensors into Datasets and then Dataloaders to let pytorch manage batching
-        test_ds = TensorDataset(x_test, y_test)  
+        for i in vars(args_trained):
+            print('%16s = %s' % (i, vars(args_trained)[i]))
+        print('\n')
 
         if args.show:
-            wavetorch.plot.plot_c(model)
+            viz.plot_c(model)
             if args.save:
                 plt.savefig(os.path.splitext(args.model)[0] + '_c.png', dpi=300)
 
@@ -239,22 +216,33 @@ class WaveTorch(object):
                 plt.show(block=False)
 
         if args.fields:
-            fig_conf, axs_conf = plt.subplots(N_classes, N_classes, constrained_layout=True, figsize=(5,5), sharex=True, sharey=True)
-            fig_field, axs_field = plt.subplots(N_classes, 1, constrained_layout=True, figsize=(5,5))
-            axs_field = axs_field.ravel()
+                x_train, x_test, y_train, y_test = data.load_selected_vowels(
+                                                vowels,
+                                                gender=gender, 
+                                                sr=sr, 
+                                                normalize=True, 
+                                                train_size=N_classes, 
+                                                test_size=N_classes
+                                            )
 
-            i=0
-            for xb, yb in DataLoader(test_ds, batch_size=1):
-                with torch.no_grad():
-                    field_dist = model(xb, probe_output=False)
-                    probe_series = field_dist[0, :, model.px, model.py]
+                # Put tensors into Datasets and then Dataloaders to let pytorch manage batching
+                test_ds = TensorDataset(x_test, y_test)  
+                fig_conf, axs_conf = plt.subplots(N_classes, N_classes, constrained_layout=True, figsize=(5,5), sharex=True, sharey=True)
+                fig_field, axs_field = plt.subplots(N_classes, 1, constrained_layout=True, figsize=(5,5))
+                axs_field = axs_field.ravel()
 
-                    viz.plot_total_field(model, field_dist, yb, ax=axs_field[yb.argmax().item()])
+                i=0
+                for xb, yb in DataLoader(test_ds, batch_size=1):
+                    with torch.no_grad():
+                        field_dist = model(xb, probe_output=False)
+                        probe_series = field_dist[0, :, model.px, model.py]
 
-                    for j in range(0, probe_series.shape[1]):
-                        viz.plot.plot_stft_spectrum(probe_series[:,j].numpy(), sr=sr, ax=axs_conf[yb.argmax().item(), j])
+                        viz.plot_total_field(model, field_dist, yb, ax=axs_field[yb.argmax().item()])
 
-                i += 1
+                        for j in range(0, probe_series.shape[1]):
+                            viz.plot.plot_stft_spectrum(probe_series[:,j].numpy(), sr=sr, ax=axs_conf[yb.argmax().item(), j])
+
+                    i += 1
 
         if args.animate:
             for xb, yb in DataLoader(train_ds, batch_size=1):
