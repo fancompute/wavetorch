@@ -11,7 +11,7 @@ from torch.utils.data import TensorDataset, DataLoader, ConcatDataset
 import wavetorch
 
 if __name__ == '__main__':
-    args = wavetorch.io.options.parse_args()
+    args = wavetorch.options.parse_args()
 
     torch.set_num_threads(args.num_threads)
 

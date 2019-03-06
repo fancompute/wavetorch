@@ -9,7 +9,7 @@ from torch.nn.functional import pad
 import wavetorch
 
 if __name__ == '__main__':
-    args = wavetorch.io.options.parse_args()
+    args = wavetorch.options.parse_args()
 
     if args.use_cuda and torch.cuda.is_available():
         args.dev = torch.device('cuda')
