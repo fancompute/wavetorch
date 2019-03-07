@@ -105,15 +105,19 @@ python -i -m wavetorch inference --name <PATH_TO_MODEL>
 ```
 
 Adding the `--show` option will display the distribution of the wave speed, like so:
+
 ![](../master/img/c.png)
 
 Adding the `--hist` option will display the training history, like so:
+
 ![](../master/img/hist.png)
 
 Adding the `--cm` option will display the confusion matrix over the training and testing datasets, like so:
+
 ![](../master/img/cm.png)
 
 Adding the `--fields` option will display an integrated field distribution for the vowel classes, along with spectral information for the time series data, like so:
+
 ![](../master/img/fields.png)
 
 ## Requirements
