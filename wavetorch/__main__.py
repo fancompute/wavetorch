@@ -8,6 +8,9 @@ import torch
 from torch.utils.data import TensorDataset, random_split, DataLoader
 from torch.nn.functional import pad
 
+import librosa
+import librosa.display
+
 from . import core
 from . import data
 from . import viz
@@ -90,7 +93,9 @@ args_inference.add_argument('--show', action='store_true',
 args_inference.add_argument('--hist', action='store_true',
                             help='Plot the training history from the loaded model')
 args_inference.add_argument('--fields', action='store_true',
-                            help='Plot the field distrubtion for three classes, STFTs, and simulation energy')
+                            help='Plot the integrated field distrubtion')
+args_inference.add_argument('--stft', action='store_true',
+                            help='Plot the STFTs')
 args_inference.add_argument('--animate', action='store_true',
                             help='Animate the field for the  classes')
 args_inference.add_argument('--save', action='store_true',
@@ -185,13 +190,14 @@ class WaveTorch(object):
         print('\n')
 
         if args.show:
-            viz.plot_c(model)
+            viz.plot_c(model, fig_width=3.33)
+            plt.show()
             if args.save:
                 plt.savefig(os.path.splitext(args.model)[0] + '_c.png', dpi=300)
 
         if args.hist:
             epochs = range(0,len(history["acc_test"]))
-            fig, axs = plt.subplots(2, 1, constrained_layout=True, sharex=True, figsize=(3,4))
+            fig, axs = plt.subplots(2, 1, constrained_layout=True, sharex=True, figsize=(3.33,3))
             axs[0].plot(epochs, history["loss_train"], "o-", label="Training dataset")
             axs[0].plot(epochs, history["loss_test"], "o-", label="Testing dataset")
             axs[0].set_ylabel("Loss")
@@ -204,7 +210,7 @@ class WaveTorch(object):
             if args.save:
                 fig.savefig(os.path.splitext(args.model)[0] + '_hist.png', dpi=300)
             else:
-                plt.show(block=False)
+                plt.show(block=True)
 
         if args.cm:
             fig, axs = plt.subplots(1, 2, constrained_layout=True, figsize=(4,2))
@@ -224,27 +230,62 @@ class WaveTorch(object):
                                                 train_size=N_classes, 
                                                 test_size=N_classes
                                             )
-
-                # Put tensors into Datasets and then Dataloaders to let pytorch manage batching
                 test_ds = TensorDataset(x_test, y_test)  
-                fig_conf, axs_conf = plt.subplots(N_classes, N_classes, constrained_layout=True, figsize=(5,5), sharex=True, sharey=True)
-                fig_field, axs_field = plt.subplots(N_classes, 1, constrained_layout=True, figsize=(5,5))
-                axs_field = axs_field.ravel()
+                fig, axs = plt.subplots(N_classes, 1, constrained_layout=True, figsize=(3.5,6))
 
-                i=0
                 for xb, yb in DataLoader(test_ds, batch_size=1):
                     with torch.no_grad():
                         field_dist = model(xb, probe_output=False)
                         probe_series = field_dist[0, :, model.px, model.py]
+                        viz.plot_total_field(model, field_dist, yb, ax=axs[yb.argmax().item()])
+                plt.show()
 
-                        viz.plot_total_field(model, field_dist, yb, ax=axs_field[yb.argmax().item()])
+        if args.stft:
+                x_train, x_test, y_train, y_test = data.load_selected_vowels(
+                                                        vowels,
+                                                        gender=gender, 
+                                                        sr=sr, 
+                                                        normalize=True, 
+                                                        train_size=N_classes, 
+                                                        test_size=N_classes
+                                                    )
+                test_ds = TensorDataset(x_test, y_test)  
+                fig, axs = plt.subplots(N_classes, N_classes, constrained_layout=True, figsize=(3.5,3.5), sharex=True, sharey=True)
 
+                for xb, yb in DataLoader(test_ds, batch_size=1):
+                    with torch.no_grad():
+                        field_dist = model(xb, probe_output=False)
+                        probe_series = field_dist[0, :, model.px, model.py]
                         for j in range(0, probe_series.shape[1]):
-                            viz.plot.plot_stft_spectrum(probe_series[:,j].numpy(), sr=sr, ax=axs_conf[yb.argmax().item(), j])
-
-                    i += 1
+                            i = yb.argmax().item()
+                            ax = axs[i, j]
+                            data_stft = np.abs(librosa.stft(probe_series[:,j].numpy(), n_fft=256))
+                            librosa.display.specshow(
+                                librosa.amplitude_to_db(data_stft, ref=np.max),
+                                sr=sr,
+                                ax=ax,
+                                y_axis='linear',
+                                x_axis='time',
+                                cmap=plt.cm.inferno
+                            )
+                            ax.set_ylim([0,sr/4])
+                            if j > 0:
+                                ax.set_ylabel('')
+                            if i < N_classes-1:
+                                ax.set_xlabel('')
+                plt.show()
 
         if args.animate:
+            x_train, x_test, y_train, y_test = data.load_selected_vowels(
+                                vowels,
+                                gender=gender, 
+                                sr=sr, 
+                                normalize=True, 
+                                train_size=N_classes, 
+                                test_size=N_classes
+                            )
+
+            test_ds = TensorDataset(x_test, y_test)  
             for xb, yb in DataLoader(train_ds, batch_size=1):
                 with torch.no_grad():
                     field_dist = model(xb, probe_output=False)

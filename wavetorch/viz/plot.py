@@ -35,7 +35,7 @@ def plot_total_field(model, yb, ylabel, block=False, ax=None, fig_width=4):
 
         Z = y_tot[0,:,:].numpy().transpose()
         Z = Z / Z.max()
-        h = ax.imshow(Z, cmap=plt.cm.inferno,  origin="bottom",  norm=mpl.colors.LogNorm(vmin=1e-3, vmax=1.0))
+        h = ax.imshow(Z, cmap=plt.cm.magma,  origin="bottom",  norm=mpl.colors.LogNorm(vmin=1e-3, vmax=1.0))
         ax.contour(model.b.numpy().transpose()>0, levels=[0], colors=("w",), linestyles=("dotted"), alpha=0.75)
         for i in range(0, len(model.px)):
             if ylabel[0,i].item() == 1:
@@ -99,7 +99,7 @@ def plot_cm(cm, ax=None, figsize=(4,4), title=None, normalize=False, labels="aut
 
 
 def plot_c(model, block=False, fig_width=6):
-    fig, ax = plt.subplots(1,1,figsize=(1.1*fig_width,model.Ny/model.Nx*fig_width), constrained_layout=True)
+    fig, ax = plt.subplots(1,1,figsize=(fig_width*1.25,model.Ny/model.Nx*fig_width), constrained_layout=True)
     c = model.c().detach()
     h=ax.imshow(c.numpy().transpose(), origin="bottom", rasterized=True, cmap=plt.cm.viridis_r)
     plt.colorbar(h,ax=ax,label="wave speed $c{(x,y)}$")
