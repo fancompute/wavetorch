@@ -116,7 +116,11 @@ Adding the `--cm` option will display the confusion matrix over the training and
 
 ![](../master/img/cm.png)
 
-Adding the `--fields` option will display an integrated field distribution for the vowel classes, along with spectral information for the time series data, like so:
+Adding the `--stft` option will display a matrix of short time Fourier transforms of the received signal, where the row corresponds to an input vowel and the column corresponds to a particular probe (matching the confusion matrix distribution), like so:
+
+![](../master/img/stft.png)
+
+Adding the `--fields` option will display an integrated field distribution for the vowel classes, like so:
 
 ![](../master/img/fields.png)
 
