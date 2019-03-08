@@ -98,17 +98,17 @@ def plot_cm(cm, ax=None, figsize=(4,4), title=None, normalize=False, labels="aut
         ax.set_title(title)
 
 
-def plot_c(model, block=False, fig_width=6):
-    fig, ax = plt.subplots(1,1,figsize=(fig_width*1.25,model.Ny/model.Nx*fig_width), constrained_layout=True)
+def plot_c(model, fig_width=6, ax=None, cax=None):
+    if ax is None:
+        fig, ax = plt.subplots(1,1,figsize=(fig_width*1.25,model.Ny/model.Nx*fig_width), constrained_layout=True)
     c = model.c().detach()
     h=ax.imshow(c.numpy().transpose(), origin="bottom", rasterized=True, cmap=plt.cm.viridis_r)
-    plt.colorbar(h,ax=ax,label="wave speed $c{(x,y)}$")
+    plt.colorbar(h, ax=ax, cax=cax, label="wave speed $c{(x,y)}$")
     ax.contour(model.b.numpy().transpose()>0, levels=[0], colors=("w",), linestyles=("dotted"), alpha=0.75)
     ax.plot(model.px, model.py, "ro")
     ax.plot(model.src_x, model.src_y, "ko")
     ax.set_xlabel("x")
     ax.set_ylabel("y")
-    plt.show(block=block)
 
 
 def animate_fields(model, field_dist, ylabel, block=True, filename=None, interval=1, fps=30, bitrate=768, crop=0.9, fig_width=6):
