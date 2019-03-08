@@ -2,6 +2,7 @@ import argparse
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.gridspec import GridSpec
 import matplotlib as mpl
 
 import torch
@@ -190,36 +191,36 @@ class WaveTorch(object):
         print('\n')
 
         if args.show:
-            viz.plot_c(model, fig_width=3.33)
-            plt.show()
-            if args.save:
-                plt.savefig(os.path.splitext(args.model)[0] + '_c.png', dpi=300)
+            fig = plt.figure(constrained_layout=True, figsize=(3.33, 4.75))
+            gs = mpl.gridspec.GridSpec(3, 2, figure=fig, height_ratios=[0.65,0.65,1.0], width_ratios=[1,0.1])
+            ax1 = fig.add_subplot(gs[0,:])
+            ax2 = fig.add_subplot(gs[1,:],sharex=ax1)
+            ax3 = fig.add_subplot(gs[2,0])
+            ax3c = fig.add_subplot(gs[2,1])
 
-        if args.hist:
             epochs = range(0,len(history["acc_test"]))
-            fig, axs = plt.subplots(2, 1, constrained_layout=True, sharex=True, figsize=(3.33,3))
-            axs[0].plot(epochs, history["loss_train"], "o-", label="Training dataset")
-            axs[0].plot(epochs, history["loss_test"], "o-", label="Testing dataset")
-            axs[0].set_ylabel("Loss")
-            axs[1].plot(epochs, history["acc_train"], "o-", label="Training dataset")
-            axs[1].plot(epochs, history["acc_test"], "o-", label="Testing dataset")
-            axs[1].set_xlabel("Number of training epochs")
-            axs[1].set_ylabel("Accuracy")
-            axs[1].set_ylim(top=1.01)
-            axs[0].legend()
-            if args.save:
-                fig.savefig(os.path.splitext(args.model)[0] + '_hist.png', dpi=300)
-            else:
-                plt.show(block=True)
+            ax1.plot(epochs, history["loss_train"], "o-", label="Training dataset")
+            ax1.plot(epochs, history["loss_test"], "o-", label="Testing dataset")
+            ax1.set_ylabel("Loss")
+            ax2.plot(epochs, history["acc_train"], "o-", label="Training dataset")
+            ax2.plot(epochs, history["acc_test"], "o-", label="Testing dataset")
+            ax2.set_xlabel("Number of training epochs")
+            ax2.set_ylabel("Accuracy")
+            ax2.set_ylim(top=1.01)
+            ax1.legend()
+
+            viz.plot_c(model, ax=ax3, cax=ax3c)
+
+            plt.show()
 
         if args.cm:
-            fig, axs = plt.subplots(1, 2, constrained_layout=True, figsize=(4,2))
+            fig, axs = plt.subplots(1, 2, constrained_layout=True, figsize=(3.33,1.6))
             viz.plot_cm(cm_train, title="Training dataset", normalize=False, ax=axs[0], labels=vowels)
             viz.plot_cm(cm_test, title="Testing dataset", normalize=False, ax=axs[1], labels=vowels)
             if args.save:
                 fig.savefig(os.path.splitext(args.model)[0] + '_cm.png', dpi=300)
             else:
-                plt.show(block=False)
+                plt.show(block=True)
 
         if args.fields:
                 x_train, x_test, y_train, y_test = data.load_selected_vowels(
@@ -250,7 +251,7 @@ class WaveTorch(object):
                                                         test_size=N_classes
                                                     )
                 test_ds = TensorDataset(x_test, y_test)  
-                fig, axs = plt.subplots(N_classes, N_classes, constrained_layout=True, figsize=(3.5,3.5), sharex=True, sharey=True)
+                fig, axs = plt.subplots(N_classes, N_classes, constrained_layout=True, figsize=(5.5,5.5), sharex=True, sharey=True)
 
                 for xb, yb in DataLoader(test_ds, batch_size=1):
                     with torch.no_grad():
@@ -259,20 +260,25 @@ class WaveTorch(object):
                         for j in range(0, probe_series.shape[1]):
                             i = yb.argmax().item()
                             ax = axs[i, j]
-                            data_stft = np.abs(librosa.stft(probe_series[:,j].numpy(), n_fft=256))
+                            input_stft = np.abs(librosa.stft(xb.numpy().squeeze(), n_fft=256))
+                            output_stft = np.abs(librosa.stft(probe_series[:,j].numpy(), n_fft=256))
+
                             librosa.display.specshow(
-                                librosa.amplitude_to_db(data_stft, ref=np.max),
+                                librosa.amplitude_to_db(output_stft,ref=np.max(input_stft)),
                                 sr=sr,
+                                vmax=0,
                                 ax=ax,
                                 y_axis='linear',
                                 x_axis='time',
                                 cmap=plt.cm.inferno
                             )
                             ax.set_ylim([0,sr/4])
+                            
                             if j > 0:
                                 ax.set_ylabel('')
                             if i < N_classes-1:
                                 ax.set_xlabel('')
+                            ax.text(0.5, 0.95, '%s at probe #%d' % (vowels[i], j+1), color="w", transform=ax.transAxes, ha="center", va="top", fontsize="large")
                 plt.show()
 
         if args.animate:
@@ -286,10 +292,10 @@ class WaveTorch(object):
                             )
 
             test_ds = TensorDataset(x_test, y_test)  
-            for xb, yb in DataLoader(train_ds, batch_size=1):
+            for xb, yb in DataLoader(test_ds, batch_size=1):
                 with torch.no_grad():
                     field_dist = model(xb, probe_output=False)
-                    animate_fields(model, field_dist, yb)
+                    viz.animate_fields(model, field_dist, yb)
 
 if __name__ == '__main__':
     WaveTorch()
