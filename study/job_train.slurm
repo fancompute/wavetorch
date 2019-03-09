@@ -20,4 +20,4 @@ echo ""
 srun python -u -m wavetorch train \
     --num_threads $SLURM_CPUS_PER_TASK \
     --name $SLURM_JOB_ID \
-    --config study/config_three.yml
+    --config study/prod_vow3.yml
