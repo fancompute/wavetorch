@@ -18,6 +18,9 @@ def train(model, optimizer, criterion, train_dl, test_dl, N_epochs, batch_size):
         t_epoch = time.time()
         print('Epoch: %2d/%2d' % (epoch, N_epochs))
 
+        if epoch == 0:
+            print(" ... NOTE: We only characterize the starting structure on epoch 0 (no optimizer step is taken)")
+
         num = 1
         for xb, yb in train_dl:
             def closure():
@@ -27,7 +30,6 @@ def train(model, optimizer, criterion, train_dl, test_dl, N_epochs, batch_size):
                 return loss
 
             if epoch == 0: # Don't take a step and just characterize the starting structure
-                print(" ... No optimizer step is taken on epoch 0")
                 with torch.no_grad():
                     loss = criterion(model(xb), yb.argmax(dim=1))
             else: # Take an optimization step

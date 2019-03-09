@@ -1,4 +1,6 @@
 import argparse
+import yaml
+import time
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -27,78 +29,23 @@ args_global.add_argument('--num_threads', type=int, default=4,
                             help='Number of threads to use')
 args_global.add_argument('--use-cuda', action='store_true',
                             help='Use CUDA to perform computations')
-###
-
-# Simulation options
-args_sim = argparse.ArgumentParser(add_help=False)
-args_sim.add_argument('--binarized', action='store_true',
-                            help='Binarize the distribution of wave speed between --c0 and --c1')
-args_sim.add_argument('--design_region', action='store_true',
-                            help='Use the (currently hardcoded) design region which sits between the src and probes with a 5 gride cell buffer')
-args_sim.add_argument('--init_rand', action='store_true',
-                            help='Use a random initialization for the distribution of c')
-args_sim.add_argument('--c0', type=float, default=1.0,
-                            help='Wave speed background value')
-args_sim.add_argument('--c1', type=float, default=0.9,
-                            help='Wave speed value to use with --c0 when --binarized ')
-args_sim.add_argument('--Nx', type=int, default=140,
-                            help='Number of grid cells in x-dimension of simulation domain')
-args_sim.add_argument('--Ny', type=int, default=140,
-                            help='Number of grid cells in y-dimension of simulation domain')
-args_sim.add_argument('--dt', type=float, default=0.707,
-                            help='Time step (spatial step size is determined automatically)')
-args_sim.add_argument('--px', type=int, nargs='*',
-                            help='Probe x-coordinates in grid cells')
-args_sim.add_argument('--py', type=int, nargs='*',
-                            help='Probe y-coordinates in grid cells')
-args_sim.add_argument('--pd', type=int, default=30,
-                            help='Spacing, in number grid cells, between probe points')
-args_sim.add_argument('--src_x', type=int, default=None,
-                            help='Source x-coordinate in grid cells')
-args_sim.add_argument('--src_y', type=int, default=None,
-                            help='Source y-coordinate in grid cells')
-args_sim.add_argument('--pml_N', type=int, default=20,
-                            help='PML thickness in number of grid cells')
-args_sim.add_argument('--pml_p', type=float, default=4.0,
-                            help='PML polynomial order')
-args_sim.add_argument('--pml_max', type=float, default=3.0,
-                            help='PML max dampening factor')
-###
 
 ### Training moode
-args_train = subargs.add_parser('train', parents=[args_global, args_sim])
-args_train.add_argument('--N_epochs', type=int, default=5, 
-                            help='Number of training epochs')
-args_train.add_argument('--lr', type=float, default=0.001, 
-                            help='Optimizer learning rate')
-args_train.add_argument('--batch_size', type=int, default=3, 
-                            help='Batch size used during training and testing')
-args_train.add_argument('--train_size', type=int, default=3,
-                            help='Size of randomly selected training set. Ideally, this should be a multiple of the number of vowel casses')
-args_train.add_argument('--test_size', type=int, default=3,
-                            help='Size of randomly selected testing set. Ideally, this should be a multiple of the number of vowel casses')
-args_train.add_argument('--sr', type=int, default=10000,
-                            help='Sampling rate to use for vowel data')
-args_train.add_argument('--gender', type=str, default='men',
-                            help='Which gender to pull vowel data from. Can be one of women, men, or both. If both, training and testing datasets distributed equally over the genders')
-args_train.add_argument('--vowels', type=str, nargs='*', default=['ei', 'iy', 'oa'],
-                            help='Which vowel classes to train on. Can be any elements from the set: [ae, eh, ih, oo, ah, ei, iy, uh, aw, er, oa, uw]. Defaults to [ei, iy, oa]')
+args_train = subargs.add_parser('train', parents=[args_global])
+args_train.add_argument('--config', type=str, required=True,
+                            help='Config file to use')
 ###
 
 ### Inference mode
 args_inference = subargs.add_parser('inference', parents=[args_global])
-args_inference.add_argument('--cm', action='store_true',
-                            help='Plot the confusion matrix over the whole dataset')
-args_inference.add_argument('--show', action='store_true',
-                            help='Show the model (distribution of wave speed)')
-args_inference.add_argument('--hist', action='store_true',
-                            help='Plot the training history from the loaded model')
+args_inference.add_argument('--summary', action='store_true',
+                            help='Show a summary of the model and training results')
 args_inference.add_argument('--fields', action='store_true',
                             help='Plot the integrated field distrubtion')
 args_inference.add_argument('--stft', action='store_true',
                             help='Plot the STFTs')
 args_inference.add_argument('--animate', action='store_true',
-                            help='Animate the field for the  classes')
+                            help='Animate the field for the vowel classes')
 args_inference.add_argument('--save', action='store_true',
                             help='Save figures')
 ###
@@ -115,10 +62,6 @@ class WaveTorch(object):
 
         torch.set_num_threads(args.num_threads)
 
-        for i in vars(args):
-            print('%16s = %s' % (i, vars(args)[i]))
-        print('\n')
-
         if not hasattr(self, args.command):
             print('Unrecognized command')
             parser.print_help()
@@ -127,15 +70,20 @@ class WaveTorch(object):
         getattr(self, args.command)(args)
 
     def train(self, args):
-        N_classes = len(args.vowels)
+        print("Using configuration from %s: " % args.config)
+        with open(args.config, 'r') as ymlfile:
+             cfg = yaml.load(ymlfile)
+             print(yaml.dump(cfg, default_flow_style=False))
+
+        N_classes = len(cfg['data']['vowels'])
 
         x_train, x_test, y_train, y_test = data.load_selected_vowels(
-                                                args.vowels,
-                                                gender=args.gender, 
-                                                sr=args.sr, 
+                                                cfg['data']['vowels'],
+                                                gender=cfg['data']['gender'], 
+                                                sr=cfg['data']['sr'], 
                                                 normalize=True, 
-                                                train_size=args.train_size, 
-                                                test_size=args.test_size
+                                                train_size=cfg['training']['train_size'], 
+                                                test_size=cfg['training']['test_size']
                                             )
 
         x_train = x_train.to(args.dev)
@@ -146,57 +94,75 @@ class WaveTorch(object):
         train_ds = TensorDataset(x_train, y_train)
         test_ds  = TensorDataset(x_test, y_test)
 
-        train_dl = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True)
-        test_dl  = DataLoader(test_ds, batch_size=args.batch_size)
+        train_dl = DataLoader(train_ds, batch_size=cfg['training']['batch_size'], shuffle=True)
+        test_dl  = DataLoader(test_ds, batch_size=cfg['training']['batch_size'])
 
         ### Define model
-        px, py = core.setup_probe_coords(N_classes, args.px, args.py, args.pd, args.Nx, args.Ny, args.pml_N)
-        src_x, src_y = core.setup_src_coords(args.src_x, args.src_y, args.Nx, args.Ny, args.pml_N)
+        px, py = core.setup_probe_coords(
+                            N_classes, cfg['geom']['px'], cfg['geom']['py'], cfg['geom']['pd'], 
+                            cfg['geom']['Nx'], cfg['geom']['Ny'], cfg['geom']['pml']['N']
+                            )
+        src_x, src_y = core.setup_src_coords(
+                            cfg['geom']['src_x'], cfg['geom']['src_y'], cfg['geom']['Nx'],
+                            cfg['geom']['Ny'], cfg['geom']['pml']['N']
+                            )
 
-        if args.design_region: # Limit the design region
-            design_region = torch.zeros(args.Nx, args.Ny, dtype=torch.uint8)
+        if cfg['geom']['use_design_region']: # Limit the design region
+            design_region = torch.zeros(cfg['geom']['Nx'], cfg['geom']['Ny'], dtype=torch.uint8)
             design_region[src_x+5:np.min(px)-5] = 1 # For now, just hardcode this in
         else: # Let the design region be the enire non-PML area
             design_region = None
 
-        model = core.WaveCell(args.dt, args.Nx, args.Ny, src_x, src_y, px, py, pml_N=args.pml_N, pml_p=args.pml_p, pml_max=args.pml_max, c0=args.c0, c1=args.c1, binarized=args.binarized, init_rand=args.init_rand, design_region=design_region)
+        model = core.WaveCell(
+                    cfg['geom']['dt'], cfg['geom']['Nx'], cfg['geom']['Ny'], src_x, src_y, px, py,
+                    pml_N=cfg['geom']['pml']['N'], pml_p=cfg['geom']['pml']['p'], pml_max=cfg['geom']['pml']['max'], 
+                    c0=cfg['geom']['c0'], c1=cfg['geom']['c1'], eta=cfg['geom']['binarization']['eta'], beta=cfg['geom']['binarization']['beta'], 
+                    init_rand=cfg['geom']['use_rand_init'], design_region=design_region,
+                    nl_b0=cfg['geom']['nonlinearity']['b0'], nl_uth=cfg['geom']['nonlinearity']['uth']
+                    )
         model.to(args.dev)
 
         ### Train
-        optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+        optimizer = torch.optim.Adam(model.parameters(), lr=cfg['training']['lr'])
         criterion = torch.nn.CrossEntropyLoss()
-        history   = core.train(model, optimizer, criterion, train_dl, test_dl, args.N_epochs, args.batch_size)
+        history   = core.train(model, optimizer, criterion, train_dl, test_dl, cfg['training']['N_epochs'], cfg['training']['batch_size'])
         
         ### Print confusion matrix
         cm_test  = core.calc_cm(model, test_dl)
         cm_train = core.calc_cm(model, train_dl)
 
         ### Save model and results
-        core.save_model(model, args.name, history, args, cm_train, cm_test)
+        if args.name is None:
+            args.name = time.strftime("%Y_%m_%d-%H_%M_%S")
+        if cfg['training']['prefix'] is not None:
+            args.name = cfg['training']['prefix'] + '_' + args.name
+
+        core.save_model(model, args.name, history, cfg, cm_train, cm_test)
 
     def inference(self, args):
         if args.name is None:
             raise ValueError("--name must be specified to load a model")
 
-        model, history, args_trained, cm_train, cm_test = core.load_model(args.name)
-        N_classes = len(args_trained.vowels)
-        sr = args_trained.sr
-        gender = args_trained.gender
-        vowels = args_trained.vowels
-        train_size = args_trained.train_size
-        test_size = args_trained.test_size
+        model, history, cfg, cm_train, cm_test = core.load_model(args.name)
 
-        for i in vars(args_trained):
-            print('%16s = %s' % (i, vars(args_trained)[i]))
-        print('\n')
+        print("Configuration for model in %s is:" % args.name)
+        print(yaml.dump(cfg, default_flow_style=False))
 
-        if args.show:
-            fig = plt.figure(constrained_layout=True, figsize=(3.33, 4.75))
-            gs = mpl.gridspec.GridSpec(3, 2, figure=fig, height_ratios=[0.65,0.65,1.0], width_ratios=[1,0.1])
-            ax1 = fig.add_subplot(gs[0,:])
-            ax2 = fig.add_subplot(gs[1,:],sharex=ax1)
-            ax3 = fig.add_subplot(gs[2,0])
-            ax3c = fig.add_subplot(gs[2,1])
+        sr = cfg['data']['sr']
+        gender = cfg['data']['gender']
+        vowels = cfg['data']['vowels']
+        train_size = cfg['training']['train_size']
+        test_size = cfg['training']['test_size']
+        N_classes = len(vowels)
+
+        if args.summary:
+            fig = plt.figure(constrained_layout=True, figsize=(7, 3.5))
+            gs = mpl.gridspec.GridSpec(2, 3 , figure=fig, width_ratios=[1, 1, 0.5])
+            ax1 = fig.add_subplot(gs[0,0])
+            ax2 = fig.add_subplot(gs[1,0],sharex=ax1)
+            ax3 = fig.add_subplot(gs[:,1])
+            ax4 = fig.add_subplot(gs[0,2])
+            ax5 = fig.add_subplot(gs[1,2])
 
             epochs = range(0,len(history["acc_test"]))
             ax1.plot(epochs, history["loss_train"], "o-", label="Training dataset")
@@ -209,14 +175,26 @@ class WaveTorch(object):
             ax2.set_ylim(top=1.01)
             ax1.legend()
 
-            viz.plot_c(model, ax=ax3, cax=ax3c)
+            from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
+            from mpl_toolkits.axes_grid1.colorbar import colorbar
+            rho = model.rho.detach().numpy().transpose()
+            c = model.c0 + (model.c1-model.c0)*rho
+            b_boundary = model.b_boundary.numpy().transpose()
+            h=ax3.imshow(c, origin="bottom", rasterized=True, cmap=plt.cm.viridis_r)
 
-            plt.show()
+            ax3_divider = make_axes_locatable(ax3)
+            cax3 = ax3_divider.append_axes("top", size="5%", pad="15%")
+            cax3.xaxis.set_ticks_position("top")
 
-        if args.cm:
-            fig, axs = plt.subplots(1, 2, constrained_layout=True, figsize=(3.33,1.6))
-            viz.plot_cm(cm_train, title="Training dataset", normalize=False, ax=axs[0], labels=vowels)
-            viz.plot_cm(cm_test, title="Testing dataset", normalize=False, ax=axs[1], labels=vowels)
+            plt.colorbar(h, cax=cax3, orientation='horizontal')
+            ax3.contour(b_boundary>0, levels=[0], colors=("w",), linestyles=("dotted"), alpha=0.75)
+            ax3.plot(model.px, model.py, "ro")
+            ax3.plot(model.src_x, model.src_y, "ko")
+            ax3.set_xlabel("x")
+            ax3.set_ylabel("y")
+
+            viz.plot_cm(cm_train, title="Training dataset", normalize=False, ax=ax4, labels=vowels)
+            viz.plot_cm(cm_test, title="Testing dataset", normalize=False, ax=ax5, labels=vowels)
             if args.save:
                 fig.savefig(os.path.splitext(args.model)[0] + '_cm.png', dpi=300)
             else:

@@ -12,12 +12,8 @@ import socket
 
 SAVEDIR = "./trained/"
 
-def save_model(model, name=None, history=None, args=None, cm_train=None, cm_test=None):
-    str_hostname = socket.gethostname()
-    if name is None:
-        name = time.strftime("%Y_%m_%d-%H_%M_%S")
-
-    str_filename = 'model_' + str_hostname + '_' + name +  '.pt'
+def save_model(model, name, history=None, args=None, cm_train=None, cm_test=None):
+    str_filename = name +  '.pt'
     if not os.path.exists(SAVEDIR):
         os.makedirs(SAVEDIR)
     str_savepath = SAVEDIR + str_filename
