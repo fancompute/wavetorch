@@ -84,3 +84,41 @@ def load_selected_vowels(str_classes, gender='both', sr=None, normalize=True, tr
     y_test  = torch.nn.utils.rnn.pad_sequence(y_test, batch_first=True)
 
     return x_train, x_test, y_train, y_test
+
+
+def load_all_vowels(str_classes, gender='both', sr=None, normalize=True, dir='data/vowels/', ext='.wav'):
+   
+    assert gender in ['women', 'men', 'both'], "gender must be either 'women', 'men', or 'both'"
+
+    x_w = []
+    y_w = []
+    x_m = []
+    y_m = []
+    for i, str_class in enumerate(str_classes):
+        y = np.eye(len(str_classes))[i]
+
+        # Women
+        files = os.path.join(dir, 'w*' + str_class + ext)
+        for file in glob.glob(files):
+            x = load_vowel(file, sr=sr, normalize=normalize)
+            x_w.append(x)
+            y_w.append(y)
+
+        # Men
+        files = os.path.join(dir, 'm*' + str_class + ext)
+        for file in glob.glob(files):
+            x = load_vowel(file, sr=sr, normalize=normalize)
+            x_m.append(x)
+            y_m.append(y)
+
+    if gender is 'both':
+        X = [torch.tensor(x) for x in x_m + x_w]
+        Y = [torch.tensor(y) for y in y_m + y_w]
+    elif gender is 'women':
+        X = [torch.tensor(x) for x in x_w]
+        Y = [torch.tensor(y) for y in y_w]
+    else:
+        X = [torch.tensor(x) for x in x_m]
+        Y = [torch.tensor(y) for y in y_m]
+
+    return X, Y

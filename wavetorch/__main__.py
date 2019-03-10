@@ -11,6 +11,8 @@ import torch
 from torch.utils.data import TensorDataset, random_split, DataLoader
 from torch.nn.functional import pad
 
+from sklearn.model_selection import StratifiedKFold
+
 import librosa
 import librosa.display
 
@@ -33,6 +35,14 @@ args_global.add_argument('--use-cuda', action='store_true',
 ### Training moode
 args_train = subargs.add_parser('train', parents=[args_global])
 args_train.add_argument('--config', type=str, required=True,
+                            help='Config file to use')
+###
+
+### Training moode
+args_train = subargs.add_parser('cross', parents=[args_global])
+args_train.add_argument('--config', type=str, required=True,
+                            help='Config file to use')
+args_train.add_argument('--n_splits', type=int, default=3,
                             help='Config file to use')
 ###
 
@@ -138,6 +148,89 @@ class WaveTorch(object):
             args.name = cfg['training']['prefix'] + '_' + args.name
 
         core.save_model(model, args.name, history, cfg, cm_train, cm_test)
+
+    def cross(self, args):
+        print("Using configuration from %s: " % args.config)
+        with open(args.config, 'r') as ymlfile:
+             cfg = yaml.load(ymlfile)
+             print(yaml.dump(cfg, default_flow_style=False))
+
+        N_classes = len(cfg['data']['vowels'])
+
+        X, Y = data.load_all_vowels(
+                    cfg['data']['vowels'],
+                    gender=cfg['data']['gender'], 
+                    sr=cfg['data']['sr'], 
+                    normalize=True
+                    )
+
+        skf = StratifiedKFold(n_splits=args.n_splits, random_state=None, shuffle=True)
+        samps = [y.argmax().item() for y in Y]
+        num = 1
+        for train_index, test_index in skf.split(np.zeros(len(samps)), samps):
+            print("Cross validation %d" % num)
+
+            x_train = torch.nn.utils.rnn.pad_sequence([X[i] for i in train_index], batch_first=True)
+            x_test = torch.nn.utils.rnn.pad_sequence([X[i] for i in test_index], batch_first=True)
+            y_train = torch.nn.utils.rnn.pad_sequence([Y[i] for i in train_index], batch_first=True)
+            y_test = torch.nn.utils.rnn.pad_sequence([Y[i] for i in test_index], batch_first=True)
+
+            x_train = x_train.to(args.dev)
+            x_test  = x_test.to(args.dev)
+            y_train = y_train.to(args.dev)
+            y_test  = y_test.to(args.dev)
+
+            train_ds = TensorDataset(x_train, y_train)
+            test_ds  = TensorDataset(x_test, y_test)
+
+            train_dl = DataLoader(train_ds, batch_size=cfg['training']['batch_size'], shuffle=True)
+            test_dl  = DataLoader(test_ds, batch_size=cfg['training']['batch_size'])
+
+            ### Define model
+            px, py = core.setup_probe_coords(
+                                N_classes, cfg['geom']['px'], cfg['geom']['py'], cfg['geom']['pd'], 
+                                cfg['geom']['Nx'], cfg['geom']['Ny'], cfg['geom']['pml']['N']
+                                )
+            src_x, src_y = core.setup_src_coords(
+                                cfg['geom']['src_x'], cfg['geom']['src_y'], cfg['geom']['Nx'],
+                                cfg['geom']['Ny'], cfg['geom']['pml']['N']
+                                )
+
+            if cfg['geom']['use_design_region']: # Limit the design region
+                design_region = torch.zeros(cfg['geom']['Nx'], cfg['geom']['Ny'], dtype=torch.uint8)
+                design_region[src_x+5:np.min(px)-5] = 1 # For now, just hardcode this in
+            else: # Let the design region be the enire non-PML area
+                design_region = None
+
+            model = core.WaveCell(
+                        cfg['geom']['dt'], cfg['geom']['Nx'], cfg['geom']['Ny'], src_x, src_y, px, py,
+                        pml_N=cfg['geom']['pml']['N'], pml_p=cfg['geom']['pml']['p'], pml_max=cfg['geom']['pml']['max'], 
+                        c0=cfg['geom']['c0'], c1=cfg['geom']['c1'], eta=cfg['geom']['binarization']['eta'], beta=cfg['geom']['binarization']['beta'], 
+                        init_rand=cfg['geom']['use_rand_init'], design_region=design_region,
+                        nl_b0=cfg['geom']['nonlinearity']['b0'], nl_uth=cfg['geom']['nonlinearity']['uth']
+                        )
+            model.to(args.dev)
+
+            ### Train
+            optimizer = torch.optim.Adam(model.parameters(), lr=cfg['training']['lr'])
+            criterion = torch.nn.CrossEntropyLoss()
+            history   = core.train(model, optimizer, criterion, train_dl, test_dl, cfg['training']['N_epochs'], cfg['training']['batch_size'])
+            
+            ### Print confusion matrix
+            cm_test  = core.calc_cm(model, test_dl)
+            cm_train = core.calc_cm(model, train_dl)
+
+            ### Save model and results
+            if args.name is None:
+                args.name = time.strftime("%Y_%m_%d-%H_%M_%S")
+            if cfg['training']['prefix'] is not None:
+                args.name = cfg['training']['prefix'] + '_' + args.name
+
+            args.name += "_cv_" + str(num)
+
+            core.save_model(model, args.name, history, cfg, cm_train, cm_test)
+
+            num += 1
 
     def inference(self, args):
         if args.name is None:

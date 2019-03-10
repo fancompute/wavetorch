@@ -1,28 +1,28 @@
 training:
-  prefix: laptop
-  N_epochs: 1
-  lr: 0.001
-  batch_size: 3
-  train_size: 12
-  test_size: 12
+  prefix: cv_vow3
+  N_epochs: 10
+  lr: 0.0001
+  batch_size: 9
+  train_size: 90
+  test_size: 45
 data:
   sr: 10000
   gender: men
   vowels: 
+    - ae
     - ei
     - iy
-    - oa
 geom:
   use_design_region: true
   use_rand_init: false
-  Nx: 160
-  Ny: 160
+  Nx: 220
+  Ny: 180
   dt: 0.707
-  c0: 1.0
-  c1: 0.9
+  c0: 1.00
+  c1: 0.85
   px: 
   py: 
-  pd: 30
+  pd: 40
   src_x: 
   src_y:
   pml:
