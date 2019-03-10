@@ -9,9 +9,9 @@ data:
   sr: 10000
   gender: both
   vowels: 
+    - ae
     - ei
     - iy
-    - oa
 geom:
   use_design_region: true
   use_rand_init: false
