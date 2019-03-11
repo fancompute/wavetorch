@@ -36,7 +36,7 @@ def plot_total_field(model, yb, ylabel, block=False, ax=None, fig_width=4):
         Z = y_tot[0,:,:].numpy().transpose()
         Z = Z / Z.max()
         h = ax.imshow(Z, cmap=plt.cm.magma,  origin="bottom",  norm=mpl.colors.LogNorm(vmin=1e-3, vmax=1.0))
-        ax.contour(model.b.numpy().transpose()>0, levels=[0], colors=("w",), linestyles=("dotted"), alpha=0.75)
+        ax.contour(model.b_boundary.numpy().transpose()>0, levels=[0], colors=("w",), linestyles=("dotted"), alpha=0.75)
         for i in range(0, len(model.px)):
             if ylabel[0,i].item() == 1:
                 color = "#98df8a"
