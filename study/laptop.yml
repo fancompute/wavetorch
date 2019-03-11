@@ -1,37 +1,60 @@
 training:
-  prefix: laptop
+  # This prefix is applied to the filename when saving the model; if not specified a date/time is used
+  prefix: example
+  # Number of training epochs
   N_epochs: 1
-  lr: 0.001
+  # Optimizer learning rate
+  lr: 0.001    
+  # Batch size     
   batch_size: 3
+  # Size of randomly selected training set. Ideally, this should be a multiple of the number of vowel casses
   train_size: 12
+  # Size of randomly selected testing set. Ideally, this should be a multiple of the number of vowel casses
   test_size: 12
 data:
-  sr: 10000
+  # Sampling rate to use for vowel data
+  sr: 10000         
+  # Which gender to pull vowel data from. Can be one of women, men, or both. 
+  # If both, training and testing datasets distributed equally over the genders
   gender: men
+  # Which vowel classes to train on.
+  # Can be any elements from the set: [ae, eh, ih, oo, ah, ei, iy, uh, aw, er, oa, uw].
   vowels: 
     - ei
     - iy
     - oa
 geom:
+  # Use the (currently hardcoded) design region which sits between the src and probes with a 5 gride cell buffer
   use_design_region: true
+  # Use a random initialization for the distribution of c
   use_rand_init: false
+  # Number of grid cells in x-dimension of simulation domain
   Nx: 160
+  # Number of grid cells in y-dimension of simulation domain
   Ny: 160
+  # Time step (spatial step size is determined automatically)
   dt: 0.707
-  c0: 1.0
+  # Wave speed background value (e.g. in PML and non-design region)
+  c0: 1.
+  # Wave speed value to use with c0 during binarization
   c1: 0.9
+  # Probe x-coordinates in grid cells
   px: 
+  # Probe y-coordinates in grid cells
   py: 
+  # Spacing, in number grid cells, between probe points
   pd: 30
+  # Source x-coordinate in grid cells
   src_x: 
+  # Source y-coordinate in grid cells
   src_y:
   pml:
-    N: 20
-    p: 4.0
-    max: 3.0
+    N: 20    # PML thickness in number of grid cells
+    p: 4.0   # PML polynomial order
+    max: 3.0 # PML max dampening factor
   nonlinearity:
-    b0: 0.0
-    uth: 1.0
+    b0: 0.0   # Saturable abs. strength
+    uth: 1.0  # Saturable abs. threshold
   binarization:
-    beta: 100
-    eta: 0.5
+    beta: 100   # These parameterize the binarization projection function
+    eta: 0.5    # see the Angler supplementary info for now
