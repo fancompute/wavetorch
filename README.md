@@ -65,3 +65,4 @@ This package has the following dependencies:
 * `seaborn`
 * `matplotlib`
 * `numpy`
+* `yaml`
