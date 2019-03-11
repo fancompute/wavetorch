@@ -1,17 +1,18 @@
 training:
-  prefix: prod_vow3
+  prefix: vow4
   N_epochs: 20
   lr: 0.0001
-  batch_size: 9
-  train_size: 90
-  test_size: 45
+  batch_size: 8
+  train_size: 96
+  test_size: 56
 data:
   sr: 10000
   gender: both
   vowels: 
     - ae
     - ei
-    - iy
+    - oa
+    - uw
 geom:
   use_design_region: true
   use_rand_init: false

@@ -10,13 +10,11 @@ import time
 import os
 import socket
 
-SAVEDIR = "./trained/"
-
-def save_model(model, name, history=None, args=None, cm_train=None, cm_test=None):
+def save_model(model, name, savedir='./study/', history=None, args=None, cm_train=None, cm_test=None):
     str_filename = name +  '.pt'
-    if not os.path.exists(SAVEDIR):
-        os.makedirs(SAVEDIR)
-    str_savepath = SAVEDIR + str_filename
+    if not os.path.exists(savedir):
+        os.makedirs(savedir)
+    str_savepath = savedir + str_filename
     dsave = {"model": model,
              "history": history,
              "args": args,

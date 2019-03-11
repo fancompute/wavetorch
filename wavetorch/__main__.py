@@ -27,6 +27,8 @@ subargs = parser.add_subparsers(prog='wavetorch', title="commands", dest="comman
 args_global = argparse.ArgumentParser(add_help=False)
 args_global.add_argument('--name', type=str, default=None,
                             help='Name to use when saving or loading the model file. If not specified when saving a time and date stamp is used')
+args_global.add_argument('--savedir', type=str, default='./study/',
+                            help='Directory in which the model file is saved. Defaults to ./study/')
 args_global.add_argument('--num_threads', type=int, default=4,
                             help='Number of threads to use')
 args_global.add_argument('--use-cuda', action='store_true',
@@ -147,7 +149,7 @@ class WaveTorch(object):
         if cfg['training']['prefix'] is not None:
             args.name = cfg['training']['prefix'] + '_' + args.name
 
-        core.save_model(model, args.name, history, cfg, cm_train, cm_test)
+        core.save_model(model, args.name, args.savedir, history, cfg, cm_train, cm_test)
 
     def cross(self, args):
         print("Using configuration from %s: " % args.config)
@@ -228,7 +230,7 @@ class WaveTorch(object):
 
             args.name += "_cv_" + str(num)
 
-            core.save_model(model, args.name, history, cfg, cm_train, cm_test)
+            core.save_model(model, args.name, args.savedir, history, cfg, cm_train, cm_test)
 
             num += 1
 
