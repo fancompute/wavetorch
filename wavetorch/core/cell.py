@@ -56,11 +56,10 @@ class WaveCell(torch.nn.Module):
             self.register_buffer("design_region", self.b_boundary == 0)
 
         if init_rand:
-            rho = self.init_rho_rand(Nx, Ny)
+            self.rho = torch.nn.Parameter( torch.round(torch.rand(Nx, Ny)) )
         else:
-            rho = torch.ones(Nx, Ny) * 0.5
+            self.rho = torch.nn.Parameter( torch.ones(Nx, Ny) * 0.5 )
 
-        self.rho = torch.nn.Parameter(rho)
         self.clip_to_design_region()
 
         # Spatial step size (satisfying Courant stability)
@@ -92,22 +91,13 @@ class WaveCell(torch.nn.Module):
 
         return torch.sqrt( b_x**2 + b_y**2 )
 
-    @staticmethod
-    def init_rho_rand(Nx, Ny, Nconv=2):
-        rho = torch.rand(Nx, Ny)
-        for i in range(Nconv):
-            rho = conv2d(rho.unsqueeze(0).unsqueeze(0), torch.tensor([[[[0, 1/8, 0], [1/8, 1/2, 1/8], [0, 1/8, 0]]]]), padding=1).squeeze()
-        return rho
-
-    def step(self, x, y1, y2, rho):
+    def step(self, x, y1, y2, c):
         dt = self.dt
 
-        c = self.c0 + (self.c1-self.c0)*rho
-
-        if self.use_nonlinearity: # This should save us on unecessary backprop ops
-            b = self.b_boundary + rho*sat_damp(y1, uth=self.nl_uth, b0=self.nl_b0)
-        else:
-            b = self.b_boundary
+        # if self.use_nonlinearity: # This should save us on unecessary backprop ops
+        #     b = self.b_boundary + rho*sat_damp(y1, uth=self.nl_uth, b0=self.nl_b0)
+        # else:
+        b = self.b_boundary
 
         y = torch.mul((dt**(-2) + b * 0.5 * dt**(-1)).pow(-1),
                       (2/dt**2*y1 - torch.mul( (dt**(-2) - b * 0.5 * dt**(-1)), y2)
@@ -133,8 +123,9 @@ class WaveCell(torch.nn.Module):
 
         # loop through time
         rho = self.proj_rho()
+        c = self.c0 + (self.c1-self.c0)*rho
         for i, xi in enumerate(x.chunk(x.size(1), dim=1)):
-            y, y1, y2 = self.step(xi, y1, y2, rho)
+            y, y1, y2 = self.step(xi, y1, y2, c)
             y_all.append(y)
 
         # combine into output field dist 

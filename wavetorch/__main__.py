@@ -25,33 +25,35 @@ subargs = parser.add_subparsers(prog='wavetorch', title="commands", dest="comman
 
 # Global options
 args_global = argparse.ArgumentParser(add_help=False)
-args_global.add_argument('--name', type=str, default=None,
-                            help='Name to use when saving or loading the model file. If not specified when saving a time and date stamp is used')
-args_global.add_argument('--savedir', type=str, default='./study/',
-                            help='Directory in which the model file is saved. Defaults to ./study/')
 args_global.add_argument('--num_threads', type=int, default=4,
                             help='Number of threads to use')
 args_global.add_argument('--use-cuda', action='store_true',
                             help='Use CUDA to perform computations')
 
-### Training moode
+### Training mode
 args_train = subargs.add_parser('train', parents=[args_global])
 args_train.add_argument('--config', type=str, required=True,
                             help='Config file to use')
+args_train.add_argument('--name', type=str, default=None,
+                            help='Name to use when saving or loading the model file. If not specified when saving a time and date stamp is used')
+args_train.add_argument('--savedir', type=str, default='./study/',
+                            help='Directory in which the model file is saved. Defaults to ./study/')
 ###
 
-### Training moode
-args_train = subargs.add_parser('cross', parents=[args_global])
-args_train.add_argument('--config', type=str, required=True,
+### Cross validation mode
+args_cross = subargs.add_parser('cross', parents=[args_global])
+args_cross.add_argument('--config', type=str, required=True,
                             help='Config file to use')
-args_train.add_argument('--n_splits', type=int, default=3,
-                            help='Config file to use')
+args_cross.add_argument('--n_splits', type=int, default=3,
+                            help='Number of folds')
 ###
+
+### Summary mode
+args_summary = subargs.add_parser('summary', parents=[args_global])
+args_summary.add_argument('model_file')
 
 ### Inference mode
 args_inference = subargs.add_parser('inference', parents=[args_global])
-args_inference.add_argument('--summary', action='store_true',
-                            help='Show a summary of the model and training results')
 args_inference.add_argument('--fields', action='store_true',
                             help='Plot the integrated field distrubtion')
 args_inference.add_argument('--stft', action='store_true',
@@ -138,9 +140,7 @@ class WaveTorch(object):
         optimizer = torch.optim.Adam(model.parameters(), lr=cfg['training']['lr'])
         criterion = torch.nn.CrossEntropyLoss()
 
-        viz.plot_c(model)
-
-        model.train()
+        # model.train()
         history   = core.train(model, optimizer, criterion, train_dl, test_dl, cfg['training']['N_epochs'], cfg['training']['batch_size'])
         
         ### Print confusion matrix
@@ -238,6 +238,45 @@ class WaveTorch(object):
 
             num += 1
 
+    def summary(self, args):
+        model, history, cfg, cm_train, cm_test = core.load_model(args.model_file)
+
+        print("Configuration for model in %s is:" % args.model_file)
+        print(yaml.dump(cfg, default_flow_style=False))
+
+        sr = cfg['data']['sr']
+        gender = cfg['data']['gender']
+        vowels = cfg['data']['vowels']
+        train_size = cfg['training']['train_size']
+        test_size = cfg['training']['test_size']
+        N_classes = len(vowels)
+
+        fig = plt.figure(constrained_layout=True, figsize=(7, 3.5))
+        gs = mpl.gridspec.GridSpec(2, 3 , figure=fig, width_ratios=[1, 1, 0.5])
+        ax1 = fig.add_subplot(gs[0,0])
+        ax2 = fig.add_subplot(gs[1,0], sharex=ax1)
+        ax3 = fig.add_subplot(gs[:,1])
+        ax4 = fig.add_subplot(gs[0,2])
+        ax5 = fig.add_subplot(gs[1,2])
+
+        epochs = range(0,len(history["acc_test"]))
+        ax1.plot(epochs, history["loss_train"], "-", label="Training dataset")
+        ax1.plot(epochs, history["loss_test"], "-", label="Testing dataset")
+        ax1.set_ylabel("Loss")
+        ax2.plot(epochs, history["acc_train"], "-", label="Training dataset")
+        ax2.plot(epochs, history["acc_test"], "-", label="Testing dataset")
+        ax2.set_xlabel("Number of training epochs")
+        ax2.set_ylabel("Accuracy")
+        ax2.set_ylim(top=1.01)
+        ax1.legend()
+
+        viz.plot_c(model, ax=ax3)
+
+        viz.plot_confusion_matrix(cm_train, title="Training dataset", normalize=False, ax=ax4, labels=vowels)
+        viz.plot_confusion_matrix(cm_test, title="Testing dataset", normalize=False, ax=ax5, labels=vowels)
+
+        plt.show()
+
     def inference(self, args):
         if args.name is None:
             raise ValueError("--name must be specified to load a model")
@@ -253,35 +292,6 @@ class WaveTorch(object):
         train_size = cfg['training']['train_size']
         test_size = cfg['training']['test_size']
         N_classes = len(vowels)
-
-        if args.summary:
-            fig = plt.figure(constrained_layout=True, figsize=(7, 3.5))
-            gs = mpl.gridspec.GridSpec(2, 3 , figure=fig, width_ratios=[1, 1, 0.5])
-            ax1 = fig.add_subplot(gs[0,0])
-            ax2 = fig.add_subplot(gs[1,0],sharex=ax1)
-            ax3 = fig.add_subplot(gs[:,1])
-            ax4 = fig.add_subplot(gs[0,2])
-            ax5 = fig.add_subplot(gs[1,2])
-
-            epochs = range(0,len(history["acc_test"]))
-            ax1.plot(epochs, history["loss_train"], "o-", label="Training dataset")
-            ax1.plot(epochs, history["loss_test"], "o-", label="Testing dataset")
-            ax1.set_ylabel("Loss")
-            ax2.plot(epochs, history["acc_train"], "o-", label="Training dataset")
-            ax2.plot(epochs, history["acc_test"], "o-", label="Testing dataset")
-            ax2.set_xlabel("Number of training epochs")
-            ax2.set_ylabel("Accuracy")
-            ax2.set_ylim(top=1.01)
-            ax1.legend()
-
-            viz.plot_c(model, ax=ax3)
-
-            viz.plot_confusion_matrix(cm_train, title="Training dataset", normalize=False, ax=ax4, labels=vowels)
-            viz.plot_confusion_matrix(cm_test, title="Testing dataset", normalize=False, ax=ax5, labels=vowels)
-            if args.save:
-                fig.savefig(os.path.splitext(args.model)[0] + '_cm.png', dpi=300)
-            else:
-                plt.show(block=True)
 
         if args.fields:
                 x_train, x_test, y_train, y_test = data.load_selected_vowels(

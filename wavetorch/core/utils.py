@@ -15,7 +15,7 @@ def save_model(model, name, savedir='./study/', history=None, args=None, cm_trai
     if not os.path.exists(savedir):
         os.makedirs(savedir)
     str_savepath = savedir + str_filename
-    dsave = {"model": model,
+    dsave = {"model_state": model.state_dict(),
              "history": history,
              "args": args,
              "cm_train": cm_train,
@@ -25,9 +25,19 @@ def save_model(model, name, savedir='./study/', history=None, args=None, cm_trai
 
 
 def load_model(str_filename):
+    from .cell import WaveCell
     print("Loading model from %s" % str_filename)
     dload = torch.load(str_filename)
-    return dload["model"], dload["history"], dload["args"], dload["cm_train"], dload["cm_test"]
+    model = WaveCell(dload['model_state']['dt'].numpy(),
+                     dload['model_state']['Nx'].numpy(), 
+                     dload['model_state']['Ny'].numpy(), 
+                     dload['model_state']['src_x'].numpy(), 
+                     dload['model_state']['src_y'].numpy(), 
+                     dload['model_state']['px'].numpy(), 
+                     dload['model_state']['py'].numpy())
+    model.load_state_dict(dload['model_state'])
+    model.eval()
+    return model, dload["history"], dload["args"], dload["cm_train"], dload["cm_test"]
 
 
 def accuracy(out, yb):
@@ -51,4 +61,3 @@ def calc_cm(model, dataloader, verbose=True):
         y_truth = torch.cat(list_yb, dim=0)
 
     return confusion_matrix(y_truth.argmax(dim=1).numpy(), y_pred.argmax(dim=1).numpy())
-
