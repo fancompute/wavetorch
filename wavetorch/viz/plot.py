@@ -49,7 +49,7 @@ def plot_total_field(model, yb, ylabel, block=False, ax=None, fig_width=4):
             plt.show(block=block)
 
 
-def plot_cm(cm, ax=None, figsize=(4,4), title=None, normalize=False, labels="auto"):
+def plot_confusion_matrix(cm, ax=None, figsize=(4,4), title=None, normalize=False, labels="auto"):
     N_classes = cm.shape[0]
 
     if normalize:
@@ -98,18 +98,35 @@ def plot_cm(cm, ax=None, figsize=(4,4), title=None, normalize=False, labels="aut
         ax.set_title(title)
 
 
-def plot_c(model, fig_width=6, ax=None, cax=None):
+def plot_c(model, ax=None):
+    show = False
     if ax is None:
-        fig, ax = plt.subplots(1,1,figsize=(fig_width*1.25,model.Ny/model.Nx*fig_width), constrained_layout=True)
-    c = model.c().detach()
-    h=ax.imshow(c.numpy().transpose(), origin="bottom", rasterized=True, cmap=plt.cm.viridis_r)
-    plt.colorbar(h, ax=ax, cax=cax, label="wave speed $c{(x,y)}$")
-    ax.contour(model.b.numpy().transpose()>0, levels=[0], colors=("w",), linestyles=("dotted"), alpha=0.75)
-    ax.plot(model.px, model.py, "ro")
-    ax.plot(model.src_x, model.src_y, "ko")
+        show = True
+        fig, ax = plt.subplots(1, 1, constrained_layout=True)
+
+    from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
+    from mpl_toolkits.axes_grid1.colorbar import colorbar
+    rho = model.rho.detach().numpy().transpose()
+    c = model.c0.item() + (model.c1.item()-model.c0.item())*rho
+    b_boundary = model.b_boundary.numpy().transpose()
+
+    limits = np.array([model.c0.item(), model.c1.item()])
+    cmap = plt.cm.Purples if model.c0.item() < model.c1.item() else plt.cm.Purples_r
+    h=ax.imshow(c, origin="bottom", rasterized=True, cmap=cmap, vmin=limits.min(), vmax=limits.max())
+
+    ax_divider = make_axes_locatable(ax)
+    cax = ax_divider.append_axes("top", size="5%", pad="15%")
+    cax.xaxis.set_ticks_position("top")
+
+    plt.colorbar(h, cax=cax, orientation='horizontal')
+    ax.contour(b_boundary>0, levels=[0], colors=("k",), linestyles=("dotted"), alpha=0.75)
+    ax.plot(model.px.numpy(), model.py.numpy(), "ro")
+    ax.plot(model.src_x.numpy(), model.src_y.numpy(), "ko")
     ax.set_xlabel("x")
     ax.set_ylabel("y")
 
+    if show:
+        plt.show()
 
 def animate_fields(model, field_dist, ylabel, block=True, filename=None, interval=1, fps=30, bitrate=768, crop=0.9, fig_width=6):
 

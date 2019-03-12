@@ -1,7 +1,7 @@
 training:
-  prefix: vow3_small
-  N_epochs: 10
-  lr: 0.001
+  prefix: vow3_rand
+  N_epochs: 20
+  lr: 0.0001
   batch_size: 9
   train_size: 90
   test_size: 45
@@ -14,7 +14,7 @@ data:
     - iy
 geom:
   use_design_region: true
-  use_rand_init: false
+  use_rand_init: true
   Nx: 140
   Ny: 100
   dt: 0.707
