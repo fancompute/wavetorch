@@ -1,0 +1,37 @@
+training:
+  prefix: vow3_rand
+  N_epochs: 20
+  lr: 0.0001
+  batch_size: 9
+  train_size: 90
+  test_size: 45
+data:
+  sr: 10000
+  gender: both
+  vowels: 
+    - ae
+    - ei
+    - iy
+geom:
+  use_design_region: true
+  use_rand_init: true
+  Nx: 140
+  Ny: 100
+  dt: 0.707
+  c0: 1.00
+  c1: 0.80
+  px: 
+  py: 
+  pd: 25
+  src_x: 
+  src_y:
+  pml:
+    N: 20
+    p: 4.0
+    max: 3.0
+  nonlinearity:
+    b0: 0.0
+    uth: 1.0
+  binarization:
+    beta: 100
+    eta: 0.5
