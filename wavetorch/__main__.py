@@ -137,6 +137,8 @@ class WaveTorch(object):
         ### Train
         optimizer = torch.optim.Adam(model.parameters(), lr=cfg['training']['lr'])
         criterion = torch.nn.CrossEntropyLoss()
+
+        model.train()
         history   = core.train(model, optimizer, criterion, train_dl, test_dl, cfg['training']['N_epochs'], cfg['training']['batch_size'])
         
         ### Print confusion matrix
@@ -270,26 +272,10 @@ class WaveTorch(object):
             ax2.set_ylim(top=1.01)
             ax1.legend()
 
-            from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
-            from mpl_toolkits.axes_grid1.colorbar import colorbar
-            rho = model.rho.detach().numpy().transpose()
-            c = model.c0 + (model.c1-model.c0)*rho
-            b_boundary = model.b_boundary.numpy().transpose()
-            h=ax3.imshow(c, origin="bottom", rasterized=True, cmap=plt.cm.viridis_r)
+            viz.plot_c(model, ax=ax3)
 
-            ax3_divider = make_axes_locatable(ax3)
-            cax3 = ax3_divider.append_axes("top", size="5%", pad="15%")
-            cax3.xaxis.set_ticks_position("top")
-
-            plt.colorbar(h, cax=cax3, orientation='horizontal')
-            ax3.contour(b_boundary>0, levels=[0], colors=("w",), linestyles=("dotted"), alpha=0.75)
-            ax3.plot(model.px, model.py, "ro")
-            ax3.plot(model.src_x, model.src_y, "ko")
-            ax3.set_xlabel("x")
-            ax3.set_ylabel("y")
-
-            viz.plot_cm(cm_train, title="Training dataset", normalize=False, ax=ax4, labels=vowels)
-            viz.plot_cm(cm_test, title="Testing dataset", normalize=False, ax=ax5, labels=vowels)
+            viz.plot_confusion_matrix(cm_train, title="Training dataset", normalize=False, ax=ax4, labels=vowels)
+            viz.plot_confusion_matrix(cm_test, title="Testing dataset", normalize=False, ax=ax5, labels=vowels)
             if args.save:
                 fig.savefig(os.path.splitext(args.model)[0] + '_cm.png', dpi=300)
             else:
