@@ -107,18 +107,21 @@ def plot_c(model, ax=None):
     from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
     from mpl_toolkits.axes_grid1.colorbar import colorbar
     rho = model.rho.detach().numpy().transpose()
-    c = model.c0 + (model.c1-model.c0)*rho
+    c = model.c0.item() + (model.c1.item()-model.c0.item())*rho
     b_boundary = model.b_boundary.numpy().transpose()
-    h=ax.imshow(c, origin="bottom", rasterized=True, cmap=plt.cm.viridis_r)
+
+    limits = np.array([model.c0.item(), model.c1.item()])
+    cmap = plt.cm.Purples if model.c0.item() < model.c1.item() else plt.cm.Purples_r
+    h=ax.imshow(c, origin="bottom", rasterized=True, cmap=cmap, vmin=limits.min(), vmax=limits.max())
 
     ax_divider = make_axes_locatable(ax)
     cax = ax_divider.append_axes("top", size="5%", pad="15%")
     cax.xaxis.set_ticks_position("top")
 
     plt.colorbar(h, cax=cax, orientation='horizontal')
-    ax.contour(b_boundary>0, levels=[0], colors=("w",), linestyles=("dotted"), alpha=0.75)
-    ax.plot(model.px, model.py, "ro")
-    ax.plot(model.src_x, model.src_y, "ko")
+    ax.contour(b_boundary>0, levels=[0], colors=("k",), linestyles=("dotted"), alpha=0.75)
+    ax.plot(model.px.numpy(), model.py.numpy(), "ro")
+    ax.plot(model.src_x.numpy(), model.src_y.numpy(), "ko")
     ax.set_xlabel("x")
     ax.set_ylabel("y")
 

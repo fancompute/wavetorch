@@ -17,38 +17,32 @@ class WaveCell(torch.nn.Module):
         assert len(px)==len(py), "Length of probe x and y coordinate vectors must be the same"
 
         # Time step
-        self.dt = dt
+        self.register_buffer("dt", torch.tensor(dt))
 
         # Nonlinearity parameters
-        self.nl_uth = nl_uth
-        self.nl_b0 = nl_b0
-        self.use_nonlinearity = False if nl_b0 == 0 else True
+        self.register_buffer("nl_uth", torch.tensor(nl_uth))
+        self.register_buffer("nl_b0", torch.tensor(nl_b0))
+        self.register_buffer("use_nonlinearity", torch.tensor(False if nl_b0 == 0 else True))
 
         # Spatial domain dims
-        self.Nx = Nx
-        self.Ny = Ny
-
-        # Spatial step size (satisfying Courant stability)
-        self.h  = dt * 2.01 / 1.0
+        self.register_buffer("Nx", torch.tensor(Nx))
+        self.register_buffer("Ny", torch.tensor(Ny))
 
         # Source coordinates
-        self.src_x = src_x
-        self.src_y = src_y
+        self.register_buffer("src_x", torch.tensor(src_x))
+        self.register_buffer("src_y", torch.tensor(src_y))
 
         # Probe coordinates (list)
-        self.px = px
-        self.py = py
-
-        # Use random init of density weights
-        self.init_rand = init_rand
+        self.register_buffer("px", torch.tensor(px))
+        self.register_buffer("py", torch.tensor(py))
 
         # Bounds on wave speed
-        self.c0 = c0
-        self.c1 = c1
+        self.register_buffer("c0", torch.tensor(c0))
+        self.register_buffer("c1", torch.tensor(c1))
 
         # Binarization parameters
-        self.beta = beta
-        self.eta = eta
+        self.register_buffer("beta", torch.tensor(beta))
+        self.register_buffer("eta", torch.tensor(eta))
 
         # Setup the PML/adiabatic absorber
         self.register_buffer("b_boundary", self.init_b(Nx, Ny, pml_N, pml_p, pml_max))
@@ -56,10 +50,10 @@ class WaveCell(torch.nn.Module):
         if design_region is not None:
             # Use specified design region
             assert design_region.shape == (Nx, Ny), "Design region mask dims must match spatial dims"
-            self.design_region = design_region * (self.b_boundary == 0)
+            self.register_buffer("design_region", design_region * (self.b_boundary == 0))
         else:
             # Use all non-PML area as the design region
-            self.design_region = (self.b_boundary == 0)
+            self.register_buffer("design_region", self.b_boundary == 0)
 
         if init_rand:
             rho = self.init_rho_rand(Nx, Ny)
@@ -69,16 +63,18 @@ class WaveCell(torch.nn.Module):
         self.rho = torch.nn.Parameter(rho)
         self.clip_to_design_region()
 
+        # Spatial step size (satisfying Courant stability)
+        h  = dt * 2.01 / 1.0
         # Define the laplacian conv kernel
-        self.register_buffer("laplacian", self.h**(-2) * torch.tensor([[[[0.0,  1.0, 0.0], [1.0, -4.0, 1.0], [0.0,  1.0, 0.0]]]]))
+        self.register_buffer("laplacian", h**(-2) * torch.tensor([[[[0.0,  1.0, 0.0], [1.0, -4.0, 1.0], [0.0,  1.0, 0.0]]]]))
 
     def clip_to_design_region(self):
         with torch.no_grad():
             self.rho[self.design_region==0] = 0.0
 
     def proj_rho(self):
-        eta = torch.tensor(self.eta)
-        beta = torch.tensor(self.beta)
+        eta = self.eta
+        beta = self.beta
         LPF_rho = conv2d(self.rho.unsqueeze(0).unsqueeze(0), torch.tensor([[[[0, 1/8, 0], [1/8, 1/2, 1/8], [0, 1/8, 0]]]]), padding=1).squeeze()
         return (tanh(beta*eta) + tanh(beta*(LPF_rho-eta))) / (tanh(beta*eta) + tanh(beta*(1-eta)))
 
@@ -97,7 +93,7 @@ class WaveCell(torch.nn.Module):
         return torch.sqrt( b_x**2 + b_y**2 )
 
     @staticmethod
-    def init_rho_rand(Nx, Ny, Nconv=10):
+    def init_rho_rand(Nx, Ny, Nconv=2):
         rho = torch.rand(Nx, Ny)
         for i in range(Nconv):
             rho = conv2d(rho.unsqueeze(0).unsqueeze(0), torch.tensor([[[[0, 1/8, 0], [1/8, 1/2, 1/8], [0, 1/8, 0]]]]), padding=1).squeeze()

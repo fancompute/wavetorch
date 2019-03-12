@@ -138,6 +138,8 @@ class WaveTorch(object):
         optimizer = torch.optim.Adam(model.parameters(), lr=cfg['training']['lr'])
         criterion = torch.nn.CrossEntropyLoss()
 
+        viz.plot_c(model)
+
         model.train()
         history   = core.train(model, optimizer, criterion, train_dl, test_dl, cfg['training']['N_epochs'], cfg['training']['batch_size'])
         
