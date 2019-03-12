@@ -111,8 +111,8 @@ def plot_c(model, ax=None):
     b_boundary = model.b_boundary.numpy().transpose()
 
     limits = np.array([model.c0.item(), model.c1.item()])
-    cmap = plt.cm.Purples if model.c0.item() < model.c1.item() else plt.cm.Purples_r
-    h=ax.imshow(c, origin="bottom", rasterized=True, cmap=cmap, vmin=limits.min(), vmax=limits.max())
+    cmap = plt.cm.viridis if model.c0.item() < model.c1.item() else plt.cm.viridis_r
+    h=ax.imshow(c, origin="bottom", rasterized=True, cmap=cmap)#, vmin=limits.min(), vmax=limits.max())
 
     ax_divider = make_axes_locatable(ax)
     cax = ax_divider.append_axes("top", size="5%", pad="15%")
