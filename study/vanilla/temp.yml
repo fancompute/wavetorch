@@ -30,7 +30,7 @@ rnn:
   N_hidden: 50
   # Hidden-to-hidden activation function, can be anything from torch.nn.functional, 
   # e.g. relu, leaky_relu or logsigmoid, or None for linear
-  f_hidden: leaky_relu
+  f_hidden: tanh
   # Scale for initializing the W-matrices
   W_scale: 0.2
   # L2 regularization 

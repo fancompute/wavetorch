@@ -1,6 +1,7 @@
 import argparse
 import yaml
 import time
+import sys
 
 import torch
 import torch.nn as nn
@@ -59,13 +60,13 @@ def norm_int_y(y, scale=50):
     y_int = torch.sum(torch.pow(torch.abs(y), 2), dim=1)
     return y_int / torch.sum(y_int, dim=1, keepdim=True)    
 
-if __name__ == '__main__':
+def main(args):
     # Parse command line arguments
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--use-cuda', action='store_true')
     argparser.add_argument('--config', type=str, required=True,
                             help='Config file to use')
-    args = argparser.parse_args()
+    args = argparser.parse_args(args)
 
     if args.use_cuda and torch.cuda.is_available():
         print("Using GPU...")
@@ -156,8 +157,9 @@ if __name__ == '__main__':
     print('Total time: %.1f min' % ((time.time()-t_start)/60))
 
     # Print the final training set accuracy
+    (acc_final_train, acc_final_test) = (model.compute_acc(x_train, y_train), model.compute_acc(x_test, y_test))
     print("Final accuracy - train: {:.2f} %, test: {:.2f} %".format(
-        model.compute_acc(x_train, y_train), model.compute_acc(x_test, y_test)))
+        acc_final_train, acc_final_test))
 
     # y_pred = model(x_train)
     # # Plot the N_classes intensities recorded for the first training element at the three outputs for the optimized model
@@ -166,3 +168,9 @@ if __name__ == '__main__':
     # plt.plot(t, np.square(np.abs(y_pred[1, :, :].detach().numpy())))
     # plt.title("After training")
     # plt.show(block=False)
+    return (acc_final_train, acc_final_test)
+
+if __name__ == '__main__':
+    (acc_final_train, acc_final_test) = main(sys.argv[1:])
+
+
