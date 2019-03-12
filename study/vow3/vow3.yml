@@ -1,6 +1,6 @@
 training:
   prefix: vow3
-  N_epochs: 20
+  N_epochs: 10
   lr: 0.001
   batch_size: 9
   train_size: 90
