@@ -2,20 +2,20 @@ training:
   # This prefix is applied to the filename when saving the model; if not specified a date/time is used
   prefix: laptop_rnn
   # Number of training epochs
-  N_epochs: 10
+  N_epochs: 100
   # Optimizer learning rate
   lr: 0.0001    
   # Batch size     
-  batch_size: 30
+  batch_size: 9
   # Size of randomly selected training set. Ideally, this should be a multiple of the number of vowel casses
-  train_size: 30
+  train_size: 90
   # Size of randomly selected testing set. Ideally, this should be a multiple of the number of vowel casses
-  test_size: 15
+  test_size: 30
   # Display the test/train accuracy every display_step epochs
   display_step: 10
 data:
   # Sampling rate to use for vowel data
-  sr: 1000
+  sr: 1000       
   # Which gender to pull vowel data from. Can be one of women, men, or both. 
   # If both, training and testing datasets distributed equally over the genders
   gender: both
@@ -30,7 +30,7 @@ rnn:
   N_hidden: 50
   # Hidden-to-hidden activation function, can be anything from torch.nn.functional, 
   # e.g. relu, leaky_relu or logsigmoid, or None for linear
-  f_hidden: leaky_relu
+  f_hidden: tanh
   # Scale for initializing the W-matrices
   W_scale: 0.2
   # L2 regularization 

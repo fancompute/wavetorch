@@ -22,3 +22,33 @@ training:
   test_size: 30
   train_size: 90
 
+Starting conf. train accuracy: 0.78; test accuracy: 0.77. 
+
+For parameter N_hidden with values [10, 100] accuracies are, respectively:
+Training: [0.778 0.533]
+Testing: [0.7666 0.5   ]
+
+For parameter sr with values [100, 10000] accuracies are, respectively:
+Training: [0.3445 0.4333]
+Testing: [0.3667 0.4333]
+
+For parameter batch_size with values [3, 90] accuracies are, respectively:
+Training: [0.6113 0.7554]
+Testing: [0.6665 0.7666]
+
+For parameter W_scale with values [0.1, 0.5] accuracies are, respectively:
+Training: [0.6333 0.911 ]
+Testing: [0.6665 0.8   ]
+
+For parameter L2_reg with values [0, 0.1] accuracies are, respectively:
+Training: [0.933  0.4888]
+Testing: [0.9 0.5]
+
+For parameter grad_clip with values [0.1, 10] accuracies are, respectively:
+Training: [0.4888 0.9   ]
+Testing: [0.5    0.8667]
+
+For parameter f_hidden with values ['relu', 'tanh'] accuracies are, respectively:
+Training: [0.711 0.567]
+Testing: [0.7 0.6]
+
