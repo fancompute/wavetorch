@@ -13,7 +13,7 @@ start_file = './study/vanilla/laptop_rnn.yml'
 params = {'N_hidden': [10, 100],
 			'sr': [100, 10000],
 			'batch_size': [3, 90],
-			'W_scale': [0.1, 0.5]
+			'W_scale': [0.1, 0.5],
 			'L2_reg': [0, 0.1],
 			'grad_clip': [0.1, 10],
 			'f_hidden': ['relu', 'tanh']

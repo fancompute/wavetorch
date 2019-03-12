@@ -14,21 +14,11 @@ rnn:
   f_hidden: leaky_relu
   grad_clip: 1
 training:
-  N_epochs: 10
-  batch_size: 30
+  N_epochs: 100
+  batch_size: 9
   display_step: 10
   lr: 0.0001
   prefix: laptop_rnn
-  test_size: 15
-  train_size: 30
-
-Starting conf. train accuracy: 0.60; test accuracy: 0.53. 
-
-For parameter N_hidden with values [10, 100] accuracies are, respectively:
-Training: [0.3333 0.3333]
-Testing: [0.3333 0.3333]
-
-For parameter sr with values [100, 1000] accuracies are, respectively:
-Training: [0.3667 0.6   ]
-Testing: [0.4   0.533]
+  test_size: 30
+  train_size: 90
 
