@@ -80,6 +80,10 @@ def main(args):
         cfg = yaml.load(ymlfile)
         print(yaml.dump(cfg, default_flow_style=False))
 
+    if cfg['general']['rand_seed'] is not None:
+        torch.manual_seed(cfg['general']['rand_seed'])
+        np.random.seed(cfg['general']['rand_seed'])
+
     N_classes = len(cfg['data']['vowels'])
     N_epochs = cfg['training']['N_epochs']
     N_batch = cfg['training']['batch_size']
