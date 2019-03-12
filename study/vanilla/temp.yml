@@ -2,20 +2,20 @@ training:
   # This prefix is applied to the filename when saving the model; if not specified a date/time is used
   prefix: laptop_rnn
   # Number of training epochs
-  N_epochs: 100
+  N_epochs: 10
   # Optimizer learning rate
   lr: 0.0001    
   # Batch size     
-  batch_size: 9
+  batch_size: 30
   # Size of randomly selected training set. Ideally, this should be a multiple of the number of vowel casses
-  train_size: 90
+  train_size: 30
   # Size of randomly selected testing set. Ideally, this should be a multiple of the number of vowel casses
-  test_size: 30
+  test_size: 15
   # Display the test/train accuracy every display_step epochs
   display_step: 10
 data:
   # Sampling rate to use for vowel data
-  sr: 1000       
+  sr: 1000
   # Which gender to pull vowel data from. Can be one of women, men, or both. 
   # If both, training and testing datasets distributed equally over the genders
   gender: both
