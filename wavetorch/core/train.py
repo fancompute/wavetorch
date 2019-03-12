@@ -5,6 +5,8 @@ import time
 import numpy as np
 from .utils import accuracy
 
+import copy
+
 def train(model, optimizer, criterion, train_dl, test_dl, N_epochs, batch_size):
     
     history = {"loss_iter": [],
@@ -67,7 +69,7 @@ def train(model, optimizer, criterion, train_dl, test_dl, N_epochs, batch_size):
 
         history["loss_test"].append( np.mean(loss_tmp) )
         history["acc_test"].append( np.mean(acc_tmp) )
-        history["model_dict"].append( model.state_dict() )
+        history["model_state"].append( copy.deepcopy(model.state_dict()) )
 
         print(" ... ")
         print(' ... elapsed time: %4.1f sec   |   loss = %.4e (train) / %.4e (test)   accuracy = %.4f (train) / %.4f (test) \n' % 
