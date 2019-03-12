@@ -106,7 +106,7 @@ def plot_c(model, ax=None):
 
     from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
     from mpl_toolkits.axes_grid1.colorbar import colorbar
-    rho = model.rho.detach().numpy().transpose()
+    rho = model.proj_rho().detach().numpy().transpose()
     c = model.c0.item() + (model.c1.item()-model.c0.item())*rho
     b_boundary = model.b_boundary.numpy().transpose()
 
