@@ -32,30 +32,25 @@ args_global.add_argument('--use-cuda', action='store_true',
 
 ### Training mode
 args_train = subargs.add_parser('train', parents=[args_global])
-args_train.add_argument('config', type=str, help='Configuration file for geometry, training, and data preparation')
-args_train.add_argument('--name', type=str, default=None,
+args_train.add_argument('config', type=str, 
+                            help='Configuration file for geometry, training, and data preparation')
+args_train.add_argument('name', type=str, default=None,
                             help='Name to use when saving or loading the model file. If not specified when saving a time and date stamp is used')
 args_train.add_argument('--savedir', type=str, default='./study/',
                             help='Directory in which the model file is saved. Defaults to ./study/')
-###
 
-### Cross validation mode
-args_cross = subargs.add_parser('cross', parents=[args_global])
-args_cross.add_argument('config', type=str, help='Configuration file for geometry, training, and data preparation')
-args_cross.add_argument('--n_splits', type=int, default=3,
-                            help='Number of folds')
-
+### Analysis modes
 args_summary = subargs.add_parser('summary', parents=[args_global])
-args_summary.add_argument('model_file', type=str)
+args_summary.add_argument('filename', type=str)
 
 args_fields = subargs.add_parser('fields', parents=[args_global])
-args_fields.add_argument('model_file', type=str)
+args_fields.add_argument('filename', type=str)
 
 args_stft = subargs.add_parser('stft', parents=[args_global])
-args_stft.add_argument('model_file', type=str)
+args_stft.add_argument('filename', type=str)
 
 args_animate = subargs.add_parser('animate', parents=[args_global])
-args_animate.add_argument('model_file', type=str)
+args_animate.add_argument('filename', type=str)
 
 class WaveTorch(object):
 
@@ -165,16 +160,14 @@ class WaveTorch(object):
                 break
 
     def summary(self, args):
-        model, history, cfg, cm_train, cm_test = core.load_model(args.model_file)
+        model, history, cfg, cm_train, cm_test = core.load_model(args.filename)
 
-        print("Configuration for model in %s is:" % args.model_file)
+        print("Configuration for model in %s is:" % args.filename)
         print(yaml.dump(cfg, default_flow_style=False))
 
         sr = cfg['data']['sr']
         gender = cfg['data']['gender']
         vowels = cfg['data']['vowels']
-        train_size = cfg['training']['train_size']
-        test_size = cfg['training']['test_size']
         N_classes = len(vowels)
 
         fig = plt.figure(constrained_layout=True, figsize=(7, 3.5))
@@ -204,16 +197,14 @@ class WaveTorch(object):
         plt.show()
 
     def fields(self, args):
-        model, history, cfg, cm_train, cm_test = core.load_model(args.model_file)
+        model, history, cfg, cm_train, cm_test = core.load_model(args.filename)
 
-        print("Configuration for model in %s is:" % args.model_file)
+        print("Configuration for model in %s is:" % args.filename)
         print(yaml.dump(cfg, default_flow_style=False))
 
         sr = cfg['data']['sr']
         gender = cfg['data']['gender']
         vowels = cfg['data']['vowels']
-        train_size = cfg['training']['train_size']
-        test_size = cfg['training']['test_size']
         N_classes = len(vowels)
 
         x_train, x_test, y_train, y_test = data.load_selected_vowels(
@@ -235,16 +226,14 @@ class WaveTorch(object):
         plt.show()
 
     def stft(self, args):
-        model, history, cfg, cm_train, cm_test = core.load_model(args.model_file)
+        model, history, cfg, cm_train, cm_test = core.load_model(args.filename)
 
-        print("Configuration for model in %s is:" % args.model_file)
+        print("Configuration for model in %s is:" % args.filename)
         print(yaml.dump(cfg, default_flow_style=False))
 
         sr = cfg['data']['sr']
         gender = cfg['data']['gender']
         vowels = cfg['data']['vowels']
-        train_size = cfg['training']['train_size']
-        test_size = cfg['training']['test_size']
         N_classes = len(vowels)
 
         x_train, x_test, y_train, y_test = data.load_selected_vowels(
@@ -287,16 +276,14 @@ class WaveTorch(object):
         plt.show()
 
     def animate(self, args):
-        model, history, cfg, cm_train, cm_test = core.load_model(args.model_file)
+        model, history, cfg, cm_train, cm_test = core.load_model(args.filename)
 
-        print("Configuration for model in %s is:" % args.model_file)
+        print("Configuration for model in %s is:" % args.filename)
         print(yaml.dump(cfg, default_flow_style=False))
 
         sr = cfg['data']['sr']
         gender = cfg['data']['gender']
         vowels = cfg['data']['vowels']
-        train_size = cfg['training']['train_size']
-        test_size = cfg['training']['test_size']
         N_classes = len(vowels)
 
         x_train, x_test, y_train, y_test = data.load_selected_vowels(
