@@ -53,7 +53,7 @@ def load_all_vowels(str_classes, gender='both', sr=None, normalize=True, dir='da
 
     if max_samples is not None:
         # Limit the number of returned samples select
-        if gender is 'both':
+        if gender == 'both':
             num_samples = int(max_samples/2)
         else:
             num_samples = max_samples
@@ -62,10 +62,10 @@ def load_all_vowels(str_classes, gender='both', sr=None, normalize=True, dir='da
         x_m, _, y_m, _ = train_test_split(x_m, y_m, train_size=num_samples, test_size=len(str_classes), stratify=y_m, shuffle=True)
         x_w, _, y_w, _ = train_test_split(x_w, y_w, train_size=num_samples, test_size=len(str_classes), stratify=y_w, shuffle=True)
 
-    if gender is 'both':
+    if gender == 'both':
         X = [torch.tensor(x) for x in x_m + x_w]
         Y = [torch.tensor(y) for y in y_m + y_w]
-    elif gender is 'women':
+    elif gender == 'women':
         X = [torch.tensor(x) for x in x_w]
         Y = [torch.tensor(y) for y in y_w]
     else:
