@@ -95,7 +95,7 @@ class WaveCell(torch.nn.Module):
         dt = self.dt
 
         if self.use_nonlinearity: # This should save us on unecessary backprop ops
-            b = self.b_boundary + rho*sat_damp(y1, uth=self.nl_uth, b0=self.nl_b0)
+            b = self.b_boundary + proj_rho*sat_damp(y1, uth=self.nl_uth, b0=self.nl_b0)
         else:
             b = self.b_boundary
 
