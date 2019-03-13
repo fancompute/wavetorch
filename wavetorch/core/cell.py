@@ -91,13 +91,13 @@ class WaveCell(torch.nn.Module):
 
         return torch.sqrt( b_x**2 + b_y**2 )
 
-    def step(self, x, y1, y2, c):
+    def step(self, x, y1, y2, c, proj_rho):
         dt = self.dt
 
-        # if self.use_nonlinearity: # This should save us on unecessary backprop ops
-        #     b = self.b_boundary + rho*sat_damp(y1, uth=self.nl_uth, b0=self.nl_b0)
-        # else:
-        b = self.b_boundary
+        if self.use_nonlinearity: # This should save us on unecessary backprop ops
+            b = self.b_boundary + rho*sat_damp(y1, uth=self.nl_uth, b0=self.nl_b0)
+        else:
+            b = self.b_boundary
 
         y = torch.mul((dt**(-2) + b * 0.5 * dt**(-1)).pow(-1),
                       (2/dt**2*y1 - torch.mul( (dt**(-2) - b * 0.5 * dt**(-1)), y2)
@@ -122,10 +122,10 @@ class WaveCell(torch.nn.Module):
         y_all = []
 
         # loop through time
-        rho = self.proj_rho()
+        proj_rho = self.proj_rho()
         c = self.c0 + (self.c1-self.c0)*rho
         for i, xi in enumerate(x.chunk(x.size(1), dim=1)):
-            y, y1, y2 = self.step(xi, y1, y2, c)
+            y, y1, y2 = self.step(xi, y1, y2, c, proj_rho)
             y_all.append(y)
 
         # combine into output field dist 

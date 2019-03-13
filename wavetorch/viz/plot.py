@@ -108,7 +108,7 @@ def plot_structure_evolution(model, model_states, epochs=[0, 1], quantity='c'):
         plot_structure(model, ax=axs[i], quantity='c')
 
 
-def plot_structure(model, ax=None, quantity='c'):
+def plot_structure(model, ax=None, quantity='c', vowels=None, cbar=False):
     assert quantity in ['c', 'rho'], "Quantity must be one of `c` or `rho`"
 
     show = False
@@ -129,16 +129,29 @@ def plot_structure(model, ax=None, quantity='c'):
     cmap = plt.cm.Purples_r
     h=ax.imshow(Z, origin="bottom", rasterized=True, cmap=cmap, vmin=limits.min(), vmax=limits.max())
 
-    ax_divider = make_axes_locatable(ax)
-    cax = ax_divider.append_axes("right", size="5%", pad="15%")
-    cax.yaxis.set_ticks_position("left")
-
-    plt.colorbar(h, cax=cax, orientation='vertical')
+    if cbar:
+        ax_divider = make_axes_locatable(ax)
+        cax = ax_divider.append_axes("right", size="5%", pad="1%")
+        # cax.yaxis.set_ticks_position("left")
+        plt.colorbar(h, cax=cax, orientation='vertical')
+    
     ax.contour(b_boundary>0, levels=[0], colors=("k",), linestyles=("dotted"), alpha=0.75)
-    ax.plot(model.px.numpy(), model.py.numpy(), "ro")
+
+    px = model.px.numpy()
+    py = model.py.numpy()
+    for i in range(0, len(px)):
+        ax.plot(px[i], py[i], "ro")
+        if vowels is not None:
+            if i == 0:
+                ax.annotate("source", rotation=90, xy=(model.src_x.numpy(), model.src_y.numpy()), xytext=(-5,0), textcoords="offset points", ha="right", va="center", fontsize="small")
+            ax.annotate(vowels[i], xy=(px[i], py[i]), xytext=(5,0), textcoords="offset points", ha="left", va="center", fontsize="small")
+
     ax.plot(model.src_x.numpy(), model.src_y.numpy(), "ko")
-    ax.set_xlabel("x")
-    ax.set_ylabel("y")
+    # ax.set_xlabel("x")
+    # ax.set_ylabel("y")
+    ax.set_xticks([])
+    ax.set_yticks([])
+
 
     if show:
         plt.show()

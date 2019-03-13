@@ -5,6 +5,8 @@ import os
 import sklearn
 import glob
 
+from sklearn.model_selection import train_test_split
+
 def normalize_vowel(wav_data):
     total_power = np.square(wav_data).sum()
 
@@ -24,7 +26,7 @@ def load_vowel(file, sr=None, normalize=True):
     return data
 
 def load_selected_vowels(str_classes, gender='both', sr=None, normalize=True, train_size=3, test_size=3, dir='data/vowels/', ext='.wav'):
-   
+
     assert gender in ['women', 'men', 'both'], "gender must be either 'women', 'men', or 'both'"
 
     if gender is 'both':
@@ -60,14 +62,14 @@ def load_selected_vowels(str_classes, gender='both', sr=None, normalize=True, tr
 
     x_men_train, x_men_test, y_men_train, y_men_test = sklearn.model_selection.train_test_split(inputs_m, labels_m, train_size=train_size_m, test_size=test_size_m, stratify=labels_m)
     x_women_train, x_women_test, y_women_train, y_women_test = sklearn.model_selection.train_test_split(inputs_w, labels_w, train_size=train_size_w, test_size=test_size_w, stratify=labels_w)
-    
 
-    if gender is 'both':
+
+    if gender == 'both':
         x_train = [torch.tensor(x) for x in x_women_train + x_men_train]
         x_test  = [torch.tensor(x) for x in x_women_test + x_men_test]
         y_train = [torch.tensor(y) for y in y_women_train + y_men_train]
         y_test  = [torch.tensor(y) for y in y_women_test + y_men_test]
-    elif gender is 'women':
+    elif gender == 'women':
         x_train = [torch.tensor(x) for x in x_women_train]
         x_test  = [torch.tensor(x) for x in x_women_test]
         y_train = [torch.tensor(y) for y in y_women_train]
@@ -86,7 +88,7 @@ def load_selected_vowels(str_classes, gender='both', sr=None, normalize=True, tr
     return x_train, x_test, y_train, y_test
 
 
-def load_all_vowels(str_classes, gender='both', sr=None, normalize=True, dir='data/vowels/', ext='.wav'):
+def load_all_vowels(str_classes, gender='both', sr=None, normalize=True, dir='data/vowels/', ext='.wav', max_samples=None):
    
     assert gender in ['women', 'men', 'both'], "gender must be either 'women', 'men', or 'both'"
 
@@ -111,14 +113,27 @@ def load_all_vowels(str_classes, gender='both', sr=None, normalize=True, dir='da
             x_m.append(x)
             y_m.append(y)
 
-    if gender is 'both':
+    if max_samples is not None:
+        # Limit the number of returned samples select
+        if gender == 'both':
+            num_samples = int(max_samples/2)
+        else:
+            num_samples = max_samples
+
+        # Abuse train_test_split() to get an evenly distributed subset
+        x_m, _, y_m, _ = train_test_split(x_m, y_m, train_size=num_samples, test_size=len(str_classes), stratify=y_m, shuffle=True)
+        x_w, _, y_w, _ = train_test_split(x_w, y_w, train_size=num_samples, test_size=len(str_classes), stratify=y_w, shuffle=True)
+
+    if gender == 'both':
         X = [torch.tensor(x) for x in x_m + x_w]
         Y = [torch.tensor(y) for y in y_m + y_w]
-    elif gender is 'women':
+    elif gender == 'women':
         X = [torch.tensor(x) for x in x_w]
         Y = [torch.tensor(y) for y in y_w]
     else:
         X = [torch.tensor(x) for x in x_m]
         Y = [torch.tensor(y) for y in y_m]
+
+    print("dataset: selected %d vowel samples" % len(X))
 
     return X, Y
