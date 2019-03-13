@@ -14,7 +14,7 @@ def train(model, optimizer, criterion, train_dl, test_dl, N_epochs, batch_size):
                "loss_test": [],
                "acc_train": [],
                "acc_test": [],
-               "model_dict": []}
+               "model_state": []}
 
     t_start = time.time()
     for epoch in range(0, N_epochs + 1):

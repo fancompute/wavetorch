@@ -32,8 +32,7 @@ args_global.add_argument('--use-cuda', action='store_true',
 
 ### Training mode
 args_train = subargs.add_parser('train', parents=[args_global])
-args_train.add_argument('--config', type=str, required=True,
-                            help='Config file to use')
+args_train.add_argument('config', type=str, help='Configuration file for geometry, training, and data preparation')
 args_train.add_argument('--name', type=str, default=None,
                             help='Name to use when saving or loading the model file. If not specified when saving a time and date stamp is used')
 args_train.add_argument('--savedir', type=str, default='./study/',
@@ -42,27 +41,21 @@ args_train.add_argument('--savedir', type=str, default='./study/',
 
 ### Cross validation mode
 args_cross = subargs.add_parser('cross', parents=[args_global])
-args_cross.add_argument('--config', type=str, required=True,
-                            help='Config file to use')
+args_cross.add_argument('config', type=str, help='Configuration file for geometry, training, and data preparation')
 args_cross.add_argument('--n_splits', type=int, default=3,
                             help='Number of folds')
-###
 
-### Summary mode
 args_summary = subargs.add_parser('summary', parents=[args_global])
-args_summary.add_argument('model_file')
+args_summary.add_argument('model_file', type=str)
 
-### Inference mode
-args_inference = subargs.add_parser('inference', parents=[args_global])
-args_inference.add_argument('--fields', action='store_true',
-                            help='Plot the integrated field distrubtion')
-args_inference.add_argument('--stft', action='store_true',
-                            help='Plot the STFTs')
-args_inference.add_argument('--animate', action='store_true',
-                            help='Animate the field for the vowel classes')
-args_inference.add_argument('--save', action='store_true',
-                            help='Save figures')
-###
+args_fields = subargs.add_parser('fields', parents=[args_global])
+args_fields.add_argument('model_file', type=str)
+
+args_stft = subargs.add_parser('stft', parents=[args_global])
+args_stft.add_argument('model_file', type=str)
+
+args_animate = subargs.add_parser('animate', parents=[args_global])
+args_animate.add_argument('model_file', type=str)
 
 class WaveTorch(object):
 
@@ -270,20 +263,17 @@ class WaveTorch(object):
         ax2.set_ylim(top=1.01)
         ax1.legend()
 
-        viz.plot_c(model, ax=ax3)
+        viz.plot_structure(model, ax=ax3, quantity='c')
 
         viz.plot_confusion_matrix(cm_train, title="Training dataset", normalize=False, ax=ax4, labels=vowels)
         viz.plot_confusion_matrix(cm_test, title="Testing dataset", normalize=False, ax=ax5, labels=vowels)
 
         plt.show()
 
-    def inference(self, args):
-        if args.name is None:
-            raise ValueError("--name must be specified to load a model")
+    def fields(self, args):
+        model, history, cfg, cm_train, cm_test = core.load_model(args.model_file)
 
-        model, history, cfg, cm_train, cm_test = core.load_model(args.name)
-
-        print("Configuration for model in %s is:" % args.name)
+        print("Configuration for model in %s is:" % args.model_file)
         print(yaml.dump(cfg, default_flow_style=False))
 
         sr = cfg['data']['sr']
@@ -293,67 +283,7 @@ class WaveTorch(object):
         test_size = cfg['training']['test_size']
         N_classes = len(vowels)
 
-        if args.fields:
-                x_train, x_test, y_train, y_test = data.load_selected_vowels(
-                                                vowels,
-                                                gender=gender, 
-                                                sr=sr, 
-                                                normalize=True, 
-                                                train_size=N_classes, 
-                                                test_size=N_classes
-                                            )
-                test_ds = TensorDataset(x_test, y_test)  
-                fig, axs = plt.subplots(N_classes, 1, constrained_layout=True, figsize=(3.5,6))
-
-                for xb, yb in DataLoader(test_ds, batch_size=1):
-                    with torch.no_grad():
-                        field_dist = model(xb, probe_output=False)
-                        probe_series = field_dist[0, :, model.px, model.py]
-                        viz.plot_total_field(model, field_dist, yb, ax=axs[yb.argmax().item()])
-                plt.show()
-
-        if args.stft:
-                x_train, x_test, y_train, y_test = data.load_selected_vowels(
-                                                        vowels,
-                                                        gender=gender, 
-                                                        sr=sr, 
-                                                        normalize=True, 
-                                                        train_size=N_classes, 
-                                                        test_size=N_classes
-                                                    )
-                test_ds = TensorDataset(x_test, y_test)  
-                fig, axs = plt.subplots(N_classes, N_classes, constrained_layout=True, figsize=(5.5,5.5), sharex=True, sharey=True)
-
-                for xb, yb in DataLoader(test_ds, batch_size=1):
-                    with torch.no_grad():
-                        field_dist = model(xb, probe_output=False)
-                        probe_series = field_dist[0, :, model.px, model.py]
-                        for j in range(0, probe_series.shape[1]):
-                            i = yb.argmax().item()
-                            ax = axs[i, j]
-                            input_stft = np.abs(librosa.stft(xb.numpy().squeeze(), n_fft=256))
-                            output_stft = np.abs(librosa.stft(probe_series[:,j].numpy(), n_fft=256))
-
-                            librosa.display.specshow(
-                                librosa.amplitude_to_db(output_stft,ref=np.max(input_stft)),
-                                sr=sr,
-                                vmax=0,
-                                ax=ax,
-                                y_axis='linear',
-                                x_axis='time',
-                                cmap=plt.cm.inferno
-                            )
-                            ax.set_ylim([0,sr/4])
-                            
-                            if j > 0:
-                                ax.set_ylabel('')
-                            if i < N_classes-1:
-                                ax.set_xlabel('')
-                            ax.text(0.5, 0.95, '%s at probe #%d' % (vowels[i], j+1), color="w", transform=ax.transAxes, ha="center", va="top", fontsize="large")
-                plt.show()
-
-        if args.animate:
-            x_train, x_test, y_train, y_test = data.load_selected_vowels(
+        x_train, x_test, y_train, y_test = data.load_selected_vowels(
                                 vowels,
                                 gender=gender, 
                                 sr=sr, 
@@ -361,13 +291,95 @@ class WaveTorch(object):
                                 train_size=N_classes, 
                                 test_size=N_classes
                             )
+        test_ds = TensorDataset(x_test, y_test)  
+        fig, axs = plt.subplots(N_classes, 1, constrained_layout=True, figsize=(3.5,6))
 
-            test_ds = TensorDataset(x_test, y_test)  
-            for xb, yb in DataLoader(test_ds, batch_size=1):
-                with torch.no_grad():
-                    field_dist = model(xb, probe_output=False)
-                    viz.animate_fields(model, field_dist, yb)
+        for xb, yb in DataLoader(test_ds, batch_size=1):
+            with torch.no_grad():
+                field_dist = model(xb, probe_output=False)
+                probe_series = field_dist[0, :, model.px, model.py]
+                viz.plot_total_field(model, field_dist, yb, ax=axs[yb.argmax().item()])
+        plt.show()
+
+    def stft(self, args):
+        model, history, cfg, cm_train, cm_test = core.load_model(args.model_file)
+
+        print("Configuration for model in %s is:" % args.model_file)
+        print(yaml.dump(cfg, default_flow_style=False))
+
+        sr = cfg['data']['sr']
+        gender = cfg['data']['gender']
+        vowels = cfg['data']['vowels']
+        train_size = cfg['training']['train_size']
+        test_size = cfg['training']['test_size']
+        N_classes = len(vowels)
+
+        x_train, x_test, y_train, y_test = data.load_selected_vowels(
+                                                vowels,
+                                                gender=gender, 
+                                                sr=sr, 
+                                                normalize=True, 
+                                                train_size=N_classes, 
+                                                test_size=N_classes
+                                            )
+        test_ds = TensorDataset(x_test, y_test)  
+        fig, axs = plt.subplots(N_classes, N_classes, constrained_layout=True, figsize=(5.5,5.5), sharex=True, sharey=True)
+
+        for xb, yb in DataLoader(test_ds, batch_size=1):
+            with torch.no_grad():
+                field_dist = model(xb, probe_output=False)
+                probe_series = field_dist[0, :, model.px, model.py]
+                for j in range(0, probe_series.shape[1]):
+                    i = yb.argmax().item()
+                    ax = axs[i, j]
+                    input_stft = np.abs(librosa.stft(xb.numpy().squeeze(), n_fft=256))
+                    output_stft = np.abs(librosa.stft(probe_series[:,j].numpy(), n_fft=256))
+
+                    librosa.display.specshow(
+                        librosa.amplitude_to_db(output_stft,ref=np.max(input_stft)),
+                        sr=sr,
+                        vmax=0,
+                        ax=ax,
+                        y_axis='linear',
+                        x_axis='time',
+                        cmap=plt.cm.inferno
+                    )
+                    ax.set_ylim([0,sr/4])
+                    
+                    if j > 0:
+                        ax.set_ylabel('')
+                    if i < N_classes-1:
+                        ax.set_xlabel('')
+                    ax.text(0.5, 0.95, '%s at probe #%d' % (vowels[i], j+1), color="w", transform=ax.transAxes, ha="center", va="top", fontsize="large")
+        plt.show()
+
+    def animate(self, args):
+        model, history, cfg, cm_train, cm_test = core.load_model(args.model_file)
+
+        print("Configuration for model in %s is:" % args.model_file)
+        print(yaml.dump(cfg, default_flow_style=False))
+
+        sr = cfg['data']['sr']
+        gender = cfg['data']['gender']
+        vowels = cfg['data']['vowels']
+        train_size = cfg['training']['train_size']
+        test_size = cfg['training']['test_size']
+        N_classes = len(vowels)
+
+        x_train, x_test, y_train, y_test = data.load_selected_vowels(
+                            vowels,
+                            gender=gender, 
+                            sr=sr, 
+                            normalize=True, 
+                            train_size=N_classes, 
+                            test_size=N_classes
+                        )
+
+        test_ds = TensorDataset(x_test, y_test)  
+        for xb, yb in DataLoader(test_ds, batch_size=1):
+            with torch.no_grad():
+                field_dist = model(xb, probe_output=False)
+                viz.animate_fields(model, field_dist, yb)
 
 if __name__ == '__main__':
     WaveTorch()
-
