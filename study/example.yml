@@ -2,21 +2,24 @@ training:
   # This prefix is applied to the filename when saving the model; if not specified a date/time is used
   prefix: example
   # Number of training epochs
-  N_epochs: 5
+  N_epochs: 10
   # Optimizer learning rate
   lr: 0.001    
-  # Batch size     
+  # Batch size used over both training and testing datasets   
   batch_size: 3
-  # Size of randomly selected training set. Ideally, this should be a multiple of the number of vowel casses
-  train_size: 6
-  # Size of randomly selected testing set. Ideally, this should be a multiple of the number of vowel casses
-  test_size: 6
+  # Limit the maximum number of samples to this number
+  max_samples: 24
+  # This number should be an integer and it is used to deterine the split between the training and testing datasets
+  # (1/train_test_divide) * (the total number of samples) is the size of the test dataset
+  train_test_divide: 3
+  # If true, k-fold cross validation is performed where k is the value specified above for train_test_divide
+  use_cross_validation: false
 data:
   # Sampling rate to use for vowel data
   sr: 10000         
   # Which gender to pull vowel data from. Can be one of women, men, or both. 
   # If both, training and testing datasets distributed equally over the genders
-  gender: men
+  gender: both
   # Which vowel classes to train on.
   # Can be any elements from the set: [ae, eh, ih, oo, ah, ei, iy, uh, aw, er, oa, uw].
   vowels: 

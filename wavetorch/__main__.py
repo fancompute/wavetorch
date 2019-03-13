@@ -76,79 +76,79 @@ class WaveTorch(object):
 
         getattr(self, args.command)(args)
 
-    def train(self, args):
-        print("Using configuration from %s: " % args.config)
-        with open(args.config, 'r') as ymlfile:
-             cfg = yaml.load(ymlfile)
-             print(yaml.dump(cfg, default_flow_style=False))
+    # def train(self, args):
+    #     print("Using configuration from %s: " % args.config)
+    #     with open(args.config, 'r') as ymlfile:
+    #          cfg = yaml.load(ymlfile)
+    #          print(yaml.dump(cfg, default_flow_style=False))
 
-        N_classes = len(cfg['data']['vowels'])
+    #     N_classes = len(cfg['data']['vowels'])
 
-        x_train, x_test, y_train, y_test = data.load_selected_vowels(
-                                                cfg['data']['vowels'],
-                                                gender=cfg['data']['gender'], 
-                                                sr=cfg['data']['sr'], 
-                                                normalize=True, 
-                                                train_size=cfg['training']['train_size'], 
-                                                test_size=cfg['training']['test_size']
-                                            )
+    #     x_train, x_test, y_train, y_test = data.load_selected_vowels(
+    #                                             cfg['data']['vowels'],
+    #                                             gender=cfg['data']['gender'], 
+    #                                             sr=cfg['data']['sr'], 
+    #                                             normalize=True, 
+    #                                             train_size=cfg['training']['train_size'], 
+    #                                             test_size=cfg['training']['test_size']
+    #                                         )
 
-        x_train = x_train.to(args.dev)
-        x_test  = x_test.to(args.dev)
-        y_train = y_train.to(args.dev)
-        y_test  = y_test.to(args.dev)
+    #     x_train = x_train.to(args.dev)
+    #     x_test  = x_test.to(args.dev)
+    #     y_train = y_train.to(args.dev)
+    #     y_test  = y_test.to(args.dev)
 
-        train_ds = TensorDataset(x_train, y_train)
-        test_ds  = TensorDataset(x_test, y_test)
+    #     train_ds = TensorDataset(x_train, y_train)
+    #     test_ds  = TensorDataset(x_test, y_test)
 
-        train_dl = DataLoader(train_ds, batch_size=cfg['training']['batch_size'], shuffle=True)
-        test_dl  = DataLoader(test_ds, batch_size=cfg['training']['batch_size'])
+    #     train_dl = DataLoader(train_ds, batch_size=cfg['training']['batch_size'], shuffle=True)
+    #     test_dl  = DataLoader(test_ds, batch_size=cfg['training']['batch_size'])
 
-        ### Define model
-        px, py = core.setup_probe_coords(
-                            N_classes, cfg['geom']['px'], cfg['geom']['py'], cfg['geom']['pd'], 
-                            cfg['geom']['Nx'], cfg['geom']['Ny'], cfg['geom']['pml']['N']
-                            )
-        src_x, src_y = core.setup_src_coords(
-                            cfg['geom']['src_x'], cfg['geom']['src_y'], cfg['geom']['Nx'],
-                            cfg['geom']['Ny'], cfg['geom']['pml']['N']
-                            )
+    #     ### Define model
+    #     px, py = core.setup_probe_coords(
+    #                         N_classes, cfg['geom']['px'], cfg['geom']['py'], cfg['geom']['pd'], 
+    #                         cfg['geom']['Nx'], cfg['geom']['Ny'], cfg['geom']['pml']['N']
+    #                         )
+    #     src_x, src_y = core.setup_src_coords(
+    #                         cfg['geom']['src_x'], cfg['geom']['src_y'], cfg['geom']['Nx'],
+    #                         cfg['geom']['Ny'], cfg['geom']['pml']['N']
+    #                         )
 
-        if cfg['geom']['use_design_region']: # Limit the design region
-            design_region = torch.zeros(cfg['geom']['Nx'], cfg['geom']['Ny'], dtype=torch.uint8)
-            design_region[src_x+5:np.min(px)-5] = 1 # For now, just hardcode this in
-        else: # Let the design region be the enire non-PML area
-            design_region = None
+    #     if cfg['geom']['use_design_region']: # Limit the design region
+    #         design_region = torch.zeros(cfg['geom']['Nx'], cfg['geom']['Ny'], dtype=torch.uint8)
+    #         design_region[src_x+5:np.min(px)-5] = 1 # For now, just hardcode this in
+    #     else: # Let the design region be the enire non-PML area
+    #         design_region = None
 
-        model = core.WaveCell(
-                    cfg['geom']['dt'], cfg['geom']['Nx'], cfg['geom']['Ny'], src_x, src_y, px, py,
-                    pml_N=cfg['geom']['pml']['N'], pml_p=cfg['geom']['pml']['p'], pml_max=cfg['geom']['pml']['max'], 
-                    c0=cfg['geom']['c0'], c1=cfg['geom']['c1'], eta=cfg['geom']['binarization']['eta'], beta=cfg['geom']['binarization']['beta'], 
-                    init_rand=cfg['geom']['use_rand_init'], design_region=design_region,
-                    nl_b0=cfg['geom']['nonlinearity']['b0'], nl_uth=cfg['geom']['nonlinearity']['uth']
-                    )
-        model.to(args.dev)
+    #     model = core.WaveCell(
+    #                 cfg['geom']['dt'], cfg['geom']['Nx'], cfg['geom']['Ny'], src_x, src_y, px, py,
+    #                 pml_N=cfg['geom']['pml']['N'], pml_p=cfg['geom']['pml']['p'], pml_max=cfg['geom']['pml']['max'], 
+    #                 c0=cfg['geom']['c0'], c1=cfg['geom']['c1'], eta=cfg['geom']['binarization']['eta'], beta=cfg['geom']['binarization']['beta'], 
+    #                 init_rand=cfg['geom']['use_rand_init'], design_region=design_region,
+    #                 nl_b0=cfg['geom']['nonlinearity']['b0'], nl_uth=cfg['geom']['nonlinearity']['uth']
+    #                 )
+    #     model.to(args.dev)
 
-        ### Train
-        optimizer = torch.optim.Adam(model.parameters(), lr=cfg['training']['lr'])
-        criterion = torch.nn.CrossEntropyLoss()
+    #     ### Train
+    #     optimizer = torch.optim.Adam(model.parameters(), lr=cfg['training']['lr'])
+    #     criterion = torch.nn.CrossEntropyLoss()
 
-        # model.train()
-        history   = core.train(model, optimizer, criterion, train_dl, test_dl, cfg['training']['N_epochs'], cfg['training']['batch_size'])
+    #     # model.train()
+    #     history   = core.train(model, optimizer, criterion, train_dl, test_dl, cfg['training']['N_epochs'], cfg['training']['batch_size'])
         
-        ### Print confusion matrix
-        cm_test  = core.calc_cm(model, test_dl)
-        cm_train = core.calc_cm(model, train_dl)
+    #     ### Print confusion matrix
+    #     cm_test  = core.calc_cm(model, test_dl)
+    #     cm_train = core.calc_cm(model, train_dl)
 
-        ### Save model and results
-        if args.name is None:
-            args.name = time.strftime("%Y_%m_%d-%H_%M_%S")
-        if cfg['training']['prefix'] is not None:
-            args.name = cfg['training']['prefix'] + '_' + args.name
+    #     ### Save model and results
+    #     if args.name is None:
+    #         args.name = time.strftime("%Y_%m_%d-%H_%M_%S")
+    #     if cfg['training']['prefix'] is not None:
+    #         args.name = cfg['training']['prefix'] + '_' + args.name
 
-        core.save_model(model, args.name, args.savedir, history, cfg, cm_train, cm_test)
+    #     core.save_model(model, args.name, args.savedir, history, cfg, cm_train, cm_test)
 
-    def cross(self, args):
+    def train(self, args):
         print("Using configuration from %s: " % args.config)
         with open(args.config, 'r') as ymlfile:
              cfg = yaml.load(ymlfile)
@@ -160,14 +160,15 @@ class WaveTorch(object):
                     cfg['data']['vowels'],
                     gender=cfg['data']['gender'], 
                     sr=cfg['data']['sr'], 
-                    normalize=True
+                    normalize=True,
+                    max_samples=cfg['training']['max_samples']
                     )
 
-        skf = StratifiedKFold(n_splits=args.n_splits, random_state=None, shuffle=True)
+        skf = StratifiedKFold(n_splits=cfg['training']['train_test_divide'], random_state=None, shuffle=True)
         samps = [y.argmax().item() for y in Y]
         num = 1
         for train_index, test_index in skf.split(np.zeros(len(samps)), samps):
-            print("Cross validation %d" % num)
+            if cfg['training']['use_cross_validation']: print("Cross validation fold #%d" % num)
 
             x_train = torch.nn.utils.rnn.pad_sequence([X[i] for i in train_index], batch_first=True)
             x_test = torch.nn.utils.rnn.pad_sequence([X[i] for i in test_index], batch_first=True)
@@ -225,11 +226,15 @@ class WaveTorch(object):
             if cfg['training']['prefix'] is not None:
                 args.name = cfg['training']['prefix'] + '_' + args.name
 
-            args.name += "_cv_" + str(num)
-
-            core.save_model(model, args.name, args.savedir, history, cfg, cm_train, cm_test)
-
-            num += 1
+            if cfg['training']['use_cross_validation']:
+                # If we are doing cross validation, then save this model's iteration
+                args.name += "_cv_" + str(num)
+                core.save_model(model, args.name, args.savedir, history, cfg, cm_train, cm_test)
+                num += 1
+            else:
+                # If not doing cross validation, save and finish
+                core.save_model(model, args.name, args.savedir, history, cfg, cm_train, cm_test)
+                break
 
     def summary(self, args):
         model, history, cfg, cm_train, cm_test = core.load_model(args.model_file)
