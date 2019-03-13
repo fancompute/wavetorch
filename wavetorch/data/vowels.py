@@ -121,8 +121,8 @@ def load_all_vowels(str_classes, gender='both', sr=None, normalize=True, dir='da
             num_samples = max_samples
 
         # Abuse train_test_split() to get an evenly distributed subset
-        x_m, _, y_m, _ = train_test_split(x_m, y_m, train_size=num_samples, stratify=y_m, shuffle=True)
-        x_w, _, y_w, _ = train_test_split(x_w, y_w, train_size=num_samples, stratify=y_w, shuffle=True)
+        x_m, _, y_m, _ = train_test_split(x_m, y_m, train_size=num_samples, test_size=len(str_classes), stratify=y_m, shuffle=True)
+        x_w, _, y_w, _ = train_test_split(x_w, y_w, train_size=num_samples, test_size=len(str_classes), stratify=y_w, shuffle=True)
 
     if gender is 'both':
         X = [torch.tensor(x) for x in x_m + x_w]
@@ -134,6 +134,6 @@ def load_all_vowels(str_classes, gender='both', sr=None, normalize=True, dir='da
         X = [torch.tensor(x) for x in x_m]
         Y = [torch.tensor(y) for y in y_m]
 
-    print("Selected a vowel dataset consisting of %d samples" % len(X))
+    print("dataset: selected %d vowel samples" % len(X))
 
     return X, Y
