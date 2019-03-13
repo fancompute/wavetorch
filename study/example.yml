@@ -2,15 +2,15 @@ training:
   # This prefix is applied to the filename when saving the model; if not specified a date/time is used
   prefix: example
   # Number of training epochs
-  N_epochs: 1
+  N_epochs: 5
   # Optimizer learning rate
   lr: 0.001    
   # Batch size     
   batch_size: 3
   # Size of randomly selected training set. Ideally, this should be a multiple of the number of vowel casses
-  train_size: 12
+  train_size: 6
   # Size of randomly selected testing set. Ideally, this should be a multiple of the number of vowel casses
-  test_size: 12
+  test_size: 6
 data:
   # Sampling rate to use for vowel data
   sr: 10000         
@@ -29,13 +29,13 @@ geom:
   # Use a random initialization for the distribution of c
   use_rand_init: false
   # Number of grid cells in x-dimension of simulation domain
-  Nx: 160
+  Nx: 140
   # Number of grid cells in y-dimension of simulation domain
-  Ny: 160
+  Ny: 140
   # Time step (spatial step size is determined automatically)
   dt: 0.707
   # Wave speed background value (e.g. in PML and non-design region)
-  c0: 1.
+  c0: 1.0
   # Wave speed value to use with c0 during binarization
   c1: 0.9
   # Probe x-coordinates in grid cells

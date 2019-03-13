@@ -15,8 +15,7 @@ export PYTHONPATH=$(pwd)
 echo "Job started at: $(date +'%d/%m/%y - %H:%m')"
 echo ""
 
-srun python -u -m wavetorch train \
+srun python -u -m wavetorch train study/vow3/vow3_rand.yml \
     --num_threads $SLURM_CPUS_PER_TASK \
     --name $SLURM_JOB_ID \
-    --savedir ./study/vow3/ \
-    --config study/vow3/vow3_rand.yml
+    --savedir ./study/vow3/

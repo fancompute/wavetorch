@@ -6,6 +6,9 @@ import seaborn as sns
 import librosa
 import librosa.display
 
+from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
+from mpl_toolkits.axes_grid1.colorbar import colorbar
+
 import torch
 
 def plot_stft_spectrum(y, n_fft=512, block=False, ax=None, sr=None):
@@ -97,28 +100,40 @@ def plot_confusion_matrix(cm, ax=None, figsize=(4,4), title=None, normalize=Fals
     if title is not None:
         ax.set_title(title)
 
+def plot_structure_evolution(model, model_states, epochs=[0, 1], quantity='c'):
 
-def plot_c(model, ax=None):
+    fig, axs = plt.subplots(len(epochs), 1, constrained_layout=True)
+    for i, epoch in enumerate(epochs):
+        model.load_state_dict(model_states[i])
+        plot_structure(model, ax=axs[i], quantity='c')
+
+
+def plot_structure(model, ax=None, quantity='c'):
+    assert quantity in ['c', 'rho'], "Quantity must be one of `c` or `rho`"
+
     show = False
     if ax is None:
         show = True
         fig, ax = plt.subplots(1, 1, constrained_layout=True)
 
-    from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
-    from mpl_toolkits.axes_grid1.colorbar import colorbar
-    rho = model.rho.detach().numpy().transpose()
-    c = model.c0.item() + (model.c1.item()-model.c0.item())*rho
+    rho = model.proj_rho().detach().numpy().transpose()
+    if quantity == 'c':
+        Z = model.c0.item() + (model.c1.item()-model.c0.item())*rho
+        limits = np.array([model.c0.item(), model.c1.item()])
+    else:
+        Z = rho
+        limits = np.array([0.0, 1.0])
+
     b_boundary = model.b_boundary.numpy().transpose()
 
-    limits = np.array([model.c0.item(), model.c1.item()])
-    cmap = plt.cm.viridis if model.c0.item() < model.c1.item() else plt.cm.viridis_r
-    h=ax.imshow(c, origin="bottom", rasterized=True, cmap=cmap)#, vmin=limits.min(), vmax=limits.max())
+    cmap = plt.cm.Purples_r
+    h=ax.imshow(Z, origin="bottom", rasterized=True, cmap=cmap, vmin=limits.min(), vmax=limits.max())
 
     ax_divider = make_axes_locatable(ax)
-    cax = ax_divider.append_axes("top", size="5%", pad="15%")
-    cax.xaxis.set_ticks_position("top")
+    cax = ax_divider.append_axes("right", size="5%", pad="15%")
+    cax.yaxis.set_ticks_position("left")
 
-    plt.colorbar(h, cax=cax, orientation='horizontal')
+    plt.colorbar(h, cax=cax, orientation='vertical')
     ax.contour(b_boundary>0, levels=[0], colors=("k",), linestyles=("dotted"), alpha=0.75)
     ax.plot(model.px.numpy(), model.py.numpy(), "ro")
     ax.plot(model.src_x.numpy(), model.src_y.numpy(), "ko")
