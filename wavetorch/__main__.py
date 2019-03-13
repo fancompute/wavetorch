@@ -171,7 +171,7 @@ class WaveTorch(object):
         N_classes = len(vowels)
 
         fig = plt.figure(constrained_layout=True, figsize=(7, 3.5))
-        gs = mpl.gridspec.GridSpec(2, 3 , figure=fig, width_ratios=[1, 1, 0.5])
+        gs = mpl.gridspec.GridSpec(2, 3 , figure=fig, width_ratios=[0.6, 1, 0.4], wspace=0.1)
         ax1 = fig.add_subplot(gs[0,0])
         ax2 = fig.add_subplot(gs[1,0], sharex=ax1)
         ax3 = fig.add_subplot(gs[:,1])
@@ -179,17 +179,18 @@ class WaveTorch(object):
         ax5 = fig.add_subplot(gs[1,2])
 
         epochs = range(0,len(history["acc_test"]))
-        ax1.plot(epochs, history["loss_train"], "-", label="Training dataset")
-        ax1.plot(epochs, history["loss_test"], "-", label="Testing dataset")
+        ax1.plot(epochs, history["loss_train"], "o-", label="Training dataset")
+        ax1.plot(epochs, history["loss_test"], "o-", label="Testing dataset")
         ax1.set_ylabel("Loss")
-        ax2.plot(epochs, history["acc_train"], "-", label="Training dataset")
-        ax2.plot(epochs, history["acc_test"], "-", label="Testing dataset")
-        ax2.set_xlabel("Number of training epochs")
+        ax2.plot(epochs, history["acc_train"], "o-", label="Training dataset")
+        ax2.plot(epochs, history["acc_test"], "o-", label="Testing dataset")
+        ax2.set_xlabel("Training epoch #")
         ax2.set_ylabel("Accuracy")
         ax2.set_ylim(top=1.01)
         ax1.legend()
+        ax1.set_xticks([1, int(cfg['training']['N_epochs']/2),cfg['training']['N_epochs']])
 
-        viz.plot_structure(model, ax=ax3, quantity='c')
+        viz.plot_structure(model, ax=ax3, quantity='c', vowels=vowels)
 
         viz.plot_confusion_matrix(cm_train, title="Training dataset", normalize=False, ax=ax4, labels=vowels)
         viz.plot_confusion_matrix(cm_test, title="Testing dataset", normalize=False, ax=ax5, labels=vowels)
@@ -207,15 +208,16 @@ class WaveTorch(object):
         vowels = cfg['data']['vowels']
         N_classes = len(vowels)
 
-        x_train, x_test, y_train, y_test = data.load_selected_vowels(
+        X, Y = data.load_all_vowels(
                                 vowels,
-                                gender=gender, 
+                                gender='men', 
                                 sr=sr, 
                                 normalize=True, 
-                                train_size=N_classes, 
-                                test_size=N_classes
+                                max_samples=N_classes
                             )
-        test_ds = TensorDataset(x_test, y_test)  
+        X = torch.nn.utils.rnn.pad_sequence(X, batch_first=True)
+        Y = torch.nn.utils.rnn.pad_sequence(Y, batch_first=True)
+        test_ds = TensorDataset(X, Y)  
         fig, axs = plt.subplots(N_classes, 1, constrained_layout=True, figsize=(3.5,6))
 
         for xb, yb in DataLoader(test_ds, batch_size=1):
@@ -236,15 +238,16 @@ class WaveTorch(object):
         vowels = cfg['data']['vowels']
         N_classes = len(vowels)
 
-        x_train, x_test, y_train, y_test = data.load_selected_vowels(
-                                                vowels,
-                                                gender=gender, 
-                                                sr=sr, 
-                                                normalize=True, 
-                                                train_size=N_classes, 
-                                                test_size=N_classes
-                                            )
-        test_ds = TensorDataset(x_test, y_test)  
+        X, Y = data.load_all_vowels(
+                                vowels,
+                                gender='men', 
+                                sr=sr, 
+                                normalize=True, 
+                                max_samples=N_classes
+                            )
+        X = torch.nn.utils.rnn.pad_sequence(X, batch_first=True)
+        Y = torch.nn.utils.rnn.pad_sequence(Y, batch_first=True)
+        test_ds = TensorDataset(X, Y)  
         fig, axs = plt.subplots(N_classes, N_classes, constrained_layout=True, figsize=(5.5,5.5), sharex=True, sharey=True)
 
         for xb, yb in DataLoader(test_ds, batch_size=1):
@@ -262,17 +265,24 @@ class WaveTorch(object):
                         sr=sr,
                         vmax=0,
                         ax=ax,
+                        vmin=-50,
                         y_axis='linear',
                         x_axis='time',
                         cmap=plt.cm.inferno
                     )
                     ax.set_ylim([0,sr/4])
+
+                    if i == 0:
+                        ax.set_title("probe %d" % (j+1), weight="bold")
+                    if j == N_classes-1:
+                        ax.text(1.05, 0.5, vowels[i], transform=ax.transAxes, ha="left", va="center", fontsize="large", rotation=-90, weight="bold")
                     
                     if j > 0:
                         ax.set_ylabel('')
                     if i < N_classes-1:
                         ax.set_xlabel('')
-                    ax.text(0.5, 0.95, '%s at probe #%d' % (vowels[i], j+1), color="w", transform=ax.transAxes, ha="center", va="top", fontsize="large")
+                    # if i == j:
+                        # ax.text(0.5, 0.95, '%s at probe #%d' % (vowels[i], j+1), color="w", transform=ax.transAxes, ha="center", va="top", fontsize="large")
         plt.show()
 
     def animate(self, args):
