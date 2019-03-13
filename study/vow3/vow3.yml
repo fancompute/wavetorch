@@ -3,8 +3,9 @@ training:
   N_epochs: 10
   lr: 0.001
   batch_size: 9
-  train_size: 90
-  test_size: 45
+  max_samples: 162
+  train_test_divide: 3
+  use_cross_validation: false
 data:
   sr: 10000
   gender: both
