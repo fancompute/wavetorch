@@ -123,7 +123,7 @@ class WaveCell(torch.nn.Module):
 
         # loop through time
         proj_rho = self.proj_rho()
-        c = self.c0 + (self.c1-self.c0)*rho
+        c = self.c0 + (self.c1-self.c0)*proj_rho
         for i, xi in enumerate(x.chunk(x.size(1), dim=1)):
             y, y1, y2 = self.step(xi, y1, y2, c, proj_rho)
             y_all.append(y)
