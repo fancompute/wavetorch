@@ -30,7 +30,7 @@ data:
     - iy
 rnn:
   # Hidden state size of the RNN
-  N_hidden: 50
+  N_hidden: 100
   # Hidden-to-hidden activation function, can be anything from torch.nn.functional, 
   # e.g. relu, leaky_relu or logsigmoid, or None for linear
   f_hidden: leaky_relu

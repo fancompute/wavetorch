@@ -1,0 +1,52 @@
+Starting configuration: 
+
+data:
+  gender: both
+  sr: 10000
+  vowels:
+  - ae
+  - ei
+  - iy
+general:
+  rand_seed: 2019
+rnn:
+  L2_reg: 0.0001
+  N_hidden: 50
+  W_scale: 0.2
+  f_hidden: leaky_relu
+  grad_clip: 2
+training:
+  N_epochs: 100
+  batch_size: 9
+  display_step: 10
+  lr: 0.0001
+  prefix: laptop_rnn
+  test_size: 30
+  train_size: 90
+
+Starting conf. train accuracy: 0.64; test accuracy: 0.63. 
+
+For parameter N_hidden with values [10, 100] accuracies are, respectively:
+Training: [0.4333 0.9443]
+Testing: [0.533 0.967]
+
+For parameter batch_size with values [3, 90] accuracies are, respectively:
+Training: [0.8223 0.567 ]
+Testing: [0.8335 0.5   ]
+
+For parameter W_scale with values [0.1, 0.5] accuracies are, respectively:
+Training: [0.6333 0.3333]
+Testing: [0.6665 0.3333]
+
+For parameter L2_reg with values [0, 0.01] accuracies are, respectively:
+Training: [0.6445 0.4556]
+Testing: [0.6333 0.4333]
+
+For parameter grad_clip with values [0.1, 10] accuracies are, respectively:
+Training: [0.6665 0.656 ]
+Testing: [0.7334 0.6665]
+
+For parameter f_hidden with values ['relu', 'tanh'] accuracies are, respectively:
+Training: [0.6445 0.6777]
+Testing: [0.7    0.6665]
+

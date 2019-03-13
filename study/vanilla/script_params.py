@@ -11,16 +11,15 @@ start_file = './study/vanilla/laptop_rnn.yml'
 
 # Define various parameter values to be explored
 params = {'N_hidden': [10, 100],
-			'sr': [100, 10000],
 			'batch_size': [3, 90],
 			'W_scale': [0.1, 0.5],
-			'L2_reg': [0, 0.1],
+			'L2_reg': [0, 0.01],
 			'grad_clip': [0.1, 10],
 			'f_hidden': ['relu', 'tanh']
 			}
 
 # We'll print results to file so that we can access later
-out_file = './study/vanilla/script_results.txt'
+out_file = './study/vanilla/script_results_sr10000.txt'
 
 # Temp file we'll use do define configurations
 temp_file = './study/vanilla/temp.yml'
