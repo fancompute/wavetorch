@@ -1,0 +1,38 @@
+training:
+  prefix: vow3_NL
+  N_epochs: 10
+  lr: 0.001
+  batch_size: 9
+  max_samples: 162
+  train_test_divide: 3
+  use_cross_validation: false
+data:
+  sr: 10000
+  gender: both
+  vowels: 
+    - ae
+    - ei
+    - iy
+geom:
+  use_design_region: true
+  use_rand_init: false
+  Nx: 140
+  Ny: 100
+  dt: 0.707
+  c0: 1.00
+  c1: 0.80
+  px: 
+  py: 
+  pd: 25
+  src_x: 
+  src_y:
+  pml:
+    N: 20
+    p: 4.0
+    max: 3.0
+  nonlinearity:
+    b0: 0.25
+    uth: 0.25
+  binarization:
+    beta: 100
+    eta: 0.5
