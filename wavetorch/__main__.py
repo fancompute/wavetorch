@@ -34,7 +34,7 @@ args_global.add_argument('--use-cuda', action='store_true',
 args_train = subargs.add_parser('train', parents=[args_global])
 args_train.add_argument('config', type=str, 
                             help='Configuration file for geometry, training, and data preparation')
-args_train.add_argument('name', type=str, default=None,
+args_train.add_argument('--name', type=str, default=None,
                             help='Name to use when saving or loading the model file. If not specified when saving a time and date stamp is used')
 args_train.add_argument('--savedir', type=str, default='./study/',
                             help='Directory in which the model file is saved. Defaults to ./study/')
