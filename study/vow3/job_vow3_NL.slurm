@@ -4,7 +4,7 @@
 #SBATCH -p normal
 #SBATCH --cpus-per-task=8
 #SBATCH --time=12:00:00
-#SBATCH --mem-per-cpu=36gb
+#SBATCH --mem-per-cpu=22gb
 
 export MKL_NUM_THREADS=$SLURM_CPUS_PER_TASK
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
