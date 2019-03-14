@@ -29,7 +29,7 @@ def plot_stft_spectrum(y, n_fft=512, block=False, ax=None, sr=None):
         plt.show(block=block)
 
 
-def plot_total_field(model, yb, ylabel, block=False, ax=None, fig_width=4):
+def plot_total_field(model, yb, ylabel, block=False, ax=None, fig_width=4, cbar=True, cax=None, vmin=1e-3):
     with torch.no_grad():
         y_tot = torch.abs(yb).pow(2).sum(dim=1)
 
@@ -38,16 +38,23 @@ def plot_total_field(model, yb, ylabel, block=False, ax=None, fig_width=4):
 
         Z = y_tot[0,:,:].numpy().transpose()
         Z = Z / Z.max()
-        h = ax.imshow(Z, cmap=plt.cm.magma,  origin="bottom",  norm=mpl.colors.LogNorm(vmin=1e-3, vmax=1.0))
+        h = ax.imshow(Z, cmap=plt.cm.magma,  origin="bottom",  norm=mpl.colors.LogNorm(vmin=vmin, vmax=1.0))
+        if cbar:
+            if cax is None:
+                ax_divider = make_axes_locatable(ax)
+                cax = ax_divider.append_axes("top", size="5%", pad="20%")
+            plt.colorbar(h, cax=cax, extend='min', orientation='horizontal')
         ax.contour(model.b_boundary.numpy().transpose()>0, levels=[0], colors=("w",), linestyles=("dotted"), alpha=0.75)
         for i in range(0, len(model.px)):
             if ylabel[0,i].item() == 1:
                 color = "#98df8a"
             else:
                 color = "#7f7f7f"
-            ax.plot(model.px[i], model.py[i], "o", color=color, mew=0)
+            ax.plot(model.px[i], model.py[i], "o", markeredgecolor=color, markerfacecolor="none" )
         ax.plot(model.src_x, model.src_y, "o", mew=0, color="#7f7f7f")
-        plt.colorbar(h, extend='min', ax=ax, aspect=17)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.annotate(r"$\sum_n \vert u_n \vert^2$", xy=(0.5, 0.01), fontsize="smaller", ha="center", va="bottom", color="w", xycoords="axes fraction")
         if ax is not None:
             plt.show(block=block)
 
@@ -79,7 +86,8 @@ def plot_confusion_matrix(cm, ax=None, figsize=(4,4), title=None, normalize=Fals
                 mask=mask2,
                 ax=ax,
                 xticklabels=labels,
-                yticklabels=labels)
+                yticklabels=labels,
+                square=True)
 
     sns.heatmap(cm,
                 fmt=fmt,
@@ -90,7 +98,8 @@ def plot_confusion_matrix(cm, ax=None, figsize=(4,4), title=None, normalize=Fals
                 mask=mask1,
                 ax=ax,
                 xticklabels=labels,
-                yticklabels=labels)
+                yticklabels=labels,
+                square=True)
 
     for _, spine in ax.spines.items():
         spine.set_visible(True)

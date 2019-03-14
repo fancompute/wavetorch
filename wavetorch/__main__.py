@@ -20,6 +20,8 @@ from . import core
 from . import data
 from . import viz
 
+import os
+
 parser = argparse.ArgumentParser() 
 subargs = parser.add_subparsers(prog='wavetorch', title="commands", dest="command") 
 
@@ -41,9 +43,11 @@ args_train.add_argument('--savedir', type=str, default='./study/',
 
 ### Analysis modes
 args_summary = subargs.add_parser('summary', parents=[args_global])
+args_summary.add_argument('--vmin', type=float, default=1e-3)
 args_summary.add_argument('filename', type=str)
 
 args_fields = subargs.add_parser('fields', parents=[args_global])
+args_fields.add_argument('--vmin', type=float, default=1e-3)
 args_fields.add_argument('filename', type=str)
 
 args_stft = subargs.add_parser('stft', parents=[args_global])
@@ -170,32 +174,63 @@ class WaveTorch(object):
         vowels = cfg['data']['vowels']
         N_classes = len(vowels)
 
-        fig = plt.figure(constrained_layout=True, figsize=(7, 3.5))
-        gs = mpl.gridspec.GridSpec(2, 3 , figure=fig, width_ratios=[0.6, 1, 0.4], wspace=0.1)
-        ax1 = fig.add_subplot(gs[0,0])
-        ax2 = fig.add_subplot(gs[1,0], sharex=ax1)
-        ax3 = fig.add_subplot(gs[:,1])
-        ax4 = fig.add_subplot(gs[0,2])
-        ax5 = fig.add_subplot(gs[1,2])
+        fig = plt.figure( figsize=(7, 5.75), constrained_layout=True)
+
+        gs = fig.add_gridspec(1, 2, width_ratios=[1, 0.45])
+        gs_left  = gs[0].subgridspec(3, 2, width_ratios=[1, 0.5], height_ratios=[1, 0.7, 0.7])
+        gs_right = gs[1].subgridspec(N_classes+1, 1, height_ratios=[0.05] + [1 for i in range(0,N_classes)])
+
+        ax_c = fig.add_subplot(gs_left[0,:])
+
+        ax_loss = fig.add_subplot(gs_left[1,0])
+        ax_acc = fig.add_subplot(gs_left[2,0], sharex=ax_loss)
+
+        ax_cm1 = fig.add_subplot(gs_left[1,1])
+        ax_cm2 = fig.add_subplot(gs_left[2,1])
+
+        ax_fields = [fig.add_subplot(gs_right[i]) for i in range(0, N_classes+1)] 
 
         epochs = range(0,len(history["acc_test"]))
-        ax1.plot(epochs, history["loss_train"], "o-", label="Training dataset")
-        ax1.plot(epochs, history["loss_test"], "o-", label="Testing dataset")
-        ax1.set_ylabel("Loss")
-        ax2.plot(epochs, history["acc_train"], "o-", label="Training dataset")
-        ax2.plot(epochs, history["acc_test"], "o-", label="Testing dataset")
-        ax2.set_xlabel("Training epoch #")
-        ax2.set_ylabel("Accuracy")
-        ax2.set_ylim(top=1.01)
-        ax1.legend()
-        ax1.set_xticks([1, int(cfg['training']['N_epochs']/2),cfg['training']['N_epochs']])
+        ax_loss.plot(epochs, history["loss_train"], "o-", label="Training dataset")
+        ax_loss.plot(epochs, history["loss_test"], "o-", label="Testing dataset")
+        ax_loss.set_ylabel("Loss")
+        ltrain,=ax_acc.plot(epochs, history["acc_train"], "o-", label="Training dataset")
+        ltest, =ax_acc.plot(epochs, history["acc_test"], "o-", label="Testing dataset")
+        ax_acc.set_xlabel("Training epoch #")
+        ax_acc.set_ylabel("Accuracy")
+        ax_acc.set_ylim(top=1.01)
+        ax_loss.legend()
+        ax_loss.set_xticks([1, int(cfg['training']['N_epochs']/2),cfg['training']['N_epochs']])
 
-        viz.plot_structure(model, ax=ax3, quantity='c', vowels=vowels)
+        ax_acc.annotate("Final testing acc: %.1f%%" % (history["acc_test"][-1]*100), xy=(0.9,0.1), xycoords="axes fraction", ha="right", va="bottom", color=ltest.get_color())
+        ax_acc.annotate("Final training acc: %.1f%%" % (history["acc_train"][-1]*100), xy=(0.9,0.1), xytext=(0,10), textcoords="offset points",  xycoords="axes fraction", ha="right", va="bottom", color=ltrain.get_color())
 
-        viz.plot_confusion_matrix(cm_train, title="Training dataset", normalize=False, ax=ax4, labels=vowels)
-        viz.plot_confusion_matrix(cm_test, title="Testing dataset", normalize=False, ax=ax5, labels=vowels)
+        viz.plot_structure(model, ax=ax_c, quantity='c', vowels=vowels)
+        ax_c.set_title("$b_0$: %.2f / $u_{th}$: %.2f / lr: %.0e" % (cfg['geom']['nonlinearity']['b0'], cfg['geom']['nonlinearity']['uth'], cfg['training']['lr']))
+
+        viz.plot_confusion_matrix(cm_train, title="Training dataset", normalize=False, ax=ax_cm1, labels=vowels)
+        viz.plot_confusion_matrix(cm_test, title="Testing dataset", normalize=False, ax=ax_cm2, labels=vowels)
+
+        X, Y = data.load_all_vowels(
+                        vowels,
+                        gender='men', 
+                        sr=sr, 
+                        normalize=True, 
+                        max_samples=N_classes
+                    )
+        X = torch.nn.utils.rnn.pad_sequence(X, batch_first=True)
+        Y = torch.nn.utils.rnn.pad_sequence(Y, batch_first=True)
+        test_ds = TensorDataset(X, Y)
+
+
+        for xb, yb in DataLoader(test_ds, batch_size=1):
+            with torch.no_grad():
+                field_dist = model(xb, probe_output=False)
+                probe_series = field_dist[0, :, model.px, model.py]
+                viz.plot_total_field(model, field_dist, yb, ax=ax_fields[1+yb.argmax().item()], cbar=True, cax=ax_fields[0], vmin=args.vmin)
 
         plt.show()
+        fig.savefig(os.path.splitext(args.filename)[0]+"_summary.png", dpi=300)
 
     def fields(self, args):
         model, history, cfg, cm_train, cm_test = core.load_model(args.filename)
@@ -218,14 +253,16 @@ class WaveTorch(object):
         X = torch.nn.utils.rnn.pad_sequence(X, batch_first=True)
         Y = torch.nn.utils.rnn.pad_sequence(Y, batch_first=True)
         test_ds = TensorDataset(X, Y)  
-        fig, axs = plt.subplots(N_classes, 1, constrained_layout=True, figsize=(3.5,6))
+        fig, axs = plt.subplots(1, N_classes, figsize=(7, 2), constrained_layout=True)
 
         for xb, yb in DataLoader(test_ds, batch_size=1):
             with torch.no_grad():
                 field_dist = model(xb, probe_output=False)
                 probe_series = field_dist[0, :, model.px, model.py]
-                viz.plot_total_field(model, field_dist, yb, ax=axs[yb.argmax().item()])
+                viz.plot_total_field(model, field_dist, yb, ax=axs[yb.argmax().item()], cbar=True, vmin=args.vmin)
+
         plt.show()
+        fig.savefig(os.path.splitext(args.filename)[0]+"_fields.png", dpi=300)
 
     def stft(self, args):
         model, history, cfg, cm_train, cm_test = core.load_model(args.filename)
