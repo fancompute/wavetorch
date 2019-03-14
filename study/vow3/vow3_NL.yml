@@ -1,7 +1,7 @@
 training:
   prefix: vow3_NL
-  N_epochs: 10
-  lr: 0.001
+  N_epochs: 15
+  lr: 0.0004
   batch_size: 9
   max_samples: 162
   train_test_divide: 3
@@ -31,7 +31,7 @@ geom:
     p: 4.0
     max: 3.0
   nonlinearity:
-    b0: 0.25
+    b0: 0.50
     uth: 0.25
   binarization:
     beta: 100
