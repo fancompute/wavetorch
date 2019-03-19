@@ -1,5 +1,5 @@
 training:
-  prefix: vow3_small
+  prefix: vow3
   N_epochs: 20
   lr: 0.0004
   batch_size: 9

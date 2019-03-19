@@ -1,6 +1,6 @@
 training:
   prefix: vow3_NL
-  N_epochs: 15
+  N_epochs: 20
   lr: 0.0004
   batch_size: 9
   max_samples: 162
@@ -16,14 +16,14 @@ data:
 geom:
   use_design_region: true
   use_rand_init: false
-  Nx: 140
-  Ny: 100
+  Nx: 120
+  Ny: 150
   dt: 0.707
   c0: 1.00
   c1: 0.80
   px: 
   py: 
-  pd: 25
+  pd: 35
   src_x: 
   src_y:
   pml:
@@ -31,7 +31,7 @@ geom:
     p: 4.0
     max: 3.0
   nonlinearity:
-    b0: 0.50
+    b0: 0.05
     uth: 0.25
   binarization:
     beta: 100
