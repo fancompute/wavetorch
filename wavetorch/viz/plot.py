@@ -6,6 +6,10 @@ import seaborn as sns
 import librosa
 import librosa.display
 
+from string import ascii_lowercase
+from numpy import in1d
+
+from matplotlib import rcParams
 from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 from mpl_toolkits.axes_grid1.colorbar import colorbar
 
@@ -44,17 +48,18 @@ def plot_total_field(model, yb, ylabel, block=False, ax=None, fig_width=4, cbar=
                 ax_divider = make_axes_locatable(ax)
                 cax = ax_divider.append_axes("top", size="5%", pad="20%")
             plt.colorbar(h, cax=cax, extend='min', orientation='horizontal')
+            cax.set_title(r"$\sum_n \vert u_n \vert^2$")
         ax.contour(model.b_boundary.numpy().transpose()>0, levels=[0], colors=("w",), linestyles=("dotted"), alpha=0.75)
         for i in range(0, len(model.px)):
             if ylabel[0,i].item() == 1:
                 color = "#98df8a"
             else:
                 color = "#7f7f7f"
-            ax.plot(model.px[i], model.py[i], "o", markeredgecolor=color, markerfacecolor="none" )
-        ax.plot(model.src_x, model.src_y, "o", mew=0, color="#7f7f7f")
+            ax.plot(model.px[i], model.py[i], "o", markeredgecolor=color, markerfacecolor="none", markeredgewidth=1.5 )
+        # ax.plot(model.src_x, model.src_y, "o", mew=0, color="#7f7f7f")
         ax.set_xticks([])
         ax.set_yticks([])
-        ax.annotate(r"$\sum_n \vert u_n \vert^2$", xy=(0.5, 0.01), fontsize="smaller", ha="center", va="bottom", color="w", xycoords="axes fraction")
+        # ax.annotate(r"$\sum_n \vert u_n \vert^2$", xy=(0.5, 0.01), fontsize="smaller", ha="center", va="bottom", color="w", xycoords="axes fraction")
         if ax is not None:
             plt.show(block=block)
 
@@ -136,13 +141,13 @@ def plot_structure(model, ax=None, quantity='c', vowels=None, cbar=False):
     b_boundary = model.b_boundary.numpy().transpose()
 
     cmap = plt.cm.Purples_r
+    limits = np.array([model.c0.item(), model.c1.item()])
     h=ax.imshow(Z, origin="bottom", rasterized=True, cmap=cmap, vmin=limits.min(), vmax=limits.max())
 
     if cbar:
         ax_divider = make_axes_locatable(ax)
         cax = ax_divider.append_axes("right", size="5%", pad="1%")
-        # cax.yaxis.set_ticks_position("left")
-        plt.colorbar(h, cax=cax, orientation='vertical')
+        plt.colorbar(h, cax=cax, orientation='vertical', label=r"$c{\left(x,y\right)}$")
     
     ax.contour(b_boundary>0, levels=[0], colors=("k",), linestyles=("dotted"), alpha=0.75)
 
@@ -200,3 +205,40 @@ def animate_fields(model, field_dist, ylabel, block=True, filename=None, interva
         plt.close(fig)
     else:
         plt.show(block=block)
+
+def apply_sublabels(axs, x=-50, y=0, size='medium', weight='bold', ha='right', va='top', prefix='', postfix='', invert_color_inds=[], bg=None):
+    '''
+    Applys panel labels (a, b, c, ... ) in order to the axis handles stored in the list axs
+    
+    Most of the function arguments should be self-explanatory
+    
+    invert_color_inds, specifies which labels should use white text, which is useful for darker pcolor plots
+    '''
+    
+    if bg is not None:
+        bbox_props = dict(boxstyle="round,pad=0.1", fc=bg, ec="none", alpha=0.9)
+    else:
+        bbox_props = None
+    
+    # If using latex we need to manually insert the \textbf command
+    if rcParams['text.usetex'] and weight == 'bold':
+        prefix  = '\\textbf{' + prefix
+        postfix = postfix + '}'
+    
+    for n, ax in enumerate(axs):
+        if in1d(n, invert_color_inds):
+            color='w'
+        else:
+            color='k'
+        
+        ax.annotate(prefix + ascii_lowercase[n] + postfix,
+                    xy=(0, 1),
+                    xytext=(x, y),
+                    xycoords='axes fraction',
+                    textcoords='offset points',
+                    size=size,
+                    color=color,
+                    weight=weight,
+                    horizontalalignment=ha,
+                    verticalalignment=va,
+                    bbox=bbox_props)

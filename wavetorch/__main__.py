@@ -44,6 +44,7 @@ args_train.add_argument('--savedir', type=str, default='./study/',
 ### Analysis modes
 args_summary = subargs.add_parser('summary', parents=[args_global])
 args_summary.add_argument('--vmin', type=float, default=1e-3)
+args_summary.add_argument('--fig', type=str, default=None)
 args_summary.add_argument('filename', type=str)
 
 args_fields = subargs.add_parser('fields', parents=[args_global])
@@ -174,7 +175,7 @@ class WaveTorch(object):
         vowels = cfg['data']['vowels']
         N_classes = len(vowels)
 
-        fig = plt.figure( figsize=(7, 5.75), constrained_layout=True)
+        fig = plt.figure( figsize=(7, 4.75), constrained_layout=True)
 
         gs = fig.add_gridspec(1, 2, width_ratios=[1, 0.45])
         gs_left  = gs[0].subgridspec(3, 2, width_ratios=[1, 0.5], height_ratios=[1, 0.7, 0.7])
@@ -205,7 +206,7 @@ class WaveTorch(object):
         ax_acc.annotate("Final testing acc: %.1f%%" % (history["acc_test"][-1]*100), xy=(0.9,0.1), xycoords="axes fraction", ha="right", va="bottom", color=ltest.get_color())
         ax_acc.annotate("Final training acc: %.1f%%" % (history["acc_train"][-1]*100), xy=(0.9,0.1), xytext=(0,10), textcoords="offset points",  xycoords="axes fraction", ha="right", va="bottom", color=ltrain.get_color())
 
-        viz.plot_structure(model, ax=ax_c, quantity='c', vowels=vowels)
+        viz.plot_structure(model, ax=ax_c, quantity='c', vowels=vowels, cbar=True)
         ax_c.set_title("$b_0$: %.2f / $u_{th}$: %.2f / lr: %.0e" % (cfg['geom']['nonlinearity']['b0'], cfg['geom']['nonlinearity']['uth'], cfg['training']['lr']))
 
         viz.plot_confusion_matrix(cm_train, title="Training dataset", normalize=False, ax=ax_cm1, labels=vowels)
@@ -229,8 +230,13 @@ class WaveTorch(object):
                 probe_series = field_dist[0, :, model.px, model.py]
                 viz.plot_total_field(model, field_dist, yb, ax=ax_fields[1+yb.argmax().item()], cbar=True, cax=ax_fields[0], vmin=args.vmin)
 
+        viz.apply_sublabels([ax_c, ax_loss, ax_acc, ax_cm1, ax_cm2] + ax_fields[1::], x=-25)
+
         plt.show()
-        fig.savefig(os.path.splitext(args.filename)[0]+"_summary.png", dpi=300)
+        if args.fig is not None:
+            fig.savefig(args.fig, dpi=300)
+        else:
+            fig.savefig(os.path.splitext(args.filename)[0]+"_summary.png", dpi=300)
 
     def fields(self, args):
         model, history, cfg, cm_train, cm_test = core.load_model(args.filename)
