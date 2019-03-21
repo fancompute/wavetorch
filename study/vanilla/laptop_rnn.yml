@@ -18,7 +18,7 @@ training:
   display_step: 10
 data:
   # Sampling rate to use for vowel data
-  sr: 1000       
+  sr: 10000
   # Which gender to pull vowel data from. Can be one of women, men, or both. 
   # If both, training and testing datasets distributed equally over the genders
   gender: both
@@ -28,13 +28,12 @@ data:
     - ae
     - ei
     - iy
-    - uw
 rnn:
   # Hidden state size of the RNN
   N_hidden: 100
   # Hidden-to-hidden activation function, can be anything from torch.nn.functional, 
   # e.g. relu, leaky_relu or logsigmoid, or None for linear
-  f_hidden: 
+  f_hidden:
   # Scale for initializing the W-matrices
   W_scale: 0.2
   # L2 regularization 
