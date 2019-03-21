@@ -44,7 +44,9 @@ args_train.add_argument('--savedir', type=str, default='./study/',
 ### Analysis modes
 args_summary = subargs.add_parser('summary', parents=[args_global])
 args_summary.add_argument('--vmin', type=float, default=1e-3)
+args_summary.add_argument('--vmax', type=float, default=1.0)
 args_summary.add_argument('--fig', type=str, default=None)
+args_summary.add_argument('--title_off', action='store_true')
 args_summary.add_argument('filename', type=str)
 
 args_fields = subargs.add_parser('fields', parents=[args_global])
@@ -135,7 +137,8 @@ class WaveTorch(object):
                         pml_N=cfg['geom']['pml']['N'], pml_p=cfg['geom']['pml']['p'], pml_max=cfg['geom']['pml']['max'], 
                         c0=cfg['geom']['c0'], c1=cfg['geom']['c1'], eta=cfg['geom']['binarization']['eta'], beta=cfg['geom']['binarization']['beta'], 
                         init_rand=cfg['geom']['use_rand_init'], design_region=design_region,
-                        nl_b0=cfg['geom']['nonlinearity']['b0'], nl_uth=cfg['geom']['nonlinearity']['uth']
+                        nl_b0=cfg['geom']['nonlinearity']['b0'], nl_uth=cfg['geom']['nonlinearity']['uth'],
+                        nl_c=cfg['geom']['nonlinearity']['cnl'] 
                         )
             model.to(args.dev)
 
@@ -156,8 +159,7 @@ class WaveTorch(object):
 
             if cfg['training']['use_cross_validation']:
                 # If we are doing cross validation, then save this model's iteration
-                args.name += "_cv_" + str(num)
-                core.save_model(model, args.name, args.savedir, history, cfg, cm_train, cm_test)
+                core.save_model(model, args.name + "_cv" + str(num), args.savedir, history, cfg, cm_train, cm_test)
                 num += 1
             else:
                 # If not doing cross validation, save and finish
@@ -177,37 +179,38 @@ class WaveTorch(object):
 
         fig = plt.figure( figsize=(7, 4.75), constrained_layout=True)
 
-        gs = fig.add_gridspec(1, 2, width_ratios=[1, 0.45])
+        gs = fig.add_gridspec(1, 2, width_ratios=[1, 0.35])
         gs_left  = gs[0].subgridspec(3, 2, width_ratios=[1, 0.5], height_ratios=[1, 0.7, 0.7])
         gs_right = gs[1].subgridspec(N_classes+1, 1, height_ratios=[0.05] + [1 for i in range(0,N_classes)])
 
         ax_c = fig.add_subplot(gs_left[0,:])
 
         ax_loss = fig.add_subplot(gs_left[1,0])
-        ax_acc = fig.add_subplot(gs_left[2,0], sharex=ax_loss)
+        ax_acc = fig.add_subplot(gs_left[2,0])
 
         ax_cm1 = fig.add_subplot(gs_left[1,1])
-        ax_cm2 = fig.add_subplot(gs_left[2,1])
+        ax_cm2 = fig.add_subplot(gs_left[2,1],sharex=ax_cm1)
 
         ax_fields = [fig.add_subplot(gs_right[i]) for i in range(0, N_classes+1)] 
 
         epochs = range(0,len(history["acc_test"]))
-        ax_loss.plot(epochs, history["loss_train"], "o-", label="Training dataset")
-        ax_loss.plot(epochs, history["loss_test"], "o-", label="Testing dataset")
+        ax_loss.plot(epochs, history["loss_train"], "o-", label="Training dataset", ms=4, color="#1f77b4")
+        ax_loss.plot(epochs, history["loss_test"], "o-", label="Testing dataset", ms=4, color="#2ca02c")
         ax_loss.set_ylabel("Loss")
-        ltrain,=ax_acc.plot(epochs, history["acc_train"], "o-", label="Training dataset")
-        ltest, =ax_acc.plot(epochs, history["acc_test"], "o-", label="Testing dataset")
+        ax_loss.set_xlabel("Training epoch #")
+        ltrain,=ax_acc.plot(epochs, history["acc_train"], "o-", label="Training dataset", ms=4, color="#1f77b4")
+        ltest, =ax_acc.plot(epochs, history["acc_test"], "o-", label="Testing dataset", ms=4, color="#2ca02c")
         ax_acc.set_xlabel("Training epoch #")
         ax_acc.set_ylabel("Accuracy")
         ax_acc.set_ylim(top=1.01)
         ax_loss.legend()
-        ax_loss.set_xticks([1, int(cfg['training']['N_epochs']/2),cfg['training']['N_epochs']])
 
-        ax_acc.annotate("Final testing acc: %.1f%%" % (history["acc_test"][-1]*100), xy=(0.9,0.1), xycoords="axes fraction", ha="right", va="bottom", color=ltest.get_color())
-        ax_acc.annotate("Final training acc: %.1f%%" % (history["acc_train"][-1]*100), xy=(0.9,0.1), xytext=(0,10), textcoords="offset points",  xycoords="axes fraction", ha="right", va="bottom", color=ltrain.get_color())
+        ax_acc.annotate("%.1f%% testing set accuracy" % (history["acc_test"][-1]*100), xy=(0.1,0.1), xycoords="axes fraction", ha="left", va="bottom", color=ltest.get_color())
+        ax_acc.annotate("%.1f%% training set accuracy" % (history["acc_train"][-1]*100), xy=(0.1,0.1), xytext=(0,10), textcoords="offset points",  xycoords="axes fraction", ha="left", va="bottom", color=ltrain.get_color())
 
         viz.plot_structure(model, ax=ax_c, quantity='c', vowels=vowels, cbar=True)
-        ax_c.set_title("$b_0$: %.2f / $u_{th}$: %.2f / lr: %.0e" % (cfg['geom']['nonlinearity']['b0'], cfg['geom']['nonlinearity']['uth'], cfg['training']['lr']))
+        if not args.title_off:
+            ax_c.set_title("$b_0$: %.2f / $u_{th}$: %.2f / lr: %.0e" % (cfg['geom']['nonlinearity']['b0'], cfg['geom']['nonlinearity']['uth'], cfg['training']['lr']))
 
         viz.plot_confusion_matrix(cm_train, title="Training dataset", normalize=False, ax=ax_cm1, labels=vowels)
         viz.plot_confusion_matrix(cm_test, title="Testing dataset", normalize=False, ax=ax_cm2, labels=vowels)
@@ -228,9 +231,9 @@ class WaveTorch(object):
             with torch.no_grad():
                 field_dist = model(xb, probe_output=False)
                 probe_series = field_dist[0, :, model.px, model.py]
-                viz.plot_total_field(model, field_dist, yb, ax=ax_fields[1+yb.argmax().item()], cbar=True, cax=ax_fields[0], vmin=args.vmin)
+                viz.plot_total_field(model, field_dist, yb, ax=ax_fields[1+yb.argmax().item()], cbar=True, cax=ax_fields[0], vmin=args.vmin, vmax=args.vmax)
 
-        viz.apply_sublabels([ax_c, ax_loss, ax_acc, ax_cm1, ax_cm2] + ax_fields[1::], x=-25)
+        viz.apply_sublabels([ax_c, ax_loss, ax_acc, ax_cm1, ax_cm2] + ax_fields[1::], x=[-30, -35, -35, -35, -35, -15, -15, -15])
 
         plt.show()
         if args.fig is not None:
@@ -291,17 +294,37 @@ class WaveTorch(object):
         X = torch.nn.utils.rnn.pad_sequence(X, batch_first=True)
         Y = torch.nn.utils.rnn.pad_sequence(Y, batch_first=True)
         test_ds = TensorDataset(X, Y)  
-        fig, axs = plt.subplots(N_classes, N_classes, constrained_layout=True, figsize=(5.5,5.5), sharex=True, sharey=True)
+
+        fig, axs = plt.subplots(N_classes, N_classes+1, constrained_layout=True, figsize=(5.5*(N_classes+1)/N_classes,5.5), sharex=True, sharey=True)
 
         for xb, yb in DataLoader(test_ds, batch_size=1):
             with torch.no_grad():
+                i = yb.argmax().item()
+                ax = axs[i, 0]
+
                 field_dist = model(xb, probe_output=False)
                 probe_series = field_dist[0, :, model.px, model.py]
-                for j in range(0, probe_series.shape[1]):
-                    i = yb.argmax().item()
+
+                input_stft = np.abs(librosa.stft(xb.numpy().squeeze(), n_fft=256))
+
+                librosa.display.specshow(
+                    librosa.amplitude_to_db(input_stft,ref=np.max(input_stft)),
+                    sr=sr,
+                    vmax=0,
+                    ax=ax,
+                    vmin=-50,
+                    y_axis='linear',
+                    x_axis='time',
+                    cmap=plt.cm.inferno
+                )
+                ax.set_ylim([0,sr/2])
+                if i == 0:
+                    ax.set_title("input signal", weight="bold")
+
+                for j in range(1, probe_series.shape[1]+1):
                     ax = axs[i, j]
-                    input_stft = np.abs(librosa.stft(xb.numpy().squeeze(), n_fft=256))
-                    output_stft = np.abs(librosa.stft(probe_series[:,j].numpy(), n_fft=256))
+                    
+                    output_stft = np.abs(librosa.stft(probe_series[:,j-1].numpy(), n_fft=256))
 
                     librosa.display.specshow(
                         librosa.amplitude_to_db(output_stft,ref=np.max(input_stft)),
@@ -313,11 +336,11 @@ class WaveTorch(object):
                         x_axis='time',
                         cmap=plt.cm.inferno
                     )
-                    ax.set_ylim([0,sr/4])
+                    ax.set_ylim([0,sr/2])
 
                     if i == 0:
-                        ax.set_title("probe %d" % (j+1), weight="bold")
-                    if j == N_classes-1:
+                        ax.set_title("probe %d" % (j), weight="bold")
+                    if j == N_classes:
                         ax.text(1.05, 0.5, vowels[i], transform=ax.transAxes, ha="left", va="center", fontsize="large", rotation=-90, weight="bold")
                     
                     if j > 0:

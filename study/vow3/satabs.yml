@@ -1,5 +1,5 @@
 training:
-  prefix: vow3
+  prefix: satabs
   N_epochs: 20
   lr: 0.0004
   batch_size: 9
@@ -31,8 +31,9 @@ geom:
     p: 4.0
     max: 3.0
   nonlinearity:
-    b0: 0.0
-    uth: 1.0
+    cnl: 0.0
+    b0: 0.01
+    uth: 0.01
   binarization:
     beta: 100
     eta: 0.5

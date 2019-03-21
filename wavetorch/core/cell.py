@@ -9,7 +9,7 @@ class WaveCell(torch.nn.Module):
 
     def __init__(
             self, dt, Nx, Ny, src_x, src_y, px, py, 
-            nl_uth=1.0, nl_b0=0.0, eta=0.5, beta=100.0,
+            nl_c=0.0, nl_uth=1.0, nl_b0=0.0, eta=0.5, beta=100.0,
             pml_N=20, pml_p=4.0, pml_max=3.0, c0=1.0, c1=0.9,
             init_rand=True, design_region=None):
         super(WaveCell, self).__init__()
@@ -22,7 +22,10 @@ class WaveCell(torch.nn.Module):
         # Nonlinearity parameters
         self.register_buffer("nl_uth", torch.tensor(nl_uth))
         self.register_buffer("nl_b0", torch.tensor(nl_b0))
-        self.register_buffer("use_nonlinearity", torch.tensor(False if nl_b0 == 0 else True))
+        self.register_buffer("use_satabs_nonlinearity", torch.tensor(False if nl_b0 == 0 else True))
+
+        self.register_buffer("nl_c", torch.tensor(nl_c))
+        self.register_buffer("use_speed_nonlinearity", torch.tensor(False if nl_c == 0 else True))
 
         # Spatial domain dims
         self.register_buffer("Nx", torch.tensor(Nx))
@@ -91,13 +94,18 @@ class WaveCell(torch.nn.Module):
 
         return torch.sqrt( b_x**2 + b_y**2 )
 
-    def step(self, x, y1, y2, c, proj_rho):
+    def step(self, x, y1, y2, c_linear, proj_rho):
         dt = self.dt
 
-        if self.use_nonlinearity: # This should save us on unecessary backprop ops
+        if self.use_satabs_nonlinearity:
             b = self.b_boundary + proj_rho*sat_damp(y1, uth=self.nl_uth, b0=self.nl_b0)
         else:
             b = self.b_boundary
+
+        if self.use_speed_nonlinearity:
+            c = c_linear + proj_rho * self.nl_c * torch.abs(y1).pow(2)
+        else:
+            c = c_linear
 
         y = torch.mul((dt**(-2) + b * 0.5 * dt**(-1)).pow(-1),
                       (2/dt**2*y1 - torch.mul( (dt**(-2) - b * 0.5 * dt**(-1)), y2)
