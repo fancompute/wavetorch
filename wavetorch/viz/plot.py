@@ -15,25 +15,40 @@ from mpl_toolkits.axes_grid1.colorbar import colorbar
 
 import torch
 
-def plot_stft_spectrum(y, n_fft=512, block=False, ax=None, sr=None):
-    show=False
-    if ax is None:
-        fig, ax= plt.subplots(1, 1, constrained_layout=True, figsize=(4,3))
-        show = True
+def plot_stft_spectrum(y, n_fft=256, block=False, ax=None, sr=None):
+    N_classes = probe_series.shape[0]
+    for j in range(0, N_classes):
+        i = yb.argmax().item()
+        ax = axs[i, j]
+        input_stft = np.abs(librosa.stft(xb.numpy().squeeze(), n_fft=n_fft))
+        output_stft = np.abs(librosa.stft(probe_series[:,j].numpy(), n_fft=n_fft))
 
-    data_stft = np.abs(librosa.stft(y, n_fft=n_fft))
-    librosa.display.specshow(librosa.amplitude_to_db(data_stft, ref=np.max),
-                             y_axis='linear',
-                             x_axis='time',
-                             sr=sr, 
-                             ax=ax,
-                             cmap="cividis")
-    # plt.colorbar(h, format='%+2.0f dB', ax=ax)
-    if show:
-        plt.show(block=block)
+        librosa.display.specshow(
+            librosa.amplitude_to_db(output_stft,ref=np.max(input_stft)),
+            sr=sr,
+            vmax=0,
+            ax=ax,
+            vmin=-50,
+            y_axis='linear',
+            x_axis='time',
+            cmap=plt.cm.inferno
+        )
+        ax.set_ylim([0,sr/4])
+
+        if i == 0:
+            ax.set_title("probe %d" % (j+1), weight="bold")
+        if j == N_classes-1:
+            ax.text(1.05, 0.5, vowels[i], transform=ax.transAxes, ha="left", va="center", fontsize="large", rotation=-90, weight="bold")
+        
+        if j > 0:
+            ax.set_ylabel('')
+        if i < N_classes-1:
+            ax.set_xlabel('')
+        # if i == j:
+            # ax.text(0.5, 0.95, '%s at probe #%d' % (vowels[i], j+1), color="w", transform=ax.transAxes, ha="center", va="top", fontsize="large")
 
 
-def plot_total_field(model, yb, ylabel, block=False, ax=None, fig_width=4, cbar=True, cax=None, vmin=1e-3):
+def plot_total_field(model, yb, ylabel, block=False, ax=None, fig_width=4, cbar=True, cax=None, vmin=1e-3, vmax=1.0):
     with torch.no_grad():
         y_tot = torch.abs(yb).pow(2).sum(dim=1)
 
@@ -42,13 +57,17 @@ def plot_total_field(model, yb, ylabel, block=False, ax=None, fig_width=4, cbar=
 
         Z = y_tot[0,:,:].numpy().transpose()
         Z = Z / Z.max()
-        h = ax.imshow(Z, cmap=plt.cm.magma,  origin="bottom",  norm=mpl.colors.LogNorm(vmin=vmin, vmax=1.0))
+        h = ax.imshow(Z, cmap=plt.cm.magma,  origin="bottom",  norm=mpl.colors.LogNorm(vmin=vmin, vmax=vmax))
         if cbar:
             if cax is None:
                 ax_divider = make_axes_locatable(ax)
                 cax = ax_divider.append_axes("top", size="5%", pad="20%")
-            plt.colorbar(h, cax=cax, extend='min', orientation='horizontal')
-            cax.set_title(r"$\sum_n \vert u_n \vert^2$")
+            if vmax < 1.0:
+                extend='both'
+            else:
+                extend='min'
+            plt.colorbar(h, cax=cax, extend=extend, orientation='horizontal', label=r"$\sum_t \vert u_t \vert^2$")
+            # cax.set_title(r"$\sum_n \vert u_n \vert^2$")
         ax.contour(model.b_boundary.numpy().transpose()>0, levels=[0], colors=("w",), linestyles=("dotted"), alpha=0.75)
         for i in range(0, len(model.px)):
             if ylabel[0,i].item() == 1:
@@ -82,7 +101,7 @@ def plot_confusion_matrix(cm, ax=None, figsize=(4,4), title=None, normalize=Fals
     pal1 = sns.blend_palette(["#f7f7f7", "#d1e5f0", "#92c5de", "#4393c3", "#2166ac", "#053061"], as_cmap=True)
     pal2 = sns.blend_palette(["#f7f7f7", "#fddbc7", "#f4a582", "#d6604d", "#b2182b", "#67001f"], as_cmap=True)
 
-    sns.heatmap(cm,
+    sns.heatmap(cm.transpose(),
                 fmt=fmt,
                 annot=True,
                 cmap=pal2,
@@ -94,7 +113,7 @@ def plot_confusion_matrix(cm, ax=None, figsize=(4,4), title=None, normalize=Fals
                 yticklabels=labels,
                 square=True)
 
-    sns.heatmap(cm,
+    sns.heatmap(cm.transpose(),
                 fmt=fmt,
                 annot=True,
                 cmap=pal1,
@@ -108,8 +127,8 @@ def plot_confusion_matrix(cm, ax=None, figsize=(4,4), title=None, normalize=Fals
 
     for _, spine in ax.spines.items():
         spine.set_visible(True)
-    ax.set_ylabel('True label')
-    ax.set_xlabel('Predicted label')
+    ax.set_xlabel('Input vowel')
+    ax.set_ylabel('Predicted vowel')
 
     if title is not None:
         ax.set_title(title)
@@ -146,7 +165,7 @@ def plot_structure(model, ax=None, quantity='c', vowels=None, cbar=False):
 
     if cbar:
         ax_divider = make_axes_locatable(ax)
-        cax = ax_divider.append_axes("right", size="5%", pad="1%")
+        cax = ax_divider.append_axes("right", size="5%", pad="5%")
         plt.colorbar(h, cax=cax, orientation='vertical', label=r"$c{\left(x,y\right)}$")
     
     ax.contour(b_boundary>0, levels=[0], colors=("k",), linestyles=("dotted"), alpha=0.75)
@@ -206,7 +225,7 @@ def animate_fields(model, field_dist, ylabel, block=True, filename=None, interva
     else:
         plt.show(block=block)
 
-def apply_sublabels(axs, x=-50, y=0, size='medium', weight='bold', ha='right', va='top', prefix='', postfix='', invert_color_inds=[], bg=None):
+def apply_sublabels(axs, x=[-50], y=0, size='medium', weight='bold', ha='right', va='top', prefix='', postfix='', invert_color_inds=[], bg=None):
     '''
     Applys panel labels (a, b, c, ... ) in order to the axis handles stored in the list axs
     
@@ -214,6 +233,8 @@ def apply_sublabels(axs, x=-50, y=0, size='medium', weight='bold', ha='right', v
     
     invert_color_inds, specifies which labels should use white text, which is useful for darker pcolor plots
     '''
+
+    assert len(x) == len(axs), "Lengths must match"
     
     if bg is not None:
         bbox_props = dict(boxstyle="round,pad=0.1", fc=bg, ec="none", alpha=0.9)
@@ -233,7 +254,7 @@ def apply_sublabels(axs, x=-50, y=0, size='medium', weight='bold', ha='right', v
         
         ax.annotate(prefix + ascii_lowercase[n] + postfix,
                     xy=(0, 1),
-                    xytext=(x, y),
+                    xytext=(x[n], y),
                     xycoords='axes fraction',
                     textcoords='offset points',
                     size=size,
