@@ -1,7 +1,7 @@
 training:
-  prefix: vow3_small
-  N_epochs: 10
-  lr: 0.001
+  prefix: vow3_NL
+  N_epochs: 20
+  lr: 0.0004
   batch_size: 9
   max_samples: 162
   train_test_divide: 3
@@ -17,13 +17,13 @@ geom:
   use_design_region: true
   use_rand_init: false
   Nx: 140
-  Ny: 100
+  Ny: 140
   dt: 0.707
   c0: 1.00
   c1: 0.80
   px: 
   py: 
-  pd: 25
+  pd: 35
   src_x: 
   src_y:
   pml:
@@ -31,8 +31,8 @@ geom:
     p: 4.0
     max: 3.0
   nonlinearity:
-    b0: 0.0
-    uth: 1.0
+    b0: 0.01
+    uth: 0.01
   binarization:
     beta: 100
     eta: 0.5

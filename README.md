@@ -35,23 +35,30 @@ Please see [study/example.yml](study/example.yml) for an example of how to confi
 
 After issuing the above command, the model will be optimized and the progress will be printed to the screen. After training, the model will be saved to a file, along with the training history and all of the input arguments.
 
-### Inference
-The following command can be issued to load a previously saved model file:
-```
-%run -m wavetorch inference --name <PATH_TO_MODEL>
-```
-Alternatively, training can be performed directly from the command line by issuing the command
-```
-python -i -m wavetorch inference --name <PATH_TO_MODEL>
-```
+### Results
 
-Adding the `--summary` option will display a summary of the trained model.
+#### Summary
+Through ipython, the following command can be issued to load a saved model file and display a summary:
+```
+%run -m wavetorch summary <PATH_TO_MODEL>
+```
+Directly from the command line the same result can be achieved:
+```
+python -i -m wavetorch summary <PATH_TO_MODEL>
+```
+The summary will look something like the following:
 
-Adding the `--stft` option will display a matrix of short time Fourier transforms of the received signal, where the row corresponds to an input vowel and the column corresponds to a particular probe (matching the confusion matrix distribution), like so:
+![](../master/img/summary.png)
+
+#### STFT (short-time Fourier transform)
+
+The `wavetorch stft` mode will display a matrix of short time Fourier transforms of the received signal, where the row corresponds to an input vowel and the column corresponds to a particular probe (matching the confusion matrix distribution), like so:
 
 ![](../master/img/stft.png)
 
-Adding the `--fields` option will display an integrated field distribution for the vowel classes, like so:
+#### Fields
+
+The `wavetorch fields` mode will display an integrated field distribution for the vowel classes, like so:
 
 ![](../master/img/fields.png)
 

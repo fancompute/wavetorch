@@ -1,7 +1,7 @@
 training:
   prefix: vow3
-  N_epochs: 10
-  lr: 0.001
+  N_epochs: 20
+  lr: 0.0004
   batch_size: 9
   max_samples: 162
   train_test_divide: 3
@@ -16,14 +16,14 @@ data:
 geom:
   use_design_region: true
   use_rand_init: false
-  Nx: 220
-  Ny: 180
+  Nx: 140
+  Ny: 140
   dt: 0.707
   c0: 1.00
-  c1: 0.85
+  c1: 0.80
   px: 
   py: 
-  pd: 40
+  pd: 35
   src_x: 
   src_y:
   pml:

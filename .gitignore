@@ -1,3 +1,4 @@
+*.png
 *.swp
 Rakefile
 .DS_Store
