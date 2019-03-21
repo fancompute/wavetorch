@@ -158,8 +158,7 @@ class WaveTorch(object):
 
             if cfg['training']['use_cross_validation']:
                 # If we are doing cross validation, then save this model's iteration
-                args.name += "_cv_" + str(num)
-                core.save_model(model, args.name, args.savedir, history, cfg, cm_train, cm_test)
+                core.save_model(model, args.name + "_cv" + str(num), args.savedir, history, cfg, cm_train, cm_test)
                 num += 1
             else:
                 # If not doing cross validation, save and finish
