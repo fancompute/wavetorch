@@ -103,7 +103,7 @@ class WaveCell(torch.nn.Module):
             b = self.b_boundary
 
         if self.use_speed_nonlinearity:
-            c = c_linear + proj_rho * self.c_nl * torch.abs(y1).pow(2)
+            c = c_linear + proj_rho * self.nl_c * torch.abs(y1).pow(2)
         else:
             c = c_linear
 
