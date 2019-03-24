@@ -109,7 +109,7 @@ class WaveTorch(object):
         history = None
         history_model_state = []
         for num, (train_index, test_index) in enumerate(skf.split(np.zeros(len(samps)), samps)):
-            if cfg['training']['use_cross_validation']: print("Cross Validation Fold %2d/%2d" % (num, cfg['training']['train_test_divide']))
+            if cfg['training']['use_cross_validation']: print("Cross Validation Fold %2d/%2d" % (num+1, cfg['training']['train_test_divide']))
 
             x_train = torch.nn.utils.rnn.pad_sequence([X[i] for i in train_index], batch_first=True)
             x_test = torch.nn.utils.rnn.pad_sequence([X[i] for i in test_index], batch_first=True)
