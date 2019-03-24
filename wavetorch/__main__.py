@@ -13,6 +13,8 @@ from torch.nn.functional import pad
 
 from sklearn.model_selection import StratifiedKFold
 
+import pandas as pd
+
 import librosa
 import librosa.display
 
@@ -84,6 +86,13 @@ class WaveTorch(object):
              cfg = yaml.load(ymlfile)
              print(yaml.dump(cfg, default_flow_style=False))
 
+        if args.name is None:
+            args.name = time.strftime('%Y%m%d%H%M%S')
+        if cfg['training']['prefix'] is not None:
+            args.name = cfg['training']['prefix'] + '_' + args.name
+        if cfg['training']['use_cross_validation']:
+            args.name += "_cv"
+
         N_classes = len(cfg['data']['vowels'])
 
         X, Y = data.load_all_vowels(
@@ -96,9 +105,11 @@ class WaveTorch(object):
 
         skf = StratifiedKFold(n_splits=cfg['training']['train_test_divide'], random_state=None, shuffle=True)
         samps = [y.argmax().item() for y in Y]
-        num = 1
-        for train_index, test_index in skf.split(np.zeros(len(samps)), samps):
-            if cfg['training']['use_cross_validation']: print("Cross validation fold #%d" % num)
+
+        history = None
+        history_model_state = []
+        for num, (train_index, test_index) in enumerate(skf.split(np.zeros(len(samps)), samps)):
+            if cfg['training']['use_cross_validation']: print("Cross Validation Fold %2d/%2d" % (num, cfg['training']['train_test_divide']))
 
             x_train = torch.nn.utils.rnn.pad_sequence([X[i] for i in train_index], batch_first=True)
             x_test = torch.nn.utils.rnn.pad_sequence([X[i] for i in test_index], batch_first=True)
@@ -142,38 +153,34 @@ class WaveTorch(object):
                         )
             model.to(args.dev)
 
-            model.eval()
-            cm_test0  = core.calc_cm(model, test_dl)
-            cm_train0 = core.calc_cm(model, train_dl)
-
             ### Train
             optimizer = torch.optim.Adam(model.parameters(), lr=cfg['training']['lr'])
             criterion = torch.nn.CrossEntropyLoss()
-            model.train()
-            history   = core.train(model, optimizer, criterion, train_dl, test_dl, cfg['training']['N_epochs'], cfg['training']['batch_size'])
             
-            ### Print confusion matrix
-            model.eval()
-            cm_test  = core.calc_cm(model, test_dl)
-            cm_train = core.calc_cm(model, train_dl)
+            model.train()
 
-            ### Save model and results
-            if args.name is None:
-                args.name = time.strftime("%Y_%m_%d-%H_%M_%S")
-            if cfg['training']['prefix'] is not None:
-                args.name = cfg['training']['prefix'] + '_' + args.name
+            history, history_model_state = core.train(
+                                                model,
+                                                optimizer,
+                                                criterion, 
+                                                train_dl, 
+                                                test_dl, 
+                                                cfg['training']['N_epochs'], 
+                                                cfg['training']['batch_size'], 
+                                                history=history,
+                                                history_model_state=history_model_state,
+                                                fold=num if cfg['training']['use_cross_validation'] else None,
+                                                name=args.name,
+                                                savedir=args.savedir,
+                                                cfg=cfg)
+            
+            core.save_model(model, args.name, args.savedir, history, history_model_state, cfg)
 
-            if cfg['training']['use_cross_validation']:
-                # If we are doing cross validation, then save this model's iteration
-                core.save_model(model, args.name + "_cv" + str(num), args.savedir, history, cfg, cm_train, cm_test, cm_train0, cm_test0)
-                num += 1
-            else:
-                # If not doing cross validation, save and finish
-                core.save_model(model, args.name, args.savedir, history, cfg, cm_train, cm_test, cm_train0, cm_test0)
+            if not cfg['training']['use_cross_validation']:
                 break
 
     def summary(self, args):
-        model, history, cfg, cm_train, cm_test, cm_train0, cm_test0 = core.load_model(args.filename)
+        model, history, history_model_state, cfg, cm_train, cm_test, cm_train0, cm_test0 = core.load_model(args.filename)
 
         print("Configuration for model in %s is:" % args.filename)
         print(yaml.dump(cfg, default_flow_style=False))
@@ -199,20 +206,21 @@ class WaveTorch(object):
 
         ax_fields = [fig.add_subplot(gs_right[i]) for i in range(0, N_classes+1)] 
 
-        epochs = range(0,len(history["acc_test"]))
-        ax_loss.plot(epochs, history["loss_train"], "o-", label="Training dataset", ms=4, color="#1f77b4")
-        ax_loss.plot(epochs, history["loss_test"], "o-", label="Testing dataset", ms=4, color="#2ca02c")
+        # history.plot(x='epoch', y='loss_train', label="Training dataset", ms=4, color="#1f77b4", ax=ax_loss)
+        # history.plot(x='epoch', y='loss_test', label="Testing dataset", ms=4, color="#2ca02c", ax=ax_loss)
+        ax_loss.plot(history['loss_train'].values, "o-", label="Training dataset", ms=4, color="#1f77b4")
+        ax_loss.plot(history['loss_test'].values, "o-", label="Testing dataset", ms=4, color="#2ca02c")
         ax_loss.set_ylabel("Loss")
         ax_loss.set_xlabel("Training epoch #")
-        ltrain,=ax_acc.plot(epochs, history["acc_train"], "o-", label="Training dataset", ms=4, color="#1f77b4")
-        ltest, =ax_acc.plot(epochs, history["acc_test"], "o-", label="Testing dataset", ms=4, color="#2ca02c")
+        ltrain,=ax_acc.plot(history["acc_train"].values, "o-", label="Training dataset", ms=4, color="#1f77b4")
+        ltest, =ax_acc.plot(history["acc_test"].values, "o-", label="Testing dataset", ms=4, color="#2ca02c")
         ax_acc.set_xlabel("Training epoch #")
         ax_acc.set_ylabel("Accuracy")
         ax_acc.set_ylim(top=1.01)
         ax_loss.legend()
 
-        ax_acc.annotate("%.1f%% testing set accuracy" % (history["acc_test"][-1]*100), xy=(0.1,0.1), xycoords="axes fraction", ha="left", va="bottom", color=ltest.get_color())
-        ax_acc.annotate("%.1f%% training set accuracy" % (history["acc_train"][-1]*100), xy=(0.1,0.1), xytext=(0,10), textcoords="offset points",  xycoords="axes fraction", ha="left", va="bottom", color=ltrain.get_color())
+        ax_acc.annotate("%.1f%% testing set accuracy" % (history['acc_test'].tail(1).item()*100), xy=(0.1,0.1), xycoords="axes fraction", ha="left", va="bottom", color=ltest.get_color())
+        ax_acc.annotate("%.1f%% training set accuracy" % (history['acc_train'].tail(1).item()*100), xy=(0.1,0.1), xytext=(0,10), textcoords="offset points",  xycoords="axes fraction", ha="left", va="bottom", color=ltrain.get_color())
 
         viz.plot_structure(model, ax=ax_c, quantity='c', vowels=vowels, cbar=True)
         if not args.title_off:

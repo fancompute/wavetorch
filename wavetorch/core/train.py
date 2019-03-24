@@ -3,29 +3,25 @@ from torch.nn.functional import conv2d
 from torch import tanh
 import time
 import numpy as np
-from .utils import accuracy
+from .utils import accuracy, save_model
+
+from sklearn.metrics import confusion_matrix
+
+import pandas as pd
 
 import copy
 
-def train(model, optimizer, criterion, train_dl, test_dl, N_epochs, batch_size):
-    
-    history = {"loss_iter": [],
-               "loss_train": [],
-               "loss_test": [],
-               "acc_train": [],
-               "acc_test": [],
-               "model_state": []}
+def train(model, optimizer, criterion, train_dl, test_dl, N_epochs, batch_size, history=None, history_model_state=[], fold=None, name=None, savedir=None, cfg=None):
+
+    if history is None:
+        history = pd.DataFrame(columns=['time', 'epoch', 'fold', 'loss_train', 'loss_test', 'acc_train', 'acc_test', 'cm_train', 'cm_test'])
 
     t_start = time.time()
     for epoch in range(0, N_epochs + 1):
         t_epoch = time.time()
-        print('Epoch: %2d/%2d' % (epoch, N_epochs))
 
-        if epoch == 0:
-            print(" ... NOTE: We only characterize the starting structure on epoch 0 (no optimizer step is taken)")
-
-        num = 1
-        for xb, yb in train_dl:
+        loss_iter = []
+        for num, (xb, yb) in enumerate(train_dl):
             def closure():
                 optimizer.zero_grad()
                 loss = criterion(model(xb), yb.argmax(dim=1))
@@ -39,42 +35,57 @@ def train(model, optimizer, criterion, train_dl, test_dl, N_epochs, batch_size):
                 loss = optimizer.step(closure)
                 model.clip_to_design_region()
 
-            history["loss_iter"].append(loss.item())
-            
-            print(" ... Training batch   %2d/%2d   |   loss = %.3e" % (num, len(train_dl), history["loss_iter"][-1]))
-            num += 1
+            loss_iter.append(loss.item())
 
-        history["loss_train"].append( np.mean(history["loss_iter"][-batch_size:]) )
-
-        print(" ... Computing accuracies ")
         with torch.no_grad():
-            acc_tmp = []
-            num = 1
-            for xb, yb in train_dl:
-                acc_tmp.append( accuracy(model(xb), yb.argmax(dim=1)) )
-                print(" ... Training %2d/%2d " % (num, len(train_dl)))
-                num += 1
+            acc_train_tmp = []
 
-            history["acc_train"].append( np.mean(acc_tmp) )
+            list_yb_pred = []
+            list_yb = []
+            for num, (xb, yb) in enumerate(train_dl):
+                yb_pred = model(xb)
+                list_yb_pred.append(yb_pred)
+                list_yb.append(yb)
+                acc_train_tmp.append( accuracy(yb_pred, yb.argmax(dim=1)) )
 
-            acc_tmp = []
-            loss_tmp = []
-            num = 1
-            for xb, yb in test_dl:
-                pred = model(xb)
-                loss_tmp.append( criterion(pred, yb.argmax(dim=1)) )
-                acc_tmp.append( accuracy(pred, yb.argmax(dim=1)) )
-                print(" ... Testing  %2d/%2d " % (num, len(test_dl)))
-                num += 1
+            y_pred = torch.cat(list_yb_pred, dim=0)
+            y_truth = torch.cat(list_yb, dim=0)
+            cm_train = confusion_matrix(y_truth.argmax(dim=1).numpy(), y_pred.argmax(dim=1).numpy())
 
-        history["loss_test"].append( np.mean(loss_tmp) )
-        history["acc_test"].append( np.mean(acc_tmp) )
-        history["model_state"].append( copy.deepcopy(model.state_dict()) )
+            acc_test_tmp = []
+            loss_test_tmp = []
+            list_yb_pred = []
+            list_yb = []
+            for num, (xb, yb) in enumerate(test_dl):
+                yb_pred = model(xb)
+                list_yb_pred.append(yb_pred)
+                list_yb.append(yb)
+                loss_test_tmp.append( criterion(yb_pred, yb.argmax(dim=1)) )
+                acc_test_tmp.append( accuracy(yb_pred, yb.argmax(dim=1)) )
 
-        print(" ... ")
-        print(' ... elapsed time: %4.1f sec   |   loss = %.4e (train) / %.4e (test)   accuracy = %.4f (train) / %.4f (test) \n' % 
-                (time.time()-t_epoch, history["loss_train"][-1], history["loss_test"][-1], history["acc_train"][-1], history["acc_test"][-1]))
+            y_pred = torch.cat(list_yb_pred, dim=0)
+            y_truth = torch.cat(list_yb, dim=0)
+            cm_test = confusion_matrix(y_truth.argmax(dim=1).numpy(), y_pred.argmax(dim=1).numpy())
 
-    print('Total time: %.1f min\n' % ((time.time()-t_start)/60))
+        print('Epoch %2d/%2d --- Elapsed Time:  %4.2f min | Training Loss:  %.4e | Testing Loss:  %.4e | Training Accuracy:  %.4f | Testing Accuracy:  %.4f' % 
+                (epoch, N_epochs, (time.time()-t_epoch)/60, np.mean(loss_iter), np.mean(loss_test_tmp), np.mean(acc_train_tmp), np.mean(acc_test_tmp)))
 
-    return history
+        history = history.append({'time': pd.to_datetime('now'),
+                                  'epoch': epoch,
+                                  'fold': fold,
+                                  'loss_train': np.mean(loss_iter),
+                                  'loss_test': np.mean(loss_test_tmp),
+                                  'acc_train': np.mean(acc_train_tmp),
+                                  'acc_test': np.mean(acc_test_tmp),
+                                  'cm_train': cm_train,
+                                  'cm_test': cm_test},
+                                  ignore_index=True)
+
+        history_model_state.append( copy.deepcopy(model.state_dict()) )
+
+        if name is not None:
+            save_model(model, name, savedir, history, history_model_state, cfg, verbose=False)
+
+    print('Total Time: %.2f min\n' % ((time.time()-t_start)/60))
+
+    return history, history_model_state

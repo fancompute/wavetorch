@@ -10,19 +10,17 @@ import time
 import os
 import socket
 
-def save_model(model, name, savedir='./study/', history=None, args=None, cm_train=None, cm_test=None, cm_train0=None, cm_test0=None):
+def save_model(model, name, savedir='./study/', history=None, history_model_state=None, cfg=None, verbose=True):
     str_filename = name +  '.pt'
     if not os.path.exists(savedir):
         os.makedirs(savedir)
     str_savepath = savedir + str_filename
     data = {"model_state": model.state_dict(),
             "history": history,
-            "args": args,
-            "cm_train": cm_train,
-            "cm_test": cm_test,
-            "cm_train0": cm_train0,
-            "cm_test0": cm_test0}
-    print("Saving model to %s" % str_savepath)
+            "history_model_state": history_model_state,
+            "cfg": cfg}
+    if verbose:
+        print("Saving model to %s" % str_savepath)
     torch.save(data, str_savepath)
 
 
@@ -40,7 +38,7 @@ def load_model(str_filename):
                      model_state['py'].numpy())
     model.load_state_dict(model_state)
     model.eval()
-    return model, data["history"], data["args"], data["cm_train"], data["cm_test"], data["cm_train0"], data["cm_test0"]
+    return model, data["history"], data["history_model_state"], data["cfg"]
 
 
 def accuracy(out, yb):
