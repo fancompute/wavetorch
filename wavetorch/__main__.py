@@ -210,7 +210,8 @@ class WaveTorch(object):
 
         viz.plot_structure(model, ax=ax_c, quantity='c', vowels=vowels, cbar=True)
         if not args.title_off:
-            ax_c.set_title("$b_0$: %.2f / $u_{th}$: %.2f / lr: %.0e" % (cfg['geom']['nonlinearity']['b0'], cfg['geom']['nonlinearity']['uth'], cfg['training']['lr']))
+            ax_c.annotate("$c_{nl}$ = %.2f \n $b_0$ = %.2f \n $u_{th}$ = %.2f \n lr = %.0e" % (cfg['geom']['nonlinearity']['cnl'], cfg['geom']['nonlinearity']['b0'], cfg['geom']['nonlinearity']['uth'], cfg['training']['lr']),
+                            xy=(0,0), xytext=(-75,0), xycoords="axes points", textcoords="offset points", ha="left", va="bottom")
 
         viz.plot_confusion_matrix(cm_train, title="Training dataset", normalize=False, ax=ax_cm1, labels=vowels)
         viz.plot_confusion_matrix(cm_test, title="Testing dataset", normalize=False, ax=ax_cm2, labels=vowels)
