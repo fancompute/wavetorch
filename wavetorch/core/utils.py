@@ -10,34 +10,37 @@ import time
 import os
 import socket
 
-def save_model(model, name, savedir='./study/', history=None, args=None, cm_train=None, cm_test=None):
+def save_model(model, name, savedir='./study/', history=None, args=None, cm_train=None, cm_test=None, cm_train0=None, cm_test0=None):
     str_filename = name +  '.pt'
     if not os.path.exists(savedir):
         os.makedirs(savedir)
     str_savepath = savedir + str_filename
-    dsave = {"model_state": model.state_dict(),
-             "history": history,
-             "args": args,
-             "cm_train": cm_train,
-             "cm_test": cm_test}
+    data = {"model_state": model.state_dict(),
+            "history": history,
+            "args": args,
+            "cm_train": cm_train,
+            "cm_test": cm_test,
+            "cm_train0": cm_train0,
+            "cm_test0": cm_test0}
     print("Saving model to %s" % str_savepath)
-    torch.save(dsave, str_savepath)
+    torch.save(data, str_savepath)
 
 
 def load_model(str_filename):
     from .cell import WaveCell
     print("Loading model from %s" % str_filename)
-    dload = torch.load(str_filename)
-    model = WaveCell(dload['model_state']['dt'].numpy(),
-                     dload['model_state']['Nx'].numpy(), 
-                     dload['model_state']['Ny'].numpy(), 
-                     dload['model_state']['src_x'].numpy(), 
-                     dload['model_state']['src_y'].numpy(), 
-                     dload['model_state']['px'].numpy(), 
-                     dload['model_state']['py'].numpy())
-    model.load_state_dict(dload['model_state'])
+    data = torch.load(str_filename)
+    model_state = data['model_state']
+    model = WaveCell(model_state['dt'].numpy(),
+                     model_state['Nx'].numpy(), 
+                     model_state['Ny'].numpy(), 
+                     model_state['src_x'].numpy(), 
+                     model_state['src_y'].numpy(), 
+                     model_state['px'].numpy(), 
+                     model_state['py'].numpy())
+    model.load_state_dict(model_state)
     model.eval()
-    return model, dload["history"], dload["args"], dload["cm_train"], dload["cm_test"]
+    return model, data["history"], data["args"], data["cm_train"], data["cm_test"], data["cm_train0"], data["cm_test0"]
 
 
 def accuracy(out, yb):

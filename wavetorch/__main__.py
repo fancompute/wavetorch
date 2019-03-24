@@ -142,12 +142,18 @@ class WaveTorch(object):
                         )
             model.to(args.dev)
 
+            model.eval()
+            cm_test0  = core.calc_cm(model, test_dl)
+            cm_train0 = core.calc_cm(model, train_dl)
+
             ### Train
             optimizer = torch.optim.Adam(model.parameters(), lr=cfg['training']['lr'])
             criterion = torch.nn.CrossEntropyLoss()
+            model.train()
             history   = core.train(model, optimizer, criterion, train_dl, test_dl, cfg['training']['N_epochs'], cfg['training']['batch_size'])
             
             ### Print confusion matrix
+            model.eval()
             cm_test  = core.calc_cm(model, test_dl)
             cm_train = core.calc_cm(model, train_dl)
 
@@ -159,15 +165,15 @@ class WaveTorch(object):
 
             if cfg['training']['use_cross_validation']:
                 # If we are doing cross validation, then save this model's iteration
-                core.save_model(model, args.name + "_cv" + str(num), args.savedir, history, cfg, cm_train, cm_test)
+                core.save_model(model, args.name + "_cv" + str(num), args.savedir, history, cfg, cm_train, cm_test, cm_train0, cm_test0)
                 num += 1
             else:
                 # If not doing cross validation, save and finish
-                core.save_model(model, args.name, args.savedir, history, cfg, cm_train, cm_test)
+                core.save_model(model, args.name, args.savedir, history, cfg, cm_train, cm_test, cm_train0, cm_test0)
                 break
 
     def summary(self, args):
-        model, history, cfg, cm_train, cm_test = core.load_model(args.filename)
+        model, history, cfg, cm_train, cm_test, cm_train0, cm_test0 = core.load_model(args.filename)
 
         print("Configuration for model in %s is:" % args.filename)
         print(yaml.dump(cfg, default_flow_style=False))
@@ -243,7 +249,7 @@ class WaveTorch(object):
             fig.savefig(os.path.splitext(args.filename)[0]+"_summary.png", dpi=300)
 
     def fields(self, args):
-        model, history, cfg, cm_train, cm_test = core.load_model(args.filename)
+        model, history, cfg, cm_train, cm_test, cm_train0, cm_test0 = core.load_model(args.filename)
 
         print("Configuration for model in %s is:" % args.filename)
         print(yaml.dump(cfg, default_flow_style=False))
@@ -275,7 +281,7 @@ class WaveTorch(object):
         fig.savefig(os.path.splitext(args.filename)[0]+"_fields.png", dpi=300)
 
     def stft(self, args):
-        model, history, cfg, cm_train, cm_test = core.load_model(args.filename)
+        model, history, cfg, cm_train, cm_test, cm_train0, cm_test0 = core.load_model(args.filename)
 
         print("Configuration for model in %s is:" % args.filename)
         print(yaml.dump(cfg, default_flow_style=False))
@@ -353,7 +359,7 @@ class WaveTorch(object):
         plt.show()
 
     def animate(self, args):
-        model, history, cfg, cm_train, cm_test = core.load_model(args.filename)
+        model, history, cfg, cm_train, cm_test, cm_train0, cm_test0 = core.load_model(args.filename)
 
         print("Configuration for model in %s is:" % args.filename)
         print(yaml.dump(cfg, default_flow_style=False))
