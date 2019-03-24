@@ -109,7 +109,7 @@ class WaveTorch(object):
         history = None
         history_model_state = []
         for num, (train_index, test_index) in enumerate(skf.split(np.zeros(len(samps)), samps)):
-            if cfg['training']['use_cross_validation']: print("Cross Validation Fold %2d/%2d" % (num, cfg['training']['train_test_divide']))
+            if cfg['training']['use_cross_validation']: print("Cross Validation Fold %2d/%2d" % (num+1, cfg['training']['train_test_divide']))
 
             x_train = torch.nn.utils.rnn.pad_sequence([X[i] for i in train_index], batch_first=True)
             x_test = torch.nn.utils.rnn.pad_sequence([X[i] for i in test_index], batch_first=True)
@@ -169,7 +169,7 @@ class WaveTorch(object):
                                                 cfg['training']['batch_size'], 
                                                 history=history,
                                                 history_model_state=history_model_state,
-                                                fold=num if cfg['training']['use_cross_validation'] else None,
+                                                fold=num if cfg['training']['use_cross_validation'] else -1,
                                                 name=args.name,
                                                 savedir=args.savedir,
                                                 cfg=cfg)
@@ -180,7 +180,7 @@ class WaveTorch(object):
                 break
 
     def summary(self, args):
-        model, history, history_model_state, cfg, cm_train, cm_test, cm_train0, cm_test0 = core.load_model(args.filename)
+        model, history, history_model_state, cfg = core.load_model(args.filename)
 
         print("Configuration for model in %s is:" % args.filename)
         print(yaml.dump(cfg, default_flow_style=False))
