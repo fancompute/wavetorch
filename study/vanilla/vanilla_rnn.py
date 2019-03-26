@@ -51,11 +51,13 @@ class CustomRNN(nn.Module):
         ys = torch.stack(ys, dim=1)
         return ys
 
-    def compute_acc(self, x, y):
-        y_pred = self.forward(x)
-        y_norm = norm_int_y(y_pred)
-        return accuracy(y_norm, y.argmax(dim=1))
-
+def compute_acc(model, elements_set):
+    acc_tmp = []
+    num = 1
+    for xb, yb in elements_set:
+        y_ = norm_int_y(model(xb))
+        acc_tmp.append(accuracy(y_, yb.argmax(dim=1)))
+    return np.mean(np.array(acc_tmp))
 
 def norm_int_y(y, scale=50):
     # Input dim: [N_batch, T, N_classes]
@@ -65,7 +67,7 @@ def norm_int_y(y, scale=50):
     y_int = torch.sum(torch.pow(torch.abs(y), 2), dim=1)
     return y_int / torch.sum(y_int, dim=1, keepdim=True)  
 
-def save_model(model, name, savedir='./study/vanilla/', history=None, args=None):
+def save_model(model, name, savedir='./study/vanilla/data/', history=None, args=None):
     str_filename = name +  '.pt'
     if not os.path.exists(savedir):
         os.makedirs(savedir)
@@ -85,7 +87,7 @@ def main(args):
                             help='Config file to use')
     argparser.add_argument('--name', type=str, default=None,
                             help='Name to use when saving or loading the model file. If not specified when saving a time and date stamp is used')
-    argparser.add_argument('--savedir', type=str, default='./study/vanilla/',
+    argparser.add_argument('--savedir', type=str, default='./study/vanilla/data/',
                             help='Directory in which the model file is saved. Defaults to ./study/')
     args = argparser.parse_args(args)
 
@@ -157,9 +159,8 @@ def main(args):
         model = CustomRNN(1, N_classes, cfg['rnn']['N_hidden'], W_scale=cfg['rnn']['W_scale'], f_hidden=cfg['rnn']['f_hidden'])
         model.to(args.dev)
 
-        # Print the starting training set accuracy
-        print("Initial accuracy - train: {:.2f} %, test: {:.2f} %".format(
-            model.compute_acc(x_train, y_train), model.compute_acc(x_test, y_test)))
+        # Print the total number of parameters in the model
+        print("Total number of parameters in model: %d" % sum(p.numel() for p in model.parameters()))
 
         # # Output of the model is dim [N_train, T, N_classes]
         # y_pred = model(x_train)
@@ -191,7 +192,7 @@ def main(args):
                 y = model(xb)
                 y_ = norm_int_y(y)
                 loss = criterion(y_, torch.max(yb, 1)[1])
-                history['loss_iter'].append(loss)
+                history['loss_iter'].append(loss.item())
                 loss.backward()
                 if cfg['rnn']['grad_clip'] is not None:
                     clip_grad(model.parameters(), cfg['rnn']['grad_clip'], norm_type=1)
@@ -200,9 +201,8 @@ def main(args):
             if epoch % disp_step == 0 or epoch == 1:
                 with torch.no_grad():
                     tep = time.time()-t_epoch
-                    with torch.no_grad():
-                        acc_train = model.compute_acc(x_train, y_train)
-                        acc_test = model.compute_acc(x_test, y_test)
+                    acc_train = compute_acc(model, train_dl)
+                    acc_test = compute_acc(model, test_dl)
                     print('Epoch: %d/%d %d%%  | Time for last epoch %.1f sec  |  L = %.3e' 
                         % (epoch, N_epochs, epoch/N_epochs*100, tep, loss))
                     print('Training accuracy: %.2f | Testing accuracy: %.2f' 
@@ -215,7 +215,7 @@ def main(args):
 
         # Print the final training set accuracy
         with torch.no_grad():
-            (acc_final_train, acc_final_test) = (model.compute_acc(x_train, y_train), model.compute_acc(x_test, y_test))
+            (acc_final_train, acc_final_test) = (compute_acc(model, train_dl), compute_acc(model, test_dl))
             history['acc_train'].append(acc_final_train)
             history['acc_test'].append(acc_final_test)
             history['acc_epoch'].append(N_epochs)  

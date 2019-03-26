@@ -15,7 +15,7 @@ params = {'gender': ['men', 'both'],
 			}
 
 # We'll print results to file so that we can access later
-out_file = './study/vanilla/script_results_3vowels.txt'
+out_file = './study/vanilla/results_3vowels_nocv.txt'
 
 # Temp file we'll use do define configurations
 temp_file = './study/vanilla/temp.yml'
