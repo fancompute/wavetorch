@@ -16,7 +16,7 @@ params = {	'f_hidden': ['', 'leaky_relu', 'tanh'],
 			}
 
 # We'll print results to file so that we can access later
-out_file = './study/vanilla/results_3vowels_nocv_both_gradclip1.txt'
+out_file = './study/vanilla/results_3vowels_nocv_both_gradclip10_tinylr.txt'
 
 # Temp file we'll use do define configurations
 temp_file = './study/vanilla/temp.yml'

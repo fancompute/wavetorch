@@ -12,7 +12,7 @@ from torch.nn.utils.clip_grad import clip_grad_norm_ as clip_grad
 
 from sklearn.model_selection import StratifiedKFold
 
-from wavetorch.data import load_selected_vowels, load_all_vowels
+from wavetorch.data import load_all_vowels
 from wavetorch.core.utils import accuracy
 
 import numpy as np

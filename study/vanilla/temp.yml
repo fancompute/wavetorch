@@ -7,7 +7,7 @@ training:
   # Number of training epochs
   N_epochs: 400
   # Optimizer learning rate
-  lr: 0.00001    
+  lr: 0.000002    
   # Batch size     
   batch_size: 9
   # Total size of samples 
@@ -35,10 +35,10 @@ rnn:
   N_hidden: 70
   # Hidden-to-hidden activation function, can be anything from torch.nn.functional, 
   # e.g. relu, leaky_relu or logsigmoid, or None for linear
-  f_hidden: tanh
+  f_hidden: 
   # Scale for initializing the W-matrices
   W_scale: 0.2
   # L2 regularization 
   L2_reg: 0.0001 
   # Gradient clipping. Maximum absolute value of the gradient, or None
-  grad_clip: 1
+  grad_clip: 10
