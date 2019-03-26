@@ -24,6 +24,10 @@ from . import viz
 
 import os
 
+
+COL_TRAIN = "#1f77b4"
+COL_TEST  = "#2ca02c"
+
 parser = argparse.ArgumentParser() 
 subargs = parser.add_subparsers(prog='wavetorch', title="commands", dest="command") 
 
@@ -180,7 +184,7 @@ class WaveTorch(object):
                 break
 
     def summary(self, args):
-        model, history, history_model_state, cfg = core.load_model(args.filename)
+        model, history, history_state, cfg = core.load_model(args.filename)
 
         print("Configuration for model in %s is:" % args.filename)
         print(yaml.dump(cfg, default_flow_style=False))
@@ -206,27 +210,46 @@ class WaveTorch(object):
 
         ax_fields = [fig.add_subplot(gs_right[i]) for i in range(0, N_classes+1)] 
 
-        # history.plot(x='epoch', y='loss_train', label="Training dataset", ms=4, color="#1f77b4", ax=ax_loss)
-        # history.plot(x='epoch', y='loss_test', label="Testing dataset", ms=4, color="#2ca02c", ax=ax_loss)
-        ax_loss.plot(history['loss_train'].values, "o-", label="Training dataset", ms=4, color="#1f77b4")
-        ax_loss.plot(history['loss_test'].values, "o-", label="Testing dataset", ms=4, color="#2ca02c")
-        ax_loss.set_ylabel("Loss")
-        ax_loss.set_xlabel("Training epoch #")
-        ltrain,=ax_acc.plot(history["acc_train"].values, "o-", label="Training dataset", ms=4, color="#1f77b4")
-        ltest, =ax_acc.plot(history["acc_test"].values, "o-", label="Testing dataset", ms=4, color="#2ca02c")
-        ax_acc.set_xlabel("Training epoch #")
-        ax_acc.set_ylabel("Accuracy")
+        history_mean = history.groupby('epoch').mean()
+        history_std  = history.groupby('epoch').std()
+
+        epochs = history_mean.index.values
+
+        ax_loss.fill_between(epochs,
+                             history_mean['loss_train'].values-history_std['loss_train'].values,
+                             history_mean['loss_train'].values+history_std['loss_train'].values, color=COL_TRAIN, alpha=0.15)
+        ax_loss.plot(epochs, history_mean['loss_train'].values, "o-", label="Training dataset", ms=4, color=COL_TRAIN)
+        ax_loss.fill_between(epochs,
+                             history_mean['loss_test'].values-history_std['loss_test'].values,
+                             history_mean['loss_test'].values+history_std['loss_test'].values, color=COL_TEST, alpha=0.15)
+        ax_loss.plot(epochs, history_mean['loss_test'].values, "o-", label="Testing dataset", ms=4, color=COL_TEST)
+        ax_loss.set_ylabel('Loss')
+        ax_loss.set_xlabel('Training epoch #')
+
+        ax_acc.plot(epochs, history_mean['acc_train'].values, "o-", label="Training dataset", ms=4, color=COL_TRAIN)
+        ax_acc.fill_between(epochs,
+                            history_mean['acc_train'].values-history_std['acc_train'].values,
+                            history_mean['acc_train'].values+history_std['acc_train'].values, color=COL_TRAIN, alpha=0.15)
+        ax_acc.plot(epochs, history_mean['acc_test'].values, "o-", label="Testing dataset", ms=4, color=COL_TEST)
+        ax_acc.fill_between(epochs,
+                            history_mean['acc_test'].values-history_std['acc_test'].values,
+                            history_mean['acc_test'].values+history_std['acc_test'].values, color=COL_TEST, alpha=0.15)
+        ax_acc.set_xlabel('Training epoch #')
+        ax_acc.set_ylabel('Accuracy')
         ax_acc.set_ylim(top=1.01)
+
         ax_loss.legend()
 
-        ax_acc.annotate("%.1f%% testing set accuracy" % (history['acc_test'].tail(1).item()*100), xy=(0.1,0.1), xycoords="axes fraction", ha="left", va="bottom", color=ltest.get_color())
-        ax_acc.annotate("%.1f%% training set accuracy" % (history['acc_train'].tail(1).item()*100), xy=(0.1,0.1), xytext=(0,10), textcoords="offset points",  xycoords="axes fraction", ha="left", va="bottom", color=ltrain.get_color())
+        ax_acc.annotate("%.1f%% training set accuracy" % (history_mean['acc_train'].tail(1).item()*100), xy=(0.1,0.1), xytext=(0,10), textcoords="offset points",  xycoords="axes fraction", ha="left", va="bottom", color=COL_TRAIN)
+        ax_acc.annotate("%.1f%% testing set accuracy" % (history_mean['acc_test'].tail(1).item()*100), xy=(0.1,0.1), xycoords="axes fraction", ha="left", va="bottom", color=COL_TEST)
 
         viz.plot_structure(model, ax=ax_c, quantity='c', vowels=vowels, cbar=True)
         if not args.title_off:
             ax_c.annotate("$c_{nl}$ = %.2f \n $b_0$ = %.2f \n $u_{th}$ = %.2f \n lr = %.0e" % (cfg['geom']['nonlinearity']['cnl'], cfg['geom']['nonlinearity']['b0'], cfg['geom']['nonlinearity']['uth'], cfg['training']['lr']),
                             xy=(0,0), xytext=(-75,0), xycoords="axes points", textcoords="offset points", ha="left", va="bottom")
 
+        cm_train = history.groupby('epoch')['cm_train'].apply(np.mean).tail(1).item()
+        cm_test = history.groupby('epoch')['cm_test'].apply(np.mean).tail(1).item()
         viz.plot_confusion_matrix(cm_train, title="Training dataset", normalize=False, ax=ax_cm1, labels=vowels)
         viz.plot_confusion_matrix(cm_test, title="Testing dataset", normalize=False, ax=ax_cm2, labels=vowels)
 
@@ -257,7 +280,7 @@ class WaveTorch(object):
             fig.savefig(os.path.splitext(args.filename)[0]+"_summary.png", dpi=300)
 
     def fields(self, args):
-        model, history, cfg, cm_train, cm_test, cm_train0, cm_test0 = core.load_model(args.filename)
+        model, history, _, cfg = core.load_model(args.filename)
 
         print("Configuration for model in %s is:" % args.filename)
         print(yaml.dump(cfg, default_flow_style=False))

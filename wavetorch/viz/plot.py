@@ -90,7 +90,8 @@ def plot_confusion_matrix(cm, ax=None, figsize=(4,4), title=None, normalize=Fals
         cm = 100 * (cm.transpose() / cm.sum(axis=1)).transpose()
         fmt = ".1f"
     else:
-        fmt = "d"
+        # fmt = "d"
+        fmt = ".1f"
 
     if ax is None:
         fig, ax = plt.subplots(1, 1, constrained_layout=True, figsize=figsize)
