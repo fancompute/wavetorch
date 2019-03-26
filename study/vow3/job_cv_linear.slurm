@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH --job-name=cnl
+#SBATCH --job-name=cv_linear
 #SBATCH --output="./study/vow3/%A.log"
 #SBATCH -p normal
 #SBATCH --cpus-per-task=8
-#SBATCH --time=18:00:00
-#SBATCH --mem-per-cpu=17gb
+#SBATCH --time=5-00:00:00
+#SBATCH --mem-per-cpu=13gb
 
 export MKL_NUM_THREADS=$SLURM_CPUS_PER_TASK
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
@@ -15,7 +15,7 @@ export PYTHONPATH=$(pwd)
 echo "Job started at: $(date +'%d/%m/%y - %H:%m')"
 echo ""
 
-srun python -u -m wavetorch train study/vow3/cnl.yml \
+srun python -u -m wavetorch train study/vow3/cv_linear.yml \
     --num_threads $SLURM_CPUS_PER_TASK \
     --name $SLURM_JOB_ID \
     --savedir ./study/vow3/

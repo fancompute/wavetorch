@@ -133,12 +133,27 @@ def plot_confusion_matrix(cm, ax=None, figsize=(4,4), title=None, normalize=Fals
     if title is not None:
         ax.set_title(title)
 
-def plot_structure_evolution(model, model_states, epochs=[0, 1], quantity='c'):
+def plot_structure_evolution(model, model_states, epochs=[0, 1], quantity='c', fig_width=5):
+    Nx = int(np.ceil(np.sqrt(len(epochs))))
+    Ny = int(np.ceil(np.sqrt(len(epochs))))
 
-    fig, axs = plt.subplots(len(epochs), 1, constrained_layout=True)
+    Wx = model.Nx.item()
+    Wy = model.Ny.item()
+
+    fig_height = fig_width * Nx*Wx/Ny/Wy
+
+    fig, axs = plt.subplots(Nx, Ny, constrained_layout=True, figsize=(fig_width, fig_height))
+    axs = axs.ravel()
     for i, epoch in enumerate(epochs):
         model.load_state_dict(model_states[i])
         plot_structure(model, ax=axs[i], quantity='c')
+        axs[i].text(0.5, 0.01, 'epoch %d' % epoch, transform=axs[i].transAxes, ha="center", va="bottom", fontsize="small")
+
+    for j in range(i+1,len(axs)):
+        axs[j].set_xticks([])
+        axs[j].set_yticks([])
+        axs[j].axis('image')
+        axs[j].axis('off')
 
 
 def plot_structure(model, ax=None, quantity='c', vowels=None, cbar=False):

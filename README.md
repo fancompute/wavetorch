@@ -73,3 +73,4 @@ This package has the following dependencies:
 * `matplotlib`
 * `numpy`
 * `yaml`
+* `pandas`

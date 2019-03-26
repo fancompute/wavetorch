@@ -1,11 +1,11 @@
 training:
-  prefix: cnl
+  prefix: satabs
   N_epochs: 20
   lr: 0.0004
   batch_size: 9
-  max_samples: 162
-  train_test_divide: 3
-  use_cross_validation: false
+  max_samples: 
+  train_test_divide: 5
+  use_cross_validation: true
 data:
   sr: 10000
   gender: both
@@ -31,9 +31,9 @@ geom:
     p: 4.0
     max: 3.0
   nonlinearity:
-    cnl: -0.1
-    b0: 0.0
-    uth: 0.0
+    cnl: 0.0
+    b0: 0.01
+    uth: 0.01
   binarization:
     beta: 100
     eta: 0.5
