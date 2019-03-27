@@ -3,15 +3,15 @@ general:
   rand_seed: 2019
 training:
   # This prefix is applied to the filename when saving the model; if not specified a date/time is used
-  prefix: 3vowels_nocv_both
+  prefix: 3vowels_nocv_men
   # Number of training epochs
   N_epochs: 400
   # Optimizer learning rate
-  lr: 0.000002    
+  lr: 0.00001    
   # Batch size     
   batch_size: 9
   # Total size of samples 
-  max_samples: 162
+  max_samples: 132
   # 1/train_test_divide will go into test, the rest into train
   train_test_divide: 3
   # Use cross validation? 
@@ -23,7 +23,7 @@ data:
   sr: 10000
   # Which gender to pull vowel data from. Can be one of women, men, or both. 
   # If both, training and testing datasets distributed equally over the genders
-  gender: both
+  gender: men
   # Which vowel classes to train on.
   # Can be any elements from the set: [ae, eh, ih, oo, ah, ei, iy, uh, aw, er, oa, uw].
   vowels: 
@@ -35,7 +35,7 @@ rnn:
   N_hidden: 70
   # Hidden-to-hidden activation function, can be anything from torch.nn.functional, 
   # e.g. relu, leaky_relu or logsigmoid, or None for linear
-  f_hidden: 
+  f_hidden: tanh
   # Scale for initializing the W-matrices
   W_scale: 0.2
   # L2 regularization 
