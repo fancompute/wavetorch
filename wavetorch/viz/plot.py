@@ -105,18 +105,6 @@ def plot_confusion_matrix(cm, ax=None, figsize=(4,4), title=None, normalize=Fals
     sns.heatmap(cm.transpose(),
                 fmt=fmt,
                 annot=True,
-                cmap=pal2,
-                linewidths=0,
-                cbar=False,
-                mask=mask2,
-                ax=ax,
-                xticklabels=labels,
-                yticklabels=labels,
-                square=True)
-
-    sns.heatmap(cm.transpose(),
-                fmt=fmt,
-                annot=True,
                 cmap=pal1,
                 linewidths=0,
                 cbar=False,
@@ -124,12 +112,26 @@ def plot_confusion_matrix(cm, ax=None, figsize=(4,4), title=None, normalize=Fals
                 ax=ax,
                 xticklabels=labels,
                 yticklabels=labels,
-                square=True)
+                square=True,
+                annot_kws={'size': 'small'})
+
+    sns.heatmap(cm.transpose(),
+                fmt=fmt,
+                annot=True,
+                cmap=pal2,
+                linewidths=0,
+                cbar=False,
+                mask=mask2,
+                ax=ax,
+                xticklabels=labels,
+                yticklabels=labels,
+                square=True,
+                annot_kws={'size': 'small'})
 
     for _, spine in ax.spines.items():
         spine.set_visible(True)
-    ax.set_xlabel('Input vowel')
-    ax.set_ylabel('Predicted vowel')
+    ax.set_xlabel('Input')
+    ax.set_ylabel('Predicted')
 
     if title is not None:
         ax.set_title(title)
@@ -157,8 +159,11 @@ def plot_structure_evolution(model, model_states, epochs=[0, 1], quantity='c', f
         axs[j].axis('off')
 
 
-def plot_structure(model, ax=None, quantity='c', vowels=None, cbar=False):
+def plot_structure(model, state=None, ax=None, quantity='c', vowels=None, cbar=False):
     assert quantity in ['c', 'rho'], "Quantity must be one of `c` or `rho`"
+
+    if state is not None:
+        model.load_state_dict(state)
 
     show = False
     if ax is None:
