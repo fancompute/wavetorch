@@ -12,11 +12,11 @@ start_file = './study/vanilla/laptop_rnn.yml'
 
 # Define various parameter values to be explored
 params = {	'f_hidden': ['', 'leaky_relu', 'tanh'],
-			'prefix': ['3vowels_nocv_both']
+			'prefix': ['3vowels_nocv_men']
 			}
 
 # We'll print results to file so that we can access later
-out_file = './study/vanilla/results_3vowels_nocv_both_gradclip1.txt'
+out_file = './study/vanilla/results_3vowels_nocv_men_scalelr.txt'
 
 # Temp file we'll use do define configurations
 temp_file = './study/vanilla/temp.yml'

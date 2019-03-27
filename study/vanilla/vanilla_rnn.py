@@ -9,10 +9,11 @@ from torch.nn import functional as F
 from torch import optim
 from torch.utils.data import TensorDataset, DataLoader
 from torch.nn.utils.clip_grad import clip_grad_norm_ as clip_grad
+from torch.optim.lr_scheduler import StepLR
 
 from sklearn.model_selection import StratifiedKFold
 
-from wavetorch.data import load_selected_vowels, load_all_vowels
+from wavetorch.data import load_all_vowels
 from wavetorch.core.utils import accuracy
 
 import numpy as np
@@ -174,6 +175,10 @@ def main(args):
         # # --- Define optimizer
         criterion = nn.CrossEntropyLoss()
         optimizer = torch.optim.Adam(model.parameters(), lr=cfg['training']['lr'], weight_decay=2*cfg['rnn']['L2_reg'])
+        if cfg['training']['lr_step'] and cfg['training']['lr_gamma']: 
+            scheduler = StepLR(optimizer, step_size=cfg['training']['lr_step'],
+            gamma=cfg['training']['lr_gamma'])
+            scale_lr = True
 
         # Split data into batches
         train_ds = TensorDataset(x_train, y_train)
@@ -187,6 +192,8 @@ def main(args):
         t_start = time.time()
         for epoch in range(1, N_epochs + 1):
             t_epoch = time.time()
+            if scale_lr:
+                scheduler.step()
             for xb, yb in train_dl:
                 optimizer.zero_grad()
                 y = model(xb)
