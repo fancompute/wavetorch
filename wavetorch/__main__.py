@@ -115,7 +115,12 @@ class WaveTorch(object):
         for num, (train_index, test_index) in enumerate(skf.split(np.zeros(len(samps)), samps)):
             if cfg['training']['use_cross_validation']: print("Cross Validation Fold %2d/%2d" % (num+1, cfg['training']['train_test_divide']))
 
-            x_train = torch.nn.utils.rnn.pad_sequence([X[i] for i in train_index], batch_first=True)
+            if cfg['data']['window_size']:
+                crop = cfg['data']['window_size']
+                x_train = torch.nn.utils.rnn.pad_sequence([X[i][int(len(X[i])/2-crop/2):int(len(X[i])/2+crop/2)] for i in train_index], batch_first=True)
+            else:
+                x_train = torch.nn.utils.rnn.pad_sequence([X[i] for i in train_index], batch_first=True)
+
             x_test = torch.nn.utils.rnn.pad_sequence([X[i] for i in test_index], batch_first=True)
             y_train = torch.nn.utils.rnn.pad_sequence([Y[i] for i in train_index], batch_first=True)
             y_test = torch.nn.utils.rnn.pad_sequence([Y[i] for i in test_index], batch_first=True)
@@ -197,16 +202,20 @@ class WaveTorch(object):
         fig = plt.figure( figsize=(7, 4.75), constrained_layout=True)
 
         gs = fig.add_gridspec(1, 2, width_ratios=[1, 0.35])
-        gs_left  = gs[0].subgridspec(3, 2, width_ratios=[1, 0.5], height_ratios=[1, 0.7, 0.7])
+        gs_left  = gs[0].subgridspec(3, 3, width_ratios=[0.4, 0.4, 0.75], height_ratios=[0.5, 0.7, 0.7])
         gs_right = gs[1].subgridspec(N_classes+1, 1, height_ratios=[0.05] + [1 for i in range(0,N_classes)])
+        gs_top  = gs_left[0,:].subgridspec(1, 2)
 
-        ax_c = fig.add_subplot(gs_left[0,:])
+        ax_c0 = fig.add_subplot(gs_top[0])
+        ax_c1 = fig.add_subplot(gs_top[1])
 
-        ax_loss = fig.add_subplot(gs_left[1,0])
-        ax_acc = fig.add_subplot(gs_left[2,0])
+        ax_loss = fig.add_subplot(gs_left[1,2])
+        ax_acc = fig.add_subplot(gs_left[2,2])
 
-        ax_cm1 = fig.add_subplot(gs_left[1,1])
-        ax_cm2 = fig.add_subplot(gs_left[2,1],sharex=ax_cm1)
+        ax_cm_train0 = fig.add_subplot(gs_left[1,0])
+        ax_cm_test0  = fig.add_subplot(gs_left[2,0],sharex=ax_cm_train0)
+        ax_cm_train1 = fig.add_subplot(gs_left[1,1])
+        ax_cm_test1  = fig.add_subplot(gs_left[2,1],sharex=ax_cm_train1)
 
         ax_fields = [fig.add_subplot(gs_right[i]) for i in range(0, N_classes+1)] 
 
@@ -218,40 +227,58 @@ class WaveTorch(object):
         ax_loss.fill_between(epochs,
                              history_mean['loss_train'].values-history_std['loss_train'].values,
                              history_mean['loss_train'].values+history_std['loss_train'].values, color=COL_TRAIN, alpha=0.15)
-        ax_loss.plot(epochs, history_mean['loss_train'].values, "o-", label="Training dataset", ms=4, color=COL_TRAIN)
+        ax_loss.plot(epochs, history_mean['loss_train'].values, "-", label="Training dataset", ms=4, color=COL_TRAIN)
         ax_loss.fill_between(epochs,
                              history_mean['loss_test'].values-history_std['loss_test'].values,
                              history_mean['loss_test'].values+history_std['loss_test'].values, color=COL_TEST, alpha=0.15)
-        ax_loss.plot(epochs, history_mean['loss_test'].values, "o-", label="Testing dataset", ms=4, color=COL_TEST)
+        ax_loss.plot(epochs, history_mean['loss_test'].values, "-", label="Testing dataset", ms=4, color=COL_TEST)
         ax_loss.set_ylabel('Loss')
         ax_loss.set_xlabel('Training epoch #')
 
-        ax_acc.plot(epochs, history_mean['acc_train'].values, "o-", label="Training dataset", ms=4, color=COL_TRAIN)
+        ax_acc.plot(epochs, history_mean['acc_train'].values*100, "-", label="Training dataset", ms=4, color=COL_TRAIN)
         ax_acc.fill_between(epochs,
-                            history_mean['acc_train'].values-history_std['acc_train'].values,
-                            history_mean['acc_train'].values+history_std['acc_train'].values, color=COL_TRAIN, alpha=0.15)
-        ax_acc.plot(epochs, history_mean['acc_test'].values, "o-", label="Testing dataset", ms=4, color=COL_TEST)
+                            history_mean['acc_train'].values*100-history_std['acc_train'].values*100,
+                            history_mean['acc_train'].values*100+history_std['acc_train'].values*100, color=COL_TRAIN, alpha=0.15)
+        ax_acc.plot(epochs, history_mean['acc_test'].values*100, "-", label="Testing dataset", ms=4, color=COL_TEST)
         ax_acc.fill_between(epochs,
-                            history_mean['acc_test'].values-history_std['acc_test'].values,
-                            history_mean['acc_test'].values+history_std['acc_test'].values, color=COL_TEST, alpha=0.15)
+                            history_mean['acc_test'].values*100-history_std['acc_test'].values*100,
+                            history_mean['acc_test'].values*100+history_std['acc_test'].values*100, color=COL_TEST, alpha=0.15)
         ax_acc.set_xlabel('Training epoch #')
         ax_acc.set_ylabel('Accuracy')
-        ax_acc.set_ylim(top=1.01)
+        ax_acc.set_ylim(top=100)
+
+        ax_acc.yaxis.set_major_formatter(mpl.ticker.FormatStrFormatter('%.0f%%'))
+
 
         ax_loss.legend()
 
-        ax_acc.annotate("%.1f%% training set accuracy" % (history_mean['acc_train'].tail(1).item()*100), xy=(0.1,0.1), xytext=(0,10), textcoords="offset points",  xycoords="axes fraction", ha="left", va="bottom", color=COL_TRAIN)
-        ax_acc.annotate("%.1f%% testing set accuracy" % (history_mean['acc_test'].tail(1).item()*100), xy=(0.1,0.1), xycoords="axes fraction", ha="left", va="bottom", color=COL_TEST)
+        # ax_acc.annotate("%.1f%% training set accuracy" % (history_mean['acc_train'].tail(1).item()*100), xy=(0.1,0.1), xytext=(0,10), textcoords="offset points",  xycoords="axes fraction", ha="left", va="bottom", color=COL_TRAIN)
+        # ax_acc.annotate("%.1f%% testing set accuracy" % (history_mean['acc_test'].tail(1).item()*100), xy=(0.1,0.1), xycoords="axes fraction", ha="left", va="bottom", color=COL_TEST)
+        bbox_props = dict(boxstyle="round,pad=0.3", fc="white", ec="none", alpha=0.75)
+        ax_acc.annotate('%.1f%%' % (history_mean['acc_train'].tail(1).item()*100),
+                    xy=(epochs[-1], history_mean['acc_train'].tail(1).item()*100), xycoords='data',
+                    xytext=(-3, 5), textcoords='offset points', ha='left', va='center', fontsize='smaller',
+                    color=COL_TRAIN, bbox=bbox_props)
+        ax_acc.annotate('%.1f%%' % (history_mean['acc_test'].tail(1).item()*100),
+                    xy=(epochs[-1], history_mean['acc_test'].tail(1).item()*100), xycoords='data',
+                    xytext=(-3, -5), textcoords='offset points', ha='left', va='center', fontsize='smaller',
+                    color=COL_TEST, bbox=bbox_props)
+        viz.plot_structure(model, state=history_state[0], ax=ax_c0, quantity='c', vowels=vowels, cbar=True)
+        viz.plot_structure(model, state=history_state[-1], ax=ax_c1, quantity='c', vowels=vowels, cbar=True)
 
-        viz.plot_structure(model, ax=ax_c, quantity='c', vowels=vowels, cbar=True)
-        if not args.title_off:
-            ax_c.annotate("$c_{nl}$ = %.2f \n $b_0$ = %.2f \n $u_{th}$ = %.2f \n lr = %.0e" % (cfg['geom']['nonlinearity']['cnl'], cfg['geom']['nonlinearity']['b0'], cfg['geom']['nonlinearity']['uth'], cfg['training']['lr']),
-                            xy=(0,0), xytext=(-75,0), xycoords="axes points", textcoords="offset points", ha="left", va="bottom")
+        # if not args.title_off:
+            # ax_c0.annotate("$c_{nl}$ = %.2f \n $b_0$ = %.2f \n $u_{th}$ = %.2f \n lr = %.0e" % (cfg['geom']['nonlinearity']['cnl'], cfg['geom']['nonlinearity']['b0'], cfg['geom']['nonlinearity']['uth'], cfg['training']['lr']),
+                            # xy=(0,0), xytext=(-75,0), xycoords="axes points", textcoords="offset points", ha="left", va="bottom")
+
+        cm_train = history.groupby('epoch')['cm_train'].apply(np.mean).head(1).item()
+        cm_test = history.groupby('epoch')['cm_test'].apply(np.mean).head(1).item()
+        viz.plot_confusion_matrix(cm_train, title="Training dataset", normalize=True, ax=ax_cm_train0, labels=vowels)
+        viz.plot_confusion_matrix(cm_test, title="Testing dataset", normalize=True, ax=ax_cm_test0, labels=vowels)
 
         cm_train = history.groupby('epoch')['cm_train'].apply(np.mean).tail(1).item()
         cm_test = history.groupby('epoch')['cm_test'].apply(np.mean).tail(1).item()
-        viz.plot_confusion_matrix(cm_train, title="Training dataset", normalize=False, ax=ax_cm1, labels=vowels)
-        viz.plot_confusion_matrix(cm_test, title="Testing dataset", normalize=False, ax=ax_cm2, labels=vowels)
+        viz.plot_confusion_matrix(cm_train, title="Training dataset", normalize=True, ax=ax_cm_train1, labels=vowels)
+        viz.plot_confusion_matrix(cm_test, title="Testing dataset", normalize=True, ax=ax_cm_test1, labels=vowels)
 
         X, Y = data.load_all_vowels(
                         vowels,
@@ -264,6 +291,7 @@ class WaveTorch(object):
         Y = torch.nn.utils.rnn.pad_sequence(Y, batch_first=True)
         test_ds = TensorDataset(X, Y)
 
+        model.load_state_dict(history_state[cfg['training']['N_epochs']])
 
         for xb, yb in DataLoader(test_ds, batch_size=1):
             with torch.no_grad():
@@ -271,7 +299,7 @@ class WaveTorch(object):
                 probe_series = field_dist[0, :, model.px, model.py]
                 viz.plot_total_field(model, field_dist, yb, ax=ax_fields[1+yb.argmax().item()], cbar=True, cax=ax_fields[0], vmin=args.vmin, vmax=args.vmax)
 
-        viz.apply_sublabels([ax_c, ax_loss, ax_acc, ax_cm1, ax_cm2] + ax_fields[1::], x=[-30, -35, -35, -35, -35, -15, -15, -15])
+        viz.apply_sublabels([ax_c0, ax_cm_train0, ax_cm_test0, ax_c1, ax_cm_train1, ax_cm_test1, ax_loss, ax_acc] + ax_fields[1::], x=[-15, -15, -15, -15, -15, -15, -35, -35, -10, -10, -10])
 
         plt.show()
         if args.fig is not None:
