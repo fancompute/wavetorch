@@ -3,22 +3,22 @@ training:
   prefix: example
 
   # Number of training epochs
-  N_epochs: 3
+  N_epochs: 20
 
   # Optimizer learning rate
-  lr: 0.001
+  lr: 0.0004
 
   # Batch size used over both training and testing datasets   
-  batch_size: 3
+  batch_size: 6
 
   # Limit the maximum number of samples to this number 
   # If unspecified then all samples available for the specified vowel classes and gender are used
-  max_samples: 12
+  max_samples: 
 
   # This number should be an integer and it is used to deterine the split between the training and testing datasets
   # (1/train_test_divide) * (the total number of samples) is the size of the test dataset
   # e.g. for a value of 3, 2/3 of the total number of samples are used for training and 1/3 are used for testing
-  train_test_divide: 3
+  train_test_divide: 5
 
   # If true, k-fold cross validation is performed where k is the value specified above for train_test_divide
   use_cross_validation: false
@@ -26,6 +26,9 @@ training:
 data:
   # Sampling rate to use for vowel data
   sr: 10000    
+
+  # During training, the input sequence will be cropped to this size. The window will be centered with respect to the original sequence
+  window_size: 1000
 
   # Which gender to pull vowel data from. Can be one of women, men, or both. 
   # If both, training and testing datasets distributed equally over the genders
@@ -46,10 +49,10 @@ geom:
   use_rand_init: false
 
   # Number of grid cells in x-dimension of simulation domain
-  Nx: 140
+  Nx: 150
 
   # Number of grid cells in y-dimension of simulation domain
-  Ny: 140
+  Ny: 100
 
   # Time step (spatial step size is determined automatically)
   dt: 0.707
@@ -58,7 +61,7 @@ geom:
   c0: 1.0
 
   # Wave speed value to use with c0 during binarization
-  c1: 0.9
+  c1: 0.7
 
   # Probe x-coordinates in grid cells
   px: 
@@ -67,7 +70,7 @@ geom:
   py: 
 
   # Spacing, in number grid cells, between probe points
-  pd: 30
+  pd: 20
 
   # Source x-coordinate in grid cells
   src_x: 

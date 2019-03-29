@@ -7,6 +7,7 @@ training:
   train_test_divide: 5
   use_cross_validation: true
 data:
+  window_size: 
   sr: 10000
   gender: both
   vowels: 

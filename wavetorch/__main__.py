@@ -115,7 +115,12 @@ class WaveTorch(object):
         for num, (train_index, test_index) in enumerate(skf.split(np.zeros(len(samps)), samps)):
             if cfg['training']['use_cross_validation']: print("Cross Validation Fold %2d/%2d" % (num+1, cfg['training']['train_test_divide']))
 
-            x_train = torch.nn.utils.rnn.pad_sequence([X[i] for i in train_index], batch_first=True)
+            if cfg['data']['window_size']:
+                crop = cfg['data']['window_size']
+                x_train = torch.nn.utils.rnn.pad_sequence([X[i][int(len(X[i])/2-crop/2):int(len(X[i])/2+crop/2)] for i in train_index], batch_first=True)
+            else:
+                x_train = torch.nn.utils.rnn.pad_sequence([X[i] for i in train_index], batch_first=True)
+
             x_test = torch.nn.utils.rnn.pad_sequence([X[i] for i in test_index], batch_first=True)
             y_train = torch.nn.utils.rnn.pad_sequence([Y[i] for i in train_index], batch_first=True)
             y_test = torch.nn.utils.rnn.pad_sequence([Y[i] for i in test_index], batch_first=True)
