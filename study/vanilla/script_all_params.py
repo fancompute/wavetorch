@@ -12,11 +12,11 @@ start_file = './study/vanilla/laptop_rnn.yml'
 
 # Define various parameter values to be explored
 params = {	'f_hidden': ['', 'leaky_relu', 'tanh'],
-			'prefix': ['3vowels_nocv_men']
+			'prefix': ['3vowels_cv_men']
 			}
 
 # We'll print results to file so that we can access later
-out_file = './study/vanilla/results_3vowels_nocv_men_scalelr.txt'
+out_file = './study/vanilla/results_3vowels_cv_men_scalelr.txt'
 
 # Temp file we'll use do define configurations
 temp_file = './study/vanilla/temp.yml'
@@ -66,5 +66,9 @@ if __name__ == '__main__':
 
 		print('For parameters ' + str(current_params) + ' final train and test accuracies are ' 
 			+ str(np.float16(acc_train)) + ', ' + str(np.float16(acc_test)), file=print_out)
+
+		if cfg['training']['use_cross_validation']:
+			print('Average values are: ' + str(np.mean(np.float16(acc_train))) + ', ' + str(np.mean(np.float16(acc_test))), file=print_out)
+
 
 	print_out.close()

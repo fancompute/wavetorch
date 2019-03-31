@@ -3,19 +3,19 @@ general:
   rand_seed: 2019
 training:
   # This prefix is applied to the filename when saving the model; if not specified a date/time is used
-  prefix: 3vowels_cv_men
+  prefix: 
   # Number of training epochs
-  N_epochs: 400
+  N_epochs: 500
   # Optimizer learning rate
-  lr: 0.00005    
+  lr: 0.001    
   # Batch size     
   batch_size: 9
   # Total size of samples 
-  max_samples: 132
+  max_samples: 162
   # 1/train_test_divide will go into test, the rest into train
-  train_test_divide: 5
+  train_test_divide: 3
   # Use cross validation? 
-  use_cross_validation: true
+  use_cross_validation: false
   # Display the test/train accuracy every display_step epochs
   display_step: 10
   # Decrease lr every # epochs
@@ -27,7 +27,7 @@ data:
   sr: 10000
   # Which gender to pull vowel data from. Can be one of women, men, or both. 
   # If both, training and testing datasets distributed equally over the genders
-  gender: men
+  gender: both
   # Which vowel classes to train on.
   # Can be any elements from the set: [ae, eh, ih, oo, ah, ei, iy, uh, aw, er, oa, uw].
   vowels: 
@@ -36,16 +36,16 @@ data:
     - iy
 rnn:
   # Hidden state size of the RNN
-  N_hidden: 70
+  N_hidden: 40
   # Hidden-to-hidden activation function, can be anything from torch.nn.functional, 
   # e.g. relu, leaky_relu or logsigmoid, or None for linear
-  f_hidden: tanh
+  f_hidden: 
   # Scale for initializing the W-matrices
   W_scale: 0.2
   # L2 regularization 
-  L2_reg: 0.0001 
-  # Gradient clipping. Maximum absolute value of the gradient, or None
+  L2_reg: 0.00001 
+  # Gradient clipping. Maximum absolute value of the gradient, blank for None
   grad_clip: 10
   # Model, 'rnn', 'res' or 'lstm', see the associated Custom### class files
-  model: 'rnn'
+  model: 'lstm'
 

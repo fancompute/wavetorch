@@ -5,23 +5,23 @@ training:
   # This prefix is applied to the filename when saving the model; if not specified a date/time is used
   prefix: 
   # Number of training epochs
-  N_epochs: 200
+  N_epochs: 400
   # Optimizer learning rate
-  lr: 0.0001    
+  lr: 0.00005    
   # Batch size     
   batch_size: 9
   # Total size of samples 
   max_samples: 132
   # 1/train_test_divide will go into test, the rest into train
-  train_test_divide: 3
+  train_test_divide: 5
   # Use cross validation? 
-  use_cross_validation: false
+  use_cross_validation: true
   # Display the test/train accuracy every display_step epochs
   display_step: 10
   # Decrease lr every # epochs
   lr_step: 50
-  # Scale lr by a factor of
-  lr_gamma: 0.2
+  # Scale lr b a factor of
+  lr_gamma: 0.5
 data:
   # Sampling rate to use for vowel data
   sr: 10000
@@ -46,3 +46,6 @@ rnn:
   L2_reg: 0.0001 
   # Gradient clipping. Maximum absolute value of the gradient, or None
   grad_clip: 10
+  # Model, 'rnn', 'res' or 'lstm', see the associated Custom### class files
+  model: 'rnn'
+

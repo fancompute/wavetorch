@@ -12,6 +12,9 @@ from torch.nn.utils.clip_grad import clip_grad_norm_ as clip_grad
 from torch.optim.lr_scheduler import StepLR
 
 from sklearn.model_selection import StratifiedKFold
+from sklearn.preprocessing import StandardScaler
+
+from study.vanilla.models import CustomRNN, CustomRes, CustomLSTM
 
 from wavetorch.data import load_all_vowels
 from wavetorch.core.utils import accuracy
@@ -24,33 +27,6 @@ import math, random
 import os
 
 from torch.nn.utils.rnn import pad_sequence
-
-class CustomRNN(nn.Module):
-    def __init__(self, input_size, output_size, hidden_size, batch_first=True, W_scale=1e-1, f_hidden=None):
-        super(CustomRNN, self).__init__()
-        self.input_size  = input_size
-        self.output_size = output_size
-        self.hidden_size = hidden_size
-        self.f_hidden = f_hidden
-
-        self.W1 = torch.nn.Parameter((torch.rand(hidden_size, input_size)-0.5)*W_scale)
-        self.W2 = torch.nn.Parameter((torch.rand(hidden_size, hidden_size)-0.5)*W_scale)
-        self.W3 = torch.nn.Parameter((torch.rand(output_size, hidden_size)-0.5)*W_scale)
-        self.b_h = torch.nn.Parameter(torch.zeros(hidden_size))
-
-    def forward(self, x):
-        h1 = torch.zeros(x.shape[0], self.hidden_size)
-        ys = []
-
-        for i, xi in enumerate(x.chunk(x.size(1), dim=1)):
-            h1 = (torch.matmul(self.W2, h1.t()) + torch.matmul(self.W1, xi.t())).t() + self.b_h
-            if self.f_hidden is not None:
-                h1 = getattr(F, self.f_hidden)(h1)
-            y = torch.matmul(self.W3, h1.t()).t()
-            ys.append(y)
-
-        ys = torch.stack(ys, dim=1)
-        return ys
 
 def compute_acc(model, elements_set):
     acc_tmp = []
@@ -78,6 +54,15 @@ def save_model(model, name, savedir='./study/vanilla/data/', history=None, args=
              "args": args}
     print("Saving model to %s" % str_savepath)
     torch.save(dsave, str_savepath)
+
+def load_model(str_filename):
+    print("Loading model from %s" % str_filename)
+    data = torch.load(str_filename)
+    model_state = data['model_state']
+    model = CustomRNN(model_state['W1'].size(1), model_state['W3'].size(0), model_state['W1'].size(0))
+    model.load_state_dict(model_state)
+    model.eval()
+    return data['history'], model
 
 
 def main(args):
@@ -131,6 +116,19 @@ def main(args):
             max_samples=cfg['training']['max_samples']
             )
 
+    # Some manual scaling
+    mean = 0
+    std = 0
+    X_norm = []
+    for samp in X:
+        mean += samp.mean()
+        std += samp.std()
+    mean = mean/len(X)
+    std = std/len(X)
+
+    for samp in X:
+        X_norm.append((samp - mean)/std)
+
     skf = StratifiedKFold(n_splits=cfg['training']['train_test_divide'], random_state=None, shuffle=True)
     samps = [y.argmax().item() for y in Y]
     num = 1
@@ -146,8 +144,8 @@ def main(args):
     for train_index, test_index in skf.split(np.zeros(len(samps)), samps):
         if cfg['training']['use_cross_validation']: print("Cross validation fold #%d" % num)
 
-        x_train = torch.nn.utils.rnn.pad_sequence([X[i] for i in train_index], batch_first=True)
-        x_test = torch.nn.utils.rnn.pad_sequence([X[i] for i in test_index], batch_first=True)
+        x_train = torch.nn.utils.rnn.pad_sequence([X_norm[i] for i in train_index], batch_first=True)
+        x_test = torch.nn.utils.rnn.pad_sequence([X_norm[i] for i in test_index], batch_first=True)
         y_train = torch.nn.utils.rnn.pad_sequence([Y[i] for i in train_index], batch_first=True)
         y_test = torch.nn.utils.rnn.pad_sequence([Y[i] for i in test_index], batch_first=True)
 
@@ -157,7 +155,12 @@ def main(args):
         y_test  = y_test.to(args.dev)
 
         # # --- Define model
-        model = CustomRNN(1, N_classes, cfg['rnn']['N_hidden'], W_scale=cfg['rnn']['W_scale'], f_hidden=cfg['rnn']['f_hidden'])
+        if cfg['rnn']['model']=='rnn':
+            model = CustomRNN(1, N_classes, cfg['rnn']['N_hidden'], W_scale=cfg['rnn']['W_scale'], f_hidden=cfg['rnn']['f_hidden'])
+        elif cfg['rnn']['model']=='rnn':
+            model = CustomRes(1, N_classes, cfg['rnn']['N_hidden'], W_scale=cfg['rnn']['W_scale'], f_hidden=cfg['rnn']['f_hidden'])
+        elif cfg['rnn']['model']=='lstm':
+            model = CustomLSTM(1, N_classes, cfg['rnn']['N_hidden'], W_scale=cfg['rnn']['W_scale'])
         model.to(args.dev)
 
         # Print the total number of parameters in the model
@@ -198,6 +201,7 @@ def main(args):
                 optimizer.zero_grad()
                 y = model(xb)
                 y_ = norm_int_y(y)
+                # print(y_, torch.max(yb, 1)[1])
                 loss = criterion(y_, torch.max(yb, 1)[1])
                 history['loss_iter'].append(loss.item())
                 loss.backward()
@@ -238,9 +242,8 @@ def main(args):
             args.name = cfg['training']['prefix'] + '_' + args.name
 
         if cfg['training']['use_cross_validation']:
-            # If we are doing cross validation, then save this model's iteration
-            args.name += "_cv_" + str(num)
-            save_model(model, args.name, args.savedir, history, cfg)
+            # If we are doing cross validation, then save this model's iteration            
+            save_model(model, args.name + "_cv_" + str(num), args.savedir, history, cfg)
             num += 1
         else:
             # If not doing cross validation, save and finish
