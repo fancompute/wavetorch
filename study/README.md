@@ -1,4 +1,4 @@
-# Information
+# Study Readme
 
 This folder contains various study configurations. A study is a particular problem configuration described by a YAML file. Some studies also have an associated SLURM job script for running the training routine on a cluster.
 
