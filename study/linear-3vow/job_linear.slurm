@@ -3,8 +3,8 @@
 #SBATCH --output="./study/linear-3vow/%A.log"
 #SBATCH -p normal
 #SBATCH --cpus-per-task=8
-#SBATCH --time=12:00:00
-#SBATCH --mem-per-cpu=13gb
+#SBATCH --time=16:00:00
+#SBATCH --mem-per-cpu=3500mb
 
 export MKL_NUM_THREADS=$SLURM_CPUS_PER_TASK
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
