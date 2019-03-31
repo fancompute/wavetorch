@@ -1,0 +1,32 @@
+Starting configuration: 
+
+data:
+  gender: men
+  sr: 10000
+  vowels:
+  - ae
+  - ei
+  - iy
+general:
+  rand_seed: 2019
+rnn:
+  L2_reg: 0.0001
+  N_hidden: 70
+  W_scale: 0.2
+  f_hidden: null
+  grad_clip: 10
+training:
+  N_epochs: 200
+  batch_size: 9
+  display_step: 10
+  lr: 0.0001
+  lr_gamma: 0.2
+  lr_step: 50
+  max_samples: 132
+  prefix: null
+  train_test_divide: 3
+  use_cross_validation: false
+
+For parameters {'f_hidden': '', 'prefix': '3vowels_nocv_men'} final train and test accuracies are [0.85], [0.711]
+For parameters {'f_hidden': 'leaky_relu', 'prefix': '3vowels_nocv_men'} final train and test accuracies are [0.7666], [0.689]
+For parameters {'f_hidden': 'tanh', 'prefix': '3vowels_nocv_men'} final train and test accuracies are [0.8613], [0.7334]
