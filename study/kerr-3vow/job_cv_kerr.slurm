@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH --job-name=cv_cnl
-#SBATCH --output="./study/vow3/%A.log"
+#SBATCH --job-name=cv_kerr
+#SBATCH --output="./study/kerr-3vow/%A.log"
 #SBATCH -p normal
 #SBATCH --cpus-per-task=8
 #SBATCH --time=16:00:00
@@ -15,7 +15,7 @@ export PYTHONPATH=$(pwd)
 echo "Job started at: $(date +'%d/%m/%y - %H:%m')"
 echo ""
 
-srun python -u -m wavetorch train study/vow3/cv_cnl.yml \
+srun python -u -m wavetorch train study/kerr-3vow/cv_kerr.yml \
     --num_threads $SLURM_CPUS_PER_TASK \
     --name $SLURM_JOB_ID \
-    --savedir ./study/vow3/
+    --savedir ./study/kerr-3vow/

@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=satabs
-#SBATCH --output="./study/vow3/%A.log"
+#SBATCH --output="./study/satabs-3vow/%A.log"
 #SBATCH -p normal
 #SBATCH --cpus-per-task=8
 #SBATCH --time=18:00:00
@@ -15,7 +15,7 @@ export PYTHONPATH=$(pwd)
 echo "Job started at: $(date +'%d/%m/%y - %H:%m')"
 echo ""
 
-srun python -u -m wavetorch train study/vow3/satabs.yml \
+srun python -u -m wavetorch train study/satabs-3vow/satabs.yml \
     --num_threads $SLURM_CPUS_PER_TASK \
     --name $SLURM_JOB_ID \
-    --savedir ./study/vow3/
+    --savedir ./study/satabs-3vow/

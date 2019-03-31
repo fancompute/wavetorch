@@ -1,5 +1,5 @@
 training:
-  prefix: cnl
+  prefix: kerr
   N_epochs: 20
   lr: 0.0004
   batch_size: 9

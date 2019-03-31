@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=cv_linear
-#SBATCH --output="./study/vow3/%A.log"
+#SBATCH --output="./study/linear-3vow/%A.log"
 #SBATCH -p normal
 #SBATCH --cpus-per-task=8
 #SBATCH --time=16:00:00
@@ -15,7 +15,7 @@ export PYTHONPATH=$(pwd)
 echo "Job started at: $(date +'%d/%m/%y - %H:%m')"
 echo ""
 
-srun python -u -m wavetorch train study/vow3/cv_linear.yml \
+srun python -u -m wavetorch train study/linear-3vow/cv_linear.yml \
     --num_threads $SLURM_CPUS_PER_TASK \
     --name $SLURM_JOB_ID \
-    --savedir ./study/vow3/
+    --savedir ./study/linear-3vow/
