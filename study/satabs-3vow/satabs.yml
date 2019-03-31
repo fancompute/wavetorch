@@ -3,11 +3,11 @@ training:
   N_epochs: 20
   lr: 0.0004
   batch_size: 9
-  max_samples: 162
-  train_test_divide: 3
+  max_samples: 
+  train_test_divide: 5
   use_cross_validation: false
 data:
-  window_size: 
+  window_size: 1000
   sr: 10000
   gender: both
   vowels: 
