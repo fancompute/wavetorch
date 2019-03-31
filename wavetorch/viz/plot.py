@@ -210,6 +210,8 @@ def plot_structure(model, state=None, ax=None, quantity='c', vowels=None, cbar=F
     if show:
         plt.show()
 
+    return h
+
 def animate_fields(model, field_dist, ylabel, block=True, filename=None, interval=1, fps=30, bitrate=768, crop=0.9, fig_width=6):
 
     field_max = field_dist.max().item()
