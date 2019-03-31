@@ -1,12 +1,13 @@
 training:
-  prefix: vow4_NL
-  N_epochs: 15
+  prefix: linear
+  N_epochs: 20
   lr: 0.0004
-  batch_size: 8
-  max_samples: 216
-  train_test_divide: 3
-  use_cross_validation: false
+  batch_size: 9
+  max_samples: #162
+  train_test_divide: 5
+  use_cross_validation: true
 data:
+  window_size: 1000
   sr: 10000
   gender: both
   vowels: 
@@ -17,14 +18,14 @@ data:
 geom:
   use_design_region: true
   use_rand_init: false
-  Nx: 160
-  Ny: 120
+  Nx: 140
+  Ny: 140
   dt: 0.707
   c0: 1.00
   c1: 0.80
   px: 
   py: 
-  pd: 30
+  pd: 25
   src_x: 
   src_y:
   pml:
@@ -32,8 +33,9 @@ geom:
     p: 4.0
     max: 3.0
   nonlinearity:
-    b0: 0.01
-    uth: 0.1
+    cnl: 0.0
+    b0: 0.0
+    uth: 0.0
   binarization:
     beta: 100
     eta: 0.5
