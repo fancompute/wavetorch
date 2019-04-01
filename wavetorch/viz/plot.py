@@ -145,7 +145,7 @@ def plot_structure_evolution(model, model_states, epochs=[0, 1], quantity='c', f
 
     fig_height = fig_width * Nx*Wx/Ny/Wy
 
-    fig, axs = plt.subplots(Nx, Ny, constrained_layout=True, figsize=(fig_width, fig_height))
+    fig, axs = plt.subplots(Ny, Nx, constrained_layout=True, figsize=(fig_width, fig_height))
     axs = axs.ravel()
     for i, epoch in enumerate(epochs):
         model.load_state_dict(model_states[i])
@@ -174,14 +174,19 @@ def plot_structure(model, state=None, ax=None, quantity='c', vowels=None, cbar=F
     if quantity == 'c':
         Z = model.c0.item() + (model.c1.item()-model.c0.item())*rho
         limits = np.array([model.c0.item(), model.c1.item()])
+        if model.c0.item() < model.c1.item():
+            cmap = plt.cm.Purples
+        else:
+            cmap = plt.cm.Purples_r
     else:
         Z = rho
         limits = np.array([0.0, 1.0])
+        cmap = plt.cm.Purples_r
 
     b_boundary = model.b_boundary.numpy().transpose()
 
-    cmap = plt.cm.Purples_r
     limits = np.array([model.c0.item(), model.c1.item()])
+
     h=ax.imshow(Z, origin="bottom", rasterized=True, cmap=cmap, vmin=limits.min(), vmax=limits.max())
 
     if cbar:
@@ -211,6 +216,50 @@ def plot_structure(model, state=None, ax=None, quantity='c', vowels=None, cbar=F
         plt.show()
 
     return h
+
+
+def plot_field_snapshot(model, fields_in, times, ylabel, fig_width=6, block=False):
+    fields = fields_in[0, times, :, :]
+
+    Nx = int(np.ceil(np.sqrt(len(times))))
+    Ny = int(np.ceil(np.sqrt(len(times))))
+
+    Wx = model.Nx.item()
+    Wy = model.Ny.item()
+
+    fig_height = fig_width * Ny*Wy/Nx/Wx
+
+    fig, axs = plt.subplots(Ny, Nx, constrained_layout=True, figsize=(fig_width, fig_height))
+    axs = axs.ravel()
+
+    rho = model.proj_rho().detach().numpy().transpose()
+
+    field_max = fields.max().item()
+
+    for i, time in enumerate(times):
+        field = fields[i, :, :].numpy().transpose()
+        
+        h = axs[i].imshow(field, cmap=plt.cm.RdBu, vmin=-field_max, vmax=+field_max, origin="bottom")
+        axs[i].contour(rho, levels=[0.5], colors=['k'], linewidths=[1])
+
+        axs[i].set_xticks([])
+        axs[i].set_yticks([])
+
+        axs[i].text(0.5, 0.05, "time step %d/%d" % (time, fields_in.shape[1]), transform=axs[i].transAxes, ha="center", va="bottom")
+
+        for j in range(0, len(model.px)):
+            axs[i].plot(model.px[j], model.py[j], "o", markeredgecolor="#98df8a" if ylabel[0,j].item() == 1 else "#cccccc", markerfacecolor="none", markeredgewidth=1.0, ms=4)
+
+    plt.colorbar(h, ax=axs, shrink=0.25, fraction=0.2, label=r"$u_n{(x,y)}$")
+
+    for j in range(i+1,len(axs)):
+        axs[j].set_xticks([])
+        axs[j].set_yticks([])
+        axs[j].axis('image')
+        axs[j].axis('off')
+
+    plt.show(block=block)
+
 
 def animate_fields(model, field_dist, ylabel, block=True, filename=None, interval=1, fps=30, bitrate=768, crop=0.9, fig_width=6):
 
@@ -247,6 +296,7 @@ def animate_fields(model, field_dist, ylabel, block=True, filename=None, interva
         plt.close(fig)
     else:
         plt.show(block=block)
+
 
 def apply_sublabels(axs, x=[-50], y=0, size='medium', weight='bold', ha='right', va='top', prefix='', postfix='', invert_color_inds=[], bg=None):
     '''
