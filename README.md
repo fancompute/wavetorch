@@ -40,15 +40,12 @@ After issuing the above command, the model will be optimized and the progress wi
 
 #### Summary
 
-Through ipython, the following command can be issued to load a saved model file and display a summary:
-```
-%run -m wavetorch summary <PATH_TO_MODEL>
-```
-Directly from the command line the same result can be achieved:
+A summary figure of a trained model can be created with the following command:
 ```
 python -i -m wavetorch summary <PATH_TO_MODEL>
 ```
-The summary will look something like the following:
+
+The output will look something like the following:
 
 ![](../master/img/summary.png)
 
@@ -56,7 +53,7 @@ The summary will look something like the following:
 
 The command
 ```
-python -i -m wavetorch stft
+python -i -m wavetorch stft <PATH_TO_MODEL>
 ```
 will display a matrix of short time Fourier transforms of the received signal, where the row corresponds to an input vowel and the column corresponds to a particular probe (matching the confusion matrix distribution), like so:
 
@@ -66,7 +63,7 @@ will display a matrix of short time Fourier transforms of the received signal, w
 
 The command
 ```
-python -i -m wavetorch fields 1500 2500 3500 ...
+python -i -m wavetorch fields <PATH_TO_MODEL> 1500 2500 3500 ...
 ```
 will display snapshots in time of the field distribution, like so:
 
