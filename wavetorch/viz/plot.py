@@ -217,6 +217,20 @@ def plot_structure(model, state=None, ax=None, quantity='c', vowels=None, cbar=F
 
     return h
 
+def plot_probe_integrals(model, fields_in, ylabel, fig_width=6, block=False, ax=None):
+    probe_fields = fields_in[0, :, model.px, model.py].numpy()
+
+    I = np.cumsum(np.abs(probe_fields)**2, axis=0)
+
+    if ax is None:
+        fig, ax = plt.subplots(1, 1, constrained_layout=True, figsize=(4, 3))
+
+    # ax.plot(I, "-")
+    for j in range(I.shape[1]):
+        ax.plot(I[:,j], "-", color="#98df8a" if ylabel[0,j].item() == 1 else "#cccccc")
+
+    plt.show(block=block)
+
 
 def plot_field_snapshot(model, fields_in, times, ylabel, fig_width=6, block=False):
     fields = fields_in[0, times, :, :]

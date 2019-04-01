@@ -347,11 +347,15 @@ class WaveTorch(object):
         Y = torch.nn.utils.rnn.pad_sequence(Y, batch_first=True)
         test_ds = TensorDataset(X, Y)
 
-        for xb, yb in DataLoader(test_ds, batch_size=1):
+        fig, axs = plt.subplots(N_classes, 1, constrained_layout=True, figsize=(4, 3), sharex=True, sharey=True)
+        for i, (xb, yb) in enumerate(DataLoader(test_ds, batch_size=1)):
             with torch.no_grad():
                 fields = model(xb, probe_output=False)
+                viz.plot_probe_integrals(model, fields, yb, fig_width=6, block=False, ax=axs[i])
                 viz.plot_field_snapshot(model, fields, args.times, yb, fig_width=6, block=False)
+                axs[i].set_ylabel(r"Probe $\int \vert u_n \vert^2 dt$")
 
+        axs[-1].set_xlabel("Time")
         plt.show()
 
     def stft(self, args):
