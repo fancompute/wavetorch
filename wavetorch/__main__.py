@@ -326,7 +326,7 @@ class WaveTorch(object):
             fig.savefig(os.path.splitext(args.filename)[0]+"_summary.png", dpi=300)
 
     def fields(self, args):
-        model, history, _, cfg = core.load_model(args.filename)
+        model, history, history_state, cfg = core.load_model(args.filename)
 
         print("Configuration for model in %s is:" % args.filename)
         print(yaml.dump(cfg, default_flow_style=False))
@@ -355,7 +355,7 @@ class WaveTorch(object):
         plt.show()
 
     def stft(self, args):
-        model, history, cfg, cm_train, cm_test, cm_train0, cm_test0 = core.load_model(args.filename)
+        model, history, history_state, cfg = core.load_model(args.filename)
 
         print("Configuration for model in %s is:" % args.filename)
         print(yaml.dump(cfg, default_flow_style=False))
