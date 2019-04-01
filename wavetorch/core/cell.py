@@ -12,7 +12,7 @@ class WaveCell(torch.nn.Module):
             nl_c=0.0, nl_uth=1.0, nl_b0=0.0, eta=0.5, beta=100.0,
             pml_N=20, pml_p=4.0, pml_max=3.0, c0=1.0, c1=0.9, h=None,
             init_rand=True, design_region=None):
-    
+
         super(WaveCell, self).__init__()
 
         if len(px) != len(py):
@@ -69,7 +69,7 @@ class WaveCell(torch.nn.Module):
 
         cmax = np.max([c0, c1])
         if h is None:
-            h = dt * cmax * np.sqrt(2) * 0.99 
+            h = dt * cmax * np.sqrt(2) * 1.01
 
         if dt > 1 / cmax * h / np.sqrt(2):
             raise ValueError('The discretization defined by `h` and `dt` does not satisfy the CFL stability criteria')
