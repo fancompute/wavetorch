@@ -255,18 +255,19 @@ class WaveTorch(object):
 
         # ax_acc.annotate("%.1f%% training set accuracy" % (history_mean['acc_train'].tail(1).item()*100), xy=(0.1,0.1), xytext=(0,10), textcoords="offset points",  xycoords="axes fraction", ha="left", va="bottom", color=COL_TRAIN)
         # ax_acc.annotate("%.1f%% testing set accuracy" % (history_mean['acc_test'].tail(1).item()*100), xy=(0.1,0.1), xycoords="axes fraction", ha="left", va="bottom", color=COL_TEST)
-        bbox_props = dict(boxstyle="round,pad=0.3", fc="white", ec="none", alpha=0.75)
         ax_acc.annotate('%.1f%%' % (history_mean['acc_train'].tail(1).item()*100),
                     xy=(epochs[-1], history_mean['acc_train'].tail(1).item()*100), xycoords='data',
-                    xytext=(-3, 5), textcoords='offset points', ha='left', va='center', fontsize='smaller',
-                    color=COL_TRAIN, bbox=bbox_props)
+                    xytext=(-1, 5), textcoords='offset points', ha='left', va='center', fontsize='small',
+                    color=COL_TRAIN, bbox=viz.bbox_white)
         ax_acc.annotate('%.1f%%' % (history_mean['acc_test'].tail(1).item()*100),
                     xy=(epochs[-1], history_mean['acc_test'].tail(1).item()*100), xycoords='data',
-                    xytext=(-3, -5), textcoords='offset points', ha='left', va='center', fontsize='smaller',
-                    color=COL_TEST, bbox=bbox_props)
+                    xytext=(-1, -5), textcoords='offset points', ha='left', va='center', fontsize='small',
+                    color=COL_TEST, bbox=viz.bbox_white)
 
-        h = viz.plot_structure(model, state=history_state[0], ax=ax_c0, quantity='c', vowels=vowels, cbar=False)
-        h = viz.plot_structure(model, state=history_state[-1], ax=ax_c1, quantity='c', vowels=vowels, cbar=False)
+        model.load_state_dict(history_state[0])
+        h = viz.plot_structure(model, ax=ax_c0, vowel_probe_labels=vowels)
+        model.load_state_dict(history_state[-1])
+        h = viz.plot_structure(model, ax=ax_c1, vowel_probe_labels=vowels)
         from mpl_toolkits.axes_grid1.inset_locator import inset_axes
         axins = inset_axes(ax_c1,
                    width="90%",  # width = 5% of parent_bbox width
@@ -317,7 +318,7 @@ class WaveTorch(object):
                 viz.plot_total_field(model, field_dist, yb, ax=ax_fields[1+yb.argmax().item()], cbar=True, cax=ax_fields[0], vmin=args.vmin, vmax=args.vmax)
 
         viz.apply_sublabels([ax_c0, ax_cm_train0, ax_cm_test0, ax_c1, ax_cm_train1, ax_cm_test1, ax_loss, ax_acc] + ax_fields[1::],
-                            x=[-10, -35, -35, -10, -35, -35, -35, -35, -10, -10, -10])
+                            x=-30)
 
         plt.show()
         if args.fig is not None:
@@ -347,15 +348,17 @@ class WaveTorch(object):
         Y = torch.nn.utils.rnn.pad_sequence(Y, batch_first=True)
         test_ds = TensorDataset(X, Y)
 
-        fig, axs = plt.subplots(N_classes, 1, constrained_layout=True, figsize=(4, 3), sharex=True, sharey=True)
+        # fig, axs = plt.subplots(N_classes, 1, constrained_layout=True, figsize=(4, 3), sharex=True, sharey=True)
+        fig, axs = plt.subplots(N_classes, N_classes, constrained_layout=True, figsize=(6.5, 6.5), sharex=True, sharey=True)
         for i, (xb, yb) in enumerate(DataLoader(test_ds, batch_size=1)):
             with torch.no_grad():
                 fields = model(xb, probe_output=False)
-                viz.plot_probe_integrals(model, fields, yb, fig_width=6, block=False, ax=axs[i])
-                viz.plot_field_snapshot(model, fields, args.times, yb, fig_width=6, block=False)
-                axs[i].set_ylabel(r"Probe $\int \vert u_n \vert^2 dt$")
+                # viz.plot_probe_integrals(model, fields, yb, fig_width=6, block=False, ax=axs[i])
+                viz.plot_field_snapshot(model, fields, args.times, yb, fig_width=6, block=False, axs=axs[i,:])
+                # axs[i].set_ylabel(r"Probe $\int \vert u_n \vert^2 dt$")
 
-        axs[-1].set_xlabel("Time")
+        # axs[-1].set_xlabel("Time")
+        viz.apply_sublabels(axs.ravel(), x=5, y=-5, size='medium', weight='bold', ha='left', va='top')
         plt.show()
 
     def stft(self, args):
