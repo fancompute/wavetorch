@@ -10,11 +10,13 @@ class WaveCell(torch.nn.Module):
     def __init__(
             self, dt, Nx, Ny, src_x, src_y, px, py, 
             nl_c=0.0, nl_uth=1.0, nl_b0=0.0, eta=0.5, beta=100.0,
-            pml_N=20, pml_p=4.0, pml_max=3.0, c0=1.0, c1=0.9,
+            pml_N=20, pml_p=4.0, pml_max=3.0, c0=1.0, c1=0.9, h=None,
             init_rand=True, design_region=None):
+
         super(WaveCell, self).__init__()
 
-        assert len(px)==len(py), "Length of probe x and y coordinate vectors must be the same"
+        if len(px) != len(py):
+            raise ValueError("Length of probe x and y coordinate vectors must be the same")
 
         # Time step
         self.register_buffer("dt", torch.tensor(dt))
@@ -65,9 +67,13 @@ class WaveCell(torch.nn.Module):
 
         self.clip_to_design_region()
 
-        # Spatial step size (satisfying Courant stability)
-        h  = dt * 2.01 / 1.0
-        # Define the laplacian conv kernel
+        cmax = np.max([c0, c1])
+        if h is None:
+            h = dt * cmax * np.sqrt(2) * 1.01
+
+        if dt > 1 / cmax * h / np.sqrt(2):
+            raise ValueError('The discretization defined by `h` and `dt` does not satisfy the CFL stability criteria')
+
         self.register_buffer("laplacian", h**(-2) * torch.tensor([[[[0.0,  1.0, 0.0], [1.0, -4.0, 1.0], [0.0,  1.0, 0.0]]]]))
 
     def clip_to_design_region(self):

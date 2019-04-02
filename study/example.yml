@@ -57,6 +57,9 @@ geom:
   # Time step (spatial step size is determined automatically)
   dt: 0.707
 
+  # Spatial grid step size
+  h: 
+
   # Wave speed background value (e.g. in PML and non-design region)
   c0: 1.0
 

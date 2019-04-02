@@ -56,8 +56,8 @@ args_summary.add_argument('--title_off', action='store_true')
 args_summary.add_argument('filename', type=str)
 
 args_fields = subargs.add_parser('fields', parents=[args_global])
-args_fields.add_argument('--vmin', type=float, default=1e-3)
 args_fields.add_argument('filename', type=str)
+args_fields.add_argument('times', nargs='+', type=int)
 
 args_stft = subargs.add_parser('stft', parents=[args_global])
 args_stft.add_argument('filename', type=str)
@@ -156,7 +156,7 @@ class WaveTorch(object):
                         cfg['geom']['dt'], cfg['geom']['Nx'], cfg['geom']['Ny'], src_x, src_y, px, py,
                         pml_N=cfg['geom']['pml']['N'], pml_p=cfg['geom']['pml']['p'], pml_max=cfg['geom']['pml']['max'], 
                         c0=cfg['geom']['c0'], c1=cfg['geom']['c1'], eta=cfg['geom']['binarization']['eta'], beta=cfg['geom']['binarization']['beta'], 
-                        init_rand=cfg['geom']['use_rand_init'], design_region=design_region,
+                        init_rand=cfg['geom']['use_rand_init'], design_region=design_region, h=cfg['geom']['h'],
                         nl_b0=cfg['geom']['nonlinearity']['b0'], nl_uth=cfg['geom']['nonlinearity']['uth'],
                         nl_c=cfg['geom']['nonlinearity']['cnl'] 
                         )
@@ -326,7 +326,7 @@ class WaveTorch(object):
             fig.savefig(os.path.splitext(args.filename)[0]+"_summary.png", dpi=300)
 
     def fields(self, args):
-        model, history, _, cfg = core.load_model(args.filename)
+        model, history, history_state, cfg = core.load_model(args.filename)
 
         print("Configuration for model in %s is:" % args.filename)
         print(yaml.dump(cfg, default_flow_style=False))
@@ -345,20 +345,21 @@ class WaveTorch(object):
                             )
         X = torch.nn.utils.rnn.pad_sequence(X, batch_first=True)
         Y = torch.nn.utils.rnn.pad_sequence(Y, batch_first=True)
-        test_ds = TensorDataset(X, Y)  
-        fig, axs = plt.subplots(1, N_classes, figsize=(7, 2), constrained_layout=True)
+        test_ds = TensorDataset(X, Y)
 
-        for xb, yb in DataLoader(test_ds, batch_size=1):
+        fig, axs = plt.subplots(N_classes, 1, constrained_layout=True, figsize=(4, 3), sharex=True, sharey=True)
+        for i, (xb, yb) in enumerate(DataLoader(test_ds, batch_size=1)):
             with torch.no_grad():
-                field_dist = model(xb, probe_output=False)
-                probe_series = field_dist[0, :, model.px, model.py]
-                viz.plot_total_field(model, field_dist, yb, ax=axs[yb.argmax().item()], cbar=True, vmin=args.vmin)
+                fields = model(xb, probe_output=False)
+                viz.plot_probe_integrals(model, fields, yb, fig_width=6, block=False, ax=axs[i])
+                viz.plot_field_snapshot(model, fields, args.times, yb, fig_width=6, block=False)
+                axs[i].set_ylabel(r"Probe $\int \vert u_n \vert^2 dt$")
 
+        axs[-1].set_xlabel("Time")
         plt.show()
-        fig.savefig(os.path.splitext(args.filename)[0]+"_fields.png", dpi=300)
 
     def stft(self, args):
-        model, history, cfg, cm_train, cm_test, cm_train0, cm_test0 = core.load_model(args.filename)
+        model, history, history_state, cfg = core.load_model(args.filename)
 
         print("Configuration for model in %s is:" % args.filename)
         print(yaml.dump(cfg, default_flow_style=False))
@@ -436,26 +437,25 @@ class WaveTorch(object):
         plt.show()
 
     def animate(self, args):
-        model, history, cfg, cm_train, cm_test, cm_train0, cm_test0 = core.load_model(args.filename)
+        model, history, history_state, cfg = core.load_model(args.filename)
 
         print("Configuration for model in %s is:" % args.filename)
         print(yaml.dump(cfg, default_flow_style=False))
 
-        sr = cfg['data']['sr']
-        gender = cfg['data']['gender']
-        vowels = cfg['data']['vowels']
-        N_classes = len(vowels)
+        X, Y = data.load_all_vowels(
+                        cfg['data']['vowels'],
+                        gender='men', 
+                        sr=cfg['data']['sr'], 
+                        normalize=True, 
+                        max_samples=len(cfg['data']['vowels'])
+                    )
 
-        x_train, x_test, y_train, y_test = data.load_selected_vowels(
-                            vowels,
-                            gender=gender, 
-                            sr=sr, 
-                            normalize=True, 
-                            train_size=N_classes, 
-                            test_size=N_classes
-                        )
+        X = torch.nn.utils.rnn.pad_sequence(X, batch_first=True)
+        Y = torch.nn.utils.rnn.pad_sequence(Y, batch_first=True)
+        test_ds = TensorDataset(X, Y)
 
-        test_ds = TensorDataset(x_test, y_test)  
+        model.load_state_dict(history_state[cfg['training']['N_epochs']])
+
         for xb, yb in DataLoader(test_ds, batch_size=1):
             with torch.no_grad():
                 field_dist = model(xb, probe_output=False)

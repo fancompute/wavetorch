@@ -19,6 +19,7 @@ The best entry points to this package are the study scripts which are described 
 This package has been reorganized from the previous study scripts to use a common entry point. Now, the module has a training and inference mode. 
 
 ### Training
+
 Issuing the following command via ipython will train the model using the configuration specified by the file [study/example.yml](study/example.yml):
 ```
 %run -m wavetorch train --config ./study/example.yml
@@ -38,27 +39,33 @@ After issuing the above command, the model will be optimized and the progress wi
 ### Results
 
 #### Summary
-Through ipython, the following command can be issued to load a saved model file and display a summary:
-```
-%run -m wavetorch summary <PATH_TO_MODEL>
-```
-Directly from the command line the same result can be achieved:
+
+A summary figure of a trained model can be created with the following command:
 ```
 python -i -m wavetorch summary <PATH_TO_MODEL>
 ```
-The summary will look something like the following:
+
+The output will look something like the following:
 
 ![](../master/img/summary.png)
 
 #### STFT (short-time Fourier transform)
 
-The `wavetorch stft` mode will display a matrix of short time Fourier transforms of the received signal, where the row corresponds to an input vowel and the column corresponds to a particular probe (matching the confusion matrix distribution), like so:
+The command
+```
+python -i -m wavetorch stft <PATH_TO_MODEL>
+```
+will display a matrix of short time Fourier transforms of the received signal, where the row corresponds to an input vowel and the column corresponds to a particular probe (matching the confusion matrix distribution), like so:
 
 ![](../master/img/stft.png)
 
 #### Fields
 
-The `wavetorch fields` mode will display an integrated field distribution for the vowel classes, like so:
+The command
+```
+python -i -m wavetorch fields <PATH_TO_MODEL> 1500 2500 3500 ...
+```
+will display snapshots in time of the field distribution, like so:
 
 ![](../master/img/fields.png)
 
