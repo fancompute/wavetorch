@@ -1,8 +1,8 @@
 training:
   prefix: kerr
   N_epochs: 20
-  lr: 0.001
-  batch_size: 15
+  lr: 0.0004
+  batch_size: 9
   max_samples: 
   train_test_divide: 5
   use_cross_validation: true
@@ -18,13 +18,13 @@ geom:
   use_design_region: true
   use_rand_init: false
   Nx: 140
-  Ny: 100
+  Ny: 140
   dt: 0.707
   c0: 1.00
-  c1: 0.75
+  c1: 0.8
   px: 
   py: 
-  pd: 20
+  pd: 35
   src_x: 
   src_y:
   pml:
@@ -32,7 +32,7 @@ geom:
     p: 4.0
     max: 3.0
   nonlinearity:
-    cnl: -0.3
+    cnl: -0.25
     b0: 0.0
     uth: 0.0
   binarization:
