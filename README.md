@@ -26,31 +26,28 @@ During training, the progress of the optimization will be printed to the screen.
 
 ### Summary of results
 
-A summary of a trained model which was previously saved to disk can be generated with the following command:
+A summary of a trained model which was previously saved to disk can be generated like so:
 ```
 python -m wavetorch summary <PATH_TO_MODEL>
 ```
-The resulting figure will look like this:
 
 ![](../master/img/summary.png)
 
 ### Display field snapshots
 
-The command
+Snapshots of the scalar field distribution for randomly selected vowels samples can be generated like so:
 ```
 python -m wavetorch fields <PATH_TO_MODEL> 1500 2500 3500 ...
 ```
-will display snapshots in time of the field distribution, like so:
 
 ![](../master/img/fields.png)
 
 ### Display short-time Fourier transform (STFT) of signals
 
-The command
+A matrix of short time Fourier transforms of the received signal, where the row corresponds to an input vowel and the column corresponds to a particular probe (matching the confusion matrix distribution) can be generated like so:
 ```
 python -m wavetorch stft <PATH_TO_MODEL>
 ```
-will display a matrix of short time Fourier transforms of the received signal, where the row corresponds to an input vowel and the column corresponds to a particular probe (matching the confusion matrix distribution), like so:
 
 ![](../master/img/stft.png)
 
