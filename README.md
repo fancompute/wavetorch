@@ -8,7 +8,7 @@ In this package, the wave equation is discretized using centered finite differen
 
 ## Learning task: vowel recognition
 
-This package is designed around the physically-motivated application of vowel recognition. A dataset of recorded vowels from male and female speakers (sourced from Prof. James Hillenbrand's [website]](https://homepages.wmich.edu/~hillenbr/voweldata.html)) is located in `data/`.
+This package is designed around the physically-motivated application of vowel recognition. A dataset of recorded vowels from male and female speakers (sourced from Prof. James Hillenbrand's [website](https://homepages.wmich.edu/~hillenbr/voweldata.html)) is located in `data/`.
 
 ## Usage
 
