@@ -2,13 +2,13 @@
 
 ## Introduction
 
-This python package computes solutions to the [scalar wave equation](https://en.wikipedia.org/wiki/Wave_equation). Using backpropagation, `wavetorch` also computes gradients of those solutions with respect to the spatial distribution of the wave speed. In practice, the wave speed could be related to a material density in an acoustic setting, or to a refractive index in an optical setting. 
+This python package computes solutions to the [scalar wave equation](https://en.wikipedia.org/wiki/Wave_equation). Using backpropagation, `wavetorch` also computes gradients of those solutions with respect to the spatial distribution of the wave speed. In practice, the wave speed could be related to a material density distribution in an acoustic setting, or to a distribution of materials with different refractive indices in an optical setting. 
 
-In this package, the wave equation is discretized using centered finite differences in both space and time, which are implemented in a custom RNN cell subclassing the pytorch `torch.nn.Module`. All of the standard pytorch machinery is used to optimize the physical system described by the scalar wave equation.
+In this package, the wave equation is discretized using centered finite differences in both space and time, which are implemented in a custom RNN cell subclassing the pytorch `torch.nn.Module`. The optimizers provided by pytorch (e.g. ADAM, SGD, LBFGS, etc) are used to optimize the physical system described by the scalar wave equation.
 
-## Learning task: vowel recognition
+## Application: Vowel recognition
 
-This package is designed around the application of vowel recognition. A dataset of 12 vowel classes recorded vowels from 45 male and 48 female speakers is located in `data/`. This dataset was sourced from Prof. James Hillenbrand's [website](https://homepages.wmich.edu/~hillenbr/voweldata.html).
+This package is designed around the application of vowel recognition. A dataset [1] of 12 vowel classes recorded from 45 male and 48 female speakers is located in the `data` subfolder.
 
 ## Usage
 
@@ -73,3 +73,8 @@ will display a matrix of short time Fourier transforms of the received signal, w
 * `numpy`
 * `yaml`
 * `pandas`
+
+## References
+
+1. James  Hillenbrand,  Laura  A.  Getty,  Michael  J.  Clark, and  Kimberlee  Wheeler,  "[Acoustic  characteristics  of
+American English vowels](http://dx.doi.org/%2010.1121/1.411872)," The Journal of the Acoustical Society of America **97**, 3099–3111 (1995). *The associated dataset is available for download from [here](https://homepages.wmich.edu/~hillenbr/voweldata.html).*
