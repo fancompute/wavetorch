@@ -16,7 +16,7 @@ This package is designed around the application of vowel recognition. A dataset 
 
 To train the model using the configuration specified by the file [study/example.yml](study/example.yml), issue the following command from the top-level of the repository:
 ```
-python -m wavetorch train --config ./study/example.yml
+python -m wavetorch train ./study/example.yml
 ```
 The configuration file, [study/example.yml](study/example.yml), is commented to provide information on how the vowel data is processed, how the physics of the problem is specified, and how the training process is configured.
 
