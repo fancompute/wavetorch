@@ -1,22 +1,16 @@
 # wavetorch
 
-## Overview
+## Introduction
 
-This package is for solving and optimizing (learning) on the two-dimensional (2D) scalar wave equation. Vowel data from [Prof. James Hillenbrand](https://homepages.wmich.edu/~hillenbr/voweldata.html) is in `data/`, study scripts are in `study/`, and the package itself is in `wavetorch/`. This package uses `pytorch` to perform the optimization and gradient calculations.
+This python package computes solutions to the [scalar wave equation](https://en.wikipedia.org/wiki/Wave_equation). Using backpropagation, `wavetorch` also computes gradients of those solutions with respect to the spatial distribution of the wave speed. In practice, the wave speed could be related to a material density in an acoustic setting, or to a refractive index in an optical setting. 
 
-The best entry points to this package are the study scripts which are described below.
+In this package, the wave equation is discretized using centered finite differences in both space and time which are implemented in a custom RNN cell subclassing pytorch's `torch.nn.Module`.
 
-## Implementation
+## Learning task: vowel recognition
 
- - [ ] Describe the finite difference formulations
- - [ ] Describe how convolutions are used to implement the spatial FDs
- - [ ] Describe the adiabatic absorber formulation
- - [ ] Describe `WaveCell()`
- - [ ] Describe data loading and batching
+This package is designed around the physically-motivated application of vowel recognition. A dataset of recorded vowels from male and female speakers (sourced from Prof. James Hillenbrand's [website]](https://homepages.wmich.edu/~hillenbr/voweldata.html)) is located in `data/`.
 
 ## Usage
-
-This package has been reorganized from the previous study scripts to use a common entry point. Now, the module has a training and inference mode. 
 
 ### Training
 
@@ -29,12 +23,9 @@ Alternatively, training can be performed directly from the command line by issui
 python -m wavetorch train --config ./study/example.yml
 ```
 
-Please see [study/example.yml](study/example.yml) for an example of how to configure the training process.
+The configuration file is heavily commented. Please see [study/example.yml](study/example.yml) for an example of how to configure the training process. After issuing the above command, the model will be optimized and the progress will be printed to the screen. After training, the model will be saved to a file, along with the training history and the problem configuration.
 
-**WARNING:** depending on the batch size and the sample rate for the vowel data, determined by the `sr` option, the gradient computation may require significant amounts of memory. Using too large of a value for either of these parameters may cause your computer to lock up.
-**Note:** The model trained in this example will not perform very well because we used very few training examples.
-
-After issuing the above command, the model will be optimized and the progress will be printed to the screen. After training, the model will be saved to a file, along with the training history and all of the input arguments.
+**WARNING:** depending on the batch size, the window length, and the sample rate for the vowel data (all of which are specified in the YAML configuration file) the gradient computation may require a significant amount of memory. It is recommended to start small with the batch size and work your way up gradually, depending on what your machine can handle.
 
 ### Results
 
@@ -42,36 +33,34 @@ After issuing the above command, the model will be optimized and the progress wi
 
 A summary figure of a trained model can be created with the following command:
 ```
-python -i -m wavetorch summary <PATH_TO_MODEL>
+python -m wavetorch summary <PATH_TO_MODEL>
 ```
 
 The output will look something like the following:
 
 ![](../master/img/summary.png)
 
-#### STFT (short-time Fourier transform)
-
-The command
-```
-python -i -m wavetorch stft <PATH_TO_MODEL>
-```
-will display a matrix of short time Fourier transforms of the received signal, where the row corresponds to an input vowel and the column corresponds to a particular probe (matching the confusion matrix distribution), like so:
-
-![](../master/img/stft.png)
-
 #### Fields
 
 The command
 ```
-python -i -m wavetorch fields <PATH_TO_MODEL> 1500 2500 3500 ...
+python -m wavetorch fields <PATH_TO_MODEL> 1500 2500 3500 ...
 ```
 will display snapshots in time of the field distribution, like so:
 
 ![](../master/img/fields.png)
 
-## Requirements
+#### STFT (short-time Fourier transform)
 
-This package has the following dependencies:
+The command
+```
+python -m wavetorch stft <PATH_TO_MODEL>
+```
+will display a matrix of short time Fourier transforms of the received signal, where the row corresponds to an input vowel and the column corresponds to a particular probe (matching the confusion matrix distribution), like so:
+
+![](../master/img/stft.png)
+
+## Dependencies
 
 * `pytorch`
 * `sklearn`

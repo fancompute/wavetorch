@@ -9,3 +9,5 @@ A study can be run from the command line (from the top-level directory of the re
 ```
 python -m wavetorch train ./study/example.yml
 ```
+
+**WARNING:** depending on the batch size, the window length, and the sample rate for the vowel data (all of which are specified in the YAML configuration file) the gradient computation may require a significant amount of memory. It is recommended to start small with the batch size and work your way up gradually, depending on what your machine can handle.
