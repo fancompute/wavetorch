@@ -30,20 +30,17 @@ The example configuration file is heavily commented. Please see [study/example.y
 
 **WARNING:** depending on the batch size, the window length, and the sample rate for the vowel data (all of which are specified in the YAML configuration file) the gradient computation may require a significant amount of memory. It is recommended to start small with the batch size and work your way up gradually, depending on what your machine can handle.
 
-### Results
+### Summary of results
 
-#### Summary
-
-A summary figure of a trained model can be created with the following command:
+A summary of a trained model which was previously saved to disk can be generated with the following command:
 ```
 python -m wavetorch summary <PATH_TO_MODEL>
 ```
-
-The output will look something like the following:
+The resulting figure will look like this:
 
 ![](../master/img/summary.png)
 
-#### Fields
+### Display field snapshots
 
 The command
 ```
@@ -53,7 +50,7 @@ will display snapshots in time of the field distribution, like so:
 
 ![](../master/img/fields.png)
 
-#### STFT (short-time Fourier transform)
+### Display short-time Fourier transform (STFT) of signals
 
 The command
 ```
@@ -63,7 +60,7 @@ will display a matrix of short time Fourier transforms of the received signal, w
 
 ![](../master/img/stft.png)
 
-## Dependencies
+## Pacakage dependencies
 
 * `pytorch`
 * `sklearn`
