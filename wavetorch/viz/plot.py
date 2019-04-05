@@ -110,21 +110,24 @@ def _plot_probes(model, ax, vowel_probe_labels=None, highlight_onehot=None, bg='
     px = model.px.numpy()
     py = model.py.numpy()
 
+    markers = []
     for i in range(0, len(px)):
         if highlight_onehot is None:
-            ax.plot(px[i], py[i], "ro", ms=4, mew=0.0)
+            marker, = ax.plot(px[i], py[i], "ro", ms=4, mew=0.0)
         else:
-            ax.plot(px[i], py[i], "o", markeredgecolor=color_highlight if highlight_onehot[0,i].item() == 1 else color_dim, markerfacecolor="none", markeredgewidth=1.0, ms=4)
+            marker, = ax.plot(px[i], py[i], "o", markeredgecolor=color_highlight if highlight_onehot[0,i].item() == 1 else color_dim, markerfacecolor="none", markeredgewidth=1.0, ms=4)
         if vowel_probe_labels is not None:
             ax.annotate(vowel_probe_labels[i], xy=(px[i], py[i]), xytext=(5,0), textcoords="offset points", ha="left", va="center", fontsize="small", bbox=bbox_white, color=color_txt)
+        markers.append(marker)        
 
     if highlight_onehot is None:
-        ax.plot(model.src_x.numpy(), model.src_y.numpy(), "ko", ms=4, mew=0.0)
+        marker, = ax.plot(model.src_x.numpy(), model.src_y.numpy(), "ko", ms=4, mew=0.0)
     else:
-        ax.plot(model.src_x.numpy(), model.src_y.numpy(), "o", markeredgecolor=color_dim, markerfacecolor="none", markeredgewidth=1.0, ms=4)
+        marker, = ax.plot(model.src_x.numpy(), model.src_y.numpy(), "o", markeredgecolor=color_dim, markerfacecolor="none", markeredgewidth=1.0, ms=4)
 
     if vowel_probe_labels is not None:
         ax.annotate("source", rotation=90, xy=(model.src_x.numpy(), model.src_y.numpy()), xytext=(-5,0), textcoords="offset points", ha="right", va="center", fontsize="small", bbox=bbox_white, color=color_txt)
+    return markers        
 
 
 def plot_structure(model, ax=None, outline=False, outline_pml=True, vowel_probe_labels=None, highlight_onehot=None, bg='light', alpha=1.0):
@@ -138,8 +141,10 @@ def plot_structure(model, ax=None, outline=False, outline_pml=True, vowel_probe_
         show = True
         fig, ax = plt.subplots(1, 1, constrained_layout=True)
 
+    markers = []
     if outline:
         h = ax.contour(rho, levels=[0.5], colors=[lc], linewidths=[0.75], alpha=alpha)
+        markers += h.collections
     else:
         Z = model.c0.item() + (model.c1.item()-model.c0.item())*rho
         limits = np.array([model.c0.item(), model.c1.item()])
@@ -151,9 +156,10 @@ def plot_structure(model, ax=None, outline=False, outline_pml=True, vowel_probe_
     
     if outline_pml:
         b_boundary = model.b_boundary.numpy().transpose()
-        ax.contour(b_boundary>0, levels=[0], colors=[lc], linestyles=['dotted'], linewidths=[0.75], alpha=alpha)
+        h2 = ax.contour(b_boundary>0, levels=[0], colors=[lc], linestyles=['dotted'], linewidths=[0.75], alpha=alpha)
 
-    _plot_probes(model, ax, vowel_probe_labels=vowel_probe_labels, highlight_onehot=highlight_onehot, bg=bg)
+    markers += _plot_probes(model, ax, vowel_probe_labels=vowel_probe_labels, highlight_onehot=highlight_onehot, bg=bg)
+    markers += h2.collections
 
     ax.set_xticks([])
     ax.set_yticks([])
@@ -161,7 +167,7 @@ def plot_structure(model, ax=None, outline=False, outline_pml=True, vowel_probe_
     if show:
         plt.show()
 
-    return h
+    return h, markers
 
 def plot_probe_integrals(model, fields_in, ylabel, fig_width=6, block=False, ax=None):
     probe_fields = fields_in[0, :, model.px, model.py].numpy()
@@ -219,34 +225,24 @@ def plot_field_snapshot(model, fields_in, times, ylabel, fig_width=6, block=Fals
     plt.show(block=block)
 
 
-def animate_fields(model, field_dist, ylabel, block=True, filename=None, interval=1, fps=30, bitrate=768, crop=0.9, fig_width=6):
+def animate_fields(model, field_dist, ylabel, block=True, filename=None, interval=30, fps=30, bitrate=768, crop=0.9, fig_width=3.5):
 
     field_max = field_dist.max().item()
 
     fig, ax = plt.subplots(1, 1, constrained_layout=True, figsize=(fig_width, fig_width*model.Ny/model.Nx))
     im = ax.imshow(np.zeros((model.Ny, model.Nx)), cmap=plt.cm.RdBu, animated=True, vmin=-field_max, vmax=+field_max, origin="bottom")
-    
-    markers = []
-    for i in range(0, len(model.px)):
-        if ylabel[0,i].item() == 1:
-            color = "#98df8a"
-        else:
-            color = "#7f7f7f"
-        marker, = ax.plot(model.px[i], model.py[i], "o", color=color)
-        markers.append(marker)
 
-    marker, =ax.plot(model.src_x, model.src_y, "o", color="#7f7f7f")
-    markers.append(marker)
+    _, markers = plot_structure(model, ax=ax, outline=True, outline_pml=True, highlight_onehot=ylabel, bg='light')
     markers = tuple(markers)
 
-    title = ax.text(0.05, 0.05, "", transform=ax.transAxes, ha="left", fontsize="large")
+    title = ax.text(0.03, 0.03, "", transform=ax.transAxes, ha="left", va="bottom", bbox=bbox_white)
 
     def animate(i):
         title.set_text("Time step n = %d" % i)
         im.set_array(field_dist[0, i, :, :].numpy().transpose())
         return (im, title, *markers)
 
-    anim = animation.FuncAnimation(fig, animate, interval=interval, frames=int(crop*field_dist.shape[1])-1, blit=True, repeat_delay=10)
+    anim = animation.FuncAnimation(fig, animate, interval=interval, frames=int(crop*field_dist.shape[1])-1, blit=True, repeat_delay=1)
 
     if filename is not None:
         Writer = animation.writers['ffmpeg']

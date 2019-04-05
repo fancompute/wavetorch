@@ -64,6 +64,7 @@ args_stft.add_argument('filename', type=str)
 
 args_animate = subargs.add_parser('animate', parents=[args_global])
 args_animate.add_argument('filename', type=str)
+args_animate.add_argument('saveprefix', type=str, default=None)
 
 class WaveTorch(object):
 
@@ -265,9 +266,9 @@ class WaveTorch(object):
                     color=COL_TEST, bbox=viz.bbox_white)
 
         model.load_state_dict(history_state[0])
-        h = viz.plot_structure(model, ax=ax_c0, vowel_probe_labels=vowels)
+        h, _ = viz.plot_structure(model, ax=ax_c0, vowel_probe_labels=vowels)
         model.load_state_dict(history_state[-1])
-        h = viz.plot_structure(model, ax=ax_c1, vowel_probe_labels=vowels)
+        h, _ = viz.plot_structure(model, ax=ax_c1, vowel_probe_labels=vowels)
         from mpl_toolkits.axes_grid1.inset_locator import inset_axes
         axins = inset_axes(ax_c1,
                    width="90%",  # width = 5% of parent_bbox width
@@ -278,9 +279,9 @@ class WaveTorch(object):
                    borderpad=0,
                    )
         cbar= plt.colorbar(h, cax=axins, orientation='horizontal',
-         fraction=0.1, shrink=0.4, pad=0, panchor=(0.5, 1.1) )
+         fraction=0.1, shrink=0.4, pad=0, panchor=(0.5, 1.1), ticks=[cfg['geom']['c0'], cfg['geom']['c1']] )
         cbar.ax.set_title(r'Wave speed $c{(x,y)}$')
-        cbar.ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=1))
+        # cbar.ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=1))
         # plt.colorbar(h, ax=[ax_c1], orientation='vertical', label=r'$c$', fraction=0.1, shrink=0.5, pad=0)
 
         # if not args.title_off:
@@ -459,10 +460,11 @@ class WaveTorch(object):
 
         model.load_state_dict(history_state[cfg['training']['N_epochs']])
 
-        for xb, yb in DataLoader(test_ds, batch_size=1):
+        for i, (xb, yb) in enumerate(DataLoader(test_ds, batch_size=1)):
             with torch.no_grad():
+                this_savename = None if args.saveprefix is None else args.saveprefix + str(i) + '.mp4'
                 field_dist = model(xb, probe_output=False)
-                viz.animate_fields(model, field_dist, yb)
+                viz.animate_fields(model, field_dist, yb, filename=this_savename)
 
 if __name__ == '__main__':
     WaveTorch()
