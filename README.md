@@ -1,70 +1,57 @@
 # wavetorch
 
-## Overview
+## Introduction
 
-This package is for solving and optimizing (learning) on the two-dimensional (2D) scalar wave equation. Vowel data from [Prof. James Hillenbrand](https://homepages.wmich.edu/~hillenbr/voweldata.html) is in `data/`, study scripts are in `study/`, and the package itself is in `wavetorch/`. This package uses `pytorch` to perform the optimization and gradient calculations.
+This python package computes solutions to the [scalar wave equation](https://en.wikipedia.org/wiki/Wave_equation). Using backpropagation, `wavetorch` also computes gradients of those solutions with respect to the spatial distribution of the wave speed. In practice, the wave speed could be related to a material density distribution in an acoustic setting, or to a distribution of materials with different refractive indices in an optical setting. 
 
-The best entry points to this package are the study scripts which are described below.
+In this package, the wave equation is discretized using centered finite differences in both space and time. This discretization is implemented in a custom RNN cell which subclasses `torch.nn.Module` from pytorch. The optimizers provided by pytorch (e.g. ADAM, SGD, LBFGS, etc) are used to optimize the physical system described by the scalar wave equation.
 
-## Implementation
+## Application: Vowel recognition
 
- - [ ] Describe the finite difference formulations
- - [ ] Describe how convolutions are used to implement the spatial FDs
- - [ ] Describe the adiabatic absorber formulation
- - [ ] Describe `WaveCell()`
- - [ ] Describe data loading and batching
+This package is designed around the application of vowel recognition. A dataset [1] of 12 vowel classes recorded from 45 male and 48 female speakers is located in the `data/` subfolder.
 
 ## Usage
 
-This package has been reorganized from the previous study scripts to use a common entry point. Now, the module has a training and inference mode. 
-
 ### Training
-Issuing the following command via ipython will train the model using the configuration specified by the file [study/example.yml](study/example.yml):
-```
-%run -m wavetorch train --config ./study/example.yml
-```
-Alternatively, training can be performed directly from the command line by issuing the command
-```
-python -m wavetorch train --config ./study/example.yml
-```
 
-Please see [study/example.yml](study/example.yml) for an example of how to configure the training process.
-
-**WARNING:** depending on the batch size and the sample rate for the vowel data, determined by the `sr` option, the gradient computation may require significant amounts of memory. Using too large of a value for either of these parameters may cause your computer to lock up.
-**Note:** The model trained in this example will not perform very well because we used very few training examples.
-
-After issuing the above command, the model will be optimized and the progress will be printed to the screen. After training, the model will be saved to a file, along with the training history and all of the input arguments.
-
-### Results
-
-#### Summary
-Through ipython, the following command can be issued to load a saved model file and display a summary:
+To train the model using the configuration specified by the file [study/example.yml](study/example.yml), issue the following command from the top-level of the repository:
 ```
-%run -m wavetorch summary <PATH_TO_MODEL>
+python -m wavetorch train ./study/example.yml
 ```
-Directly from the command line the same result can be achieved:
+The configuration file, [study/example.yml](study/example.yml), is commented to provide information on how the vowel data is processed, how the physics of the problem is specified, and how the training process is configured.
+
+During training, the progress of the optimization will be printed to the screen. At the end of each epoch, the current state of the model, along with a history of the model state and performance at all previous epochs and cross validation folds, is saved to a file.
+
+**WARNING:** depending on the batch size, the window length, and the sample rate for the vowel data (all of which are specified in the YAML configuration file) the gradient computation may require a significant amount of memory. It is recommended to start small with the batch size and work your way up gradually, depending on what your machine can handle.
+
+### Summary of results
+
+A summary of a trained model which was previously saved to disk can be generated like so:
 ```
-python -i -m wavetorch summary <PATH_TO_MODEL>
+python -m wavetorch summary <PATH_TO_MODEL>
 ```
-The summary will look something like the following:
 
 ![](../master/img/summary.png)
 
-#### STFT (short-time Fourier transform)
+### Display field snapshots
 
-The `wavetorch stft` mode will display a matrix of short time Fourier transforms of the received signal, where the row corresponds to an input vowel and the column corresponds to a particular probe (matching the confusion matrix distribution), like so:
-
-![](../master/img/stft.png)
-
-#### Fields
-
-The `wavetorch fields` mode will display an integrated field distribution for the vowel classes, like so:
+Snapshots of the scalar field distribution for randomly selected vowels samples can be generated like so:
+```
+python -m wavetorch fields <PATH_TO_MODEL> 1500 2500 3500 ...
+```
 
 ![](../master/img/fields.png)
 
-## Requirements
+### Display short-time Fourier transform (STFT) of signals
 
-This package has the following dependencies:
+A matrix of short time Fourier transforms of the received signal, where the row corresponds to an input vowel and the column corresponds to a particular probe (matching the confusion matrix distribution) can be generated like so:
+```
+python -m wavetorch stft <PATH_TO_MODEL>
+```
+
+![](../master/img/stft.png)
+
+## Pacakage dependencies
 
 * `pytorch`
 * `sklearn`
@@ -74,3 +61,8 @@ This package has the following dependencies:
 * `numpy`
 * `yaml`
 * `pandas`
+
+## References
+
+1. James  Hillenbrand,  Laura  A.  Getty,  Michael  J.  Clark, and  Kimberlee  Wheeler,  "[Acoustic  characteristics  of
+American English vowels](http://dx.doi.org/%2010.1121/1.411872)," The Journal of the Acoustical Society of America **97**, 3099–3111 (1995). *The associated dataset is available for download from [here](https://homepages.wmich.edu/~hillenbr/voweldata.html).*

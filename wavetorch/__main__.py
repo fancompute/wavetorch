@@ -56,14 +56,15 @@ args_summary.add_argument('--title_off', action='store_true')
 args_summary.add_argument('filename', type=str)
 
 args_fields = subargs.add_parser('fields', parents=[args_global])
-args_fields.add_argument('--vmin', type=float, default=1e-3)
 args_fields.add_argument('filename', type=str)
+args_fields.add_argument('times', nargs='+', type=int)
 
 args_stft = subargs.add_parser('stft', parents=[args_global])
 args_stft.add_argument('filename', type=str)
 
 args_animate = subargs.add_parser('animate', parents=[args_global])
 args_animate.add_argument('filename', type=str)
+args_animate.add_argument('saveprefix', type=str, default=None)
 
 class WaveTorch(object):
 
@@ -156,7 +157,7 @@ class WaveTorch(object):
                         cfg['geom']['dt'], cfg['geom']['Nx'], cfg['geom']['Ny'], src_x, src_y, px, py,
                         pml_N=cfg['geom']['pml']['N'], pml_p=cfg['geom']['pml']['p'], pml_max=cfg['geom']['pml']['max'], 
                         c0=cfg['geom']['c0'], c1=cfg['geom']['c1'], eta=cfg['geom']['binarization']['eta'], beta=cfg['geom']['binarization']['beta'], 
-                        init_rand=cfg['geom']['use_rand_init'], design_region=design_region,
+                        init_rand=cfg['geom']['use_rand_init'], design_region=design_region, h=cfg['geom']['h'],
                         nl_b0=cfg['geom']['nonlinearity']['b0'], nl_uth=cfg['geom']['nonlinearity']['uth'],
                         nl_c=cfg['geom']['nonlinearity']['cnl'] 
                         )
@@ -202,20 +203,20 @@ class WaveTorch(object):
         fig = plt.figure( figsize=(7, 4.75), constrained_layout=True)
 
         gs = fig.add_gridspec(1, 2, width_ratios=[1, 0.35])
-        gs_left  = gs[0].subgridspec(3, 3, width_ratios=[0.4, 0.4, 0.75], height_ratios=[0.5, 0.7, 0.7])
+        gs_left  = gs[0].subgridspec(3, 3, width_ratios=[1.25, 0.75, 0.75], height_ratios=[1.0, 1.0, 1.0])
         gs_right = gs[1].subgridspec(N_classes+1, 1, height_ratios=[0.05] + [1 for i in range(0,N_classes)])
-        gs_top  = gs_left[0,:].subgridspec(1, 2)
+        gs_bot   = gs_left[2,:].subgridspec(1, 2)
 
-        ax_c0 = fig.add_subplot(gs_top[0])
-        ax_c1 = fig.add_subplot(gs_top[1])
+        ax_c0 = fig.add_subplot(gs_left[0,0])
+        ax_cm_train0 = fig.add_subplot(gs_left[0,1])
+        ax_cm_test0  = fig.add_subplot(gs_left[0,2], sharex=ax_cm_train0)
 
-        ax_loss = fig.add_subplot(gs_left[1,2])
-        ax_acc = fig.add_subplot(gs_left[2,2])
-
-        ax_cm_train0 = fig.add_subplot(gs_left[1,0])
-        ax_cm_test0  = fig.add_subplot(gs_left[2,0],sharex=ax_cm_train0)
+        ax_c1 = fig.add_subplot(gs_left[1,0])
         ax_cm_train1 = fig.add_subplot(gs_left[1,1])
-        ax_cm_test1  = fig.add_subplot(gs_left[2,1],sharex=ax_cm_train1)
+        ax_cm_test1  = fig.add_subplot(gs_left[1,2], sharex=ax_cm_train1)
+
+        ax_loss = fig.add_subplot(gs_bot[0])
+        ax_acc = fig.add_subplot(gs_bot[1])
 
         ax_fields = [fig.add_subplot(gs_right[i]) for i in range(0, N_classes+1)] 
 
@@ -247,24 +248,41 @@ class WaveTorch(object):
         ax_acc.set_ylabel('Accuracy')
         ax_acc.set_ylim(top=100)
 
+        ax_acc.yaxis.set_major_locator(mpl.ticker.MultipleLocator(base=10))
+
         ax_acc.yaxis.set_major_formatter(mpl.ticker.FormatStrFormatter('%.0f%%'))
 
-
-        ax_loss.legend()
+        ax_loss.legend(fontsize='small')
 
         # ax_acc.annotate("%.1f%% training set accuracy" % (history_mean['acc_train'].tail(1).item()*100), xy=(0.1,0.1), xytext=(0,10), textcoords="offset points",  xycoords="axes fraction", ha="left", va="bottom", color=COL_TRAIN)
         # ax_acc.annotate("%.1f%% testing set accuracy" % (history_mean['acc_test'].tail(1).item()*100), xy=(0.1,0.1), xycoords="axes fraction", ha="left", va="bottom", color=COL_TEST)
-        bbox_props = dict(boxstyle="round,pad=0.3", fc="white", ec="none", alpha=0.75)
         ax_acc.annotate('%.1f%%' % (history_mean['acc_train'].tail(1).item()*100),
                     xy=(epochs[-1], history_mean['acc_train'].tail(1).item()*100), xycoords='data',
-                    xytext=(-3, 5), textcoords='offset points', ha='left', va='center', fontsize='smaller',
-                    color=COL_TRAIN, bbox=bbox_props)
+                    xytext=(-1, 5), textcoords='offset points', ha='left', va='center', fontsize='small',
+                    color=COL_TRAIN, bbox=viz.bbox_white)
         ax_acc.annotate('%.1f%%' % (history_mean['acc_test'].tail(1).item()*100),
                     xy=(epochs[-1], history_mean['acc_test'].tail(1).item()*100), xycoords='data',
-                    xytext=(-3, -5), textcoords='offset points', ha='left', va='center', fontsize='smaller',
-                    color=COL_TEST, bbox=bbox_props)
-        viz.plot_structure(model, state=history_state[0], ax=ax_c0, quantity='c', vowels=vowels, cbar=True)
-        viz.plot_structure(model, state=history_state[-1], ax=ax_c1, quantity='c', vowels=vowels, cbar=True)
+                    xytext=(-1, -5), textcoords='offset points', ha='left', va='center', fontsize='small',
+                    color=COL_TEST, bbox=viz.bbox_white)
+
+        model.load_state_dict(history_state[0])
+        h, _ = viz.plot_structure(model, ax=ax_c0, vowel_probe_labels=vowels)
+        model.load_state_dict(history_state[-1])
+        h, _ = viz.plot_structure(model, ax=ax_c1, vowel_probe_labels=vowels)
+        from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+        axins = inset_axes(ax_c1,
+                   width="90%",  # width = 5% of parent_bbox width
+                   height="5%",  # height : 50%
+                   loc='lower center',
+                   bbox_to_anchor=(0.0, 1.4, 1.0, 1.0),
+                   bbox_transform=ax_c1.transAxes,
+                   borderpad=0,
+                   )
+        cbar= plt.colorbar(h, cax=axins, orientation='horizontal',
+         fraction=0.1, shrink=0.4, pad=0, panchor=(0.5, 1.1), ticks=[cfg['geom']['c0'], cfg['geom']['c1']] )
+        cbar.ax.set_title(r'Wave speed $c{(x,y)}$')
+        # cbar.ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=1))
+        # plt.colorbar(h, ax=[ax_c1], orientation='vertical', label=r'$c$', fraction=0.1, shrink=0.5, pad=0)
 
         # if not args.title_off:
             # ax_c0.annotate("$c_{nl}$ = %.2f \n $b_0$ = %.2f \n $u_{th}$ = %.2f \n lr = %.0e" % (cfg['geom']['nonlinearity']['cnl'], cfg['geom']['nonlinearity']['b0'], cfg['geom']['nonlinearity']['uth'], cfg['training']['lr']),
@@ -292,6 +310,7 @@ class WaveTorch(object):
         test_ds = TensorDataset(X, Y)
 
         model.load_state_dict(history_state[cfg['training']['N_epochs']])
+        # model.load_state_dict(history_state[0])
 
         for xb, yb in DataLoader(test_ds, batch_size=1):
             with torch.no_grad():
@@ -299,7 +318,8 @@ class WaveTorch(object):
                 probe_series = field_dist[0, :, model.px, model.py]
                 viz.plot_total_field(model, field_dist, yb, ax=ax_fields[1+yb.argmax().item()], cbar=True, cax=ax_fields[0], vmin=args.vmin, vmax=args.vmax)
 
-        viz.apply_sublabels([ax_c0, ax_cm_train0, ax_cm_test0, ax_c1, ax_cm_train1, ax_cm_test1, ax_loss, ax_acc] + ax_fields[1::], x=[-15, -15, -15, -15, -15, -15, -35, -35, -10, -10, -10])
+        viz.apply_sublabels([ax_c0, ax_cm_train0, ax_cm_test0, ax_c1, ax_cm_train1, ax_cm_test1, ax_loss, ax_acc] + ax_fields[1::],
+                            x=-30)
 
         plt.show()
         if args.fig is not None:
@@ -308,7 +328,7 @@ class WaveTorch(object):
             fig.savefig(os.path.splitext(args.filename)[0]+"_summary.png", dpi=300)
 
     def fields(self, args):
-        model, history, _, cfg = core.load_model(args.filename)
+        model, history, history_state, cfg = core.load_model(args.filename)
 
         print("Configuration for model in %s is:" % args.filename)
         print(yaml.dump(cfg, default_flow_style=False))
@@ -327,20 +347,23 @@ class WaveTorch(object):
                             )
         X = torch.nn.utils.rnn.pad_sequence(X, batch_first=True)
         Y = torch.nn.utils.rnn.pad_sequence(Y, batch_first=True)
-        test_ds = TensorDataset(X, Y)  
-        fig, axs = plt.subplots(1, N_classes, figsize=(7, 2), constrained_layout=True)
+        test_ds = TensorDataset(X, Y)
 
-        for xb, yb in DataLoader(test_ds, batch_size=1):
+        # fig, axs = plt.subplots(N_classes, 1, constrained_layout=True, figsize=(4, 3), sharex=True, sharey=True)
+        fig, axs = plt.subplots(N_classes, N_classes, constrained_layout=True, figsize=(6.5, 6.5), sharex=True, sharey=True)
+        for i, (xb, yb) in enumerate(DataLoader(test_ds, batch_size=1)):
             with torch.no_grad():
-                field_dist = model(xb, probe_output=False)
-                probe_series = field_dist[0, :, model.px, model.py]
-                viz.plot_total_field(model, field_dist, yb, ax=axs[yb.argmax().item()], cbar=True, vmin=args.vmin)
+                fields = model(xb, probe_output=False)
+                # viz.plot_probe_integrals(model, fields, yb, fig_width=6, block=False, ax=axs[i])
+                viz.plot_field_snapshot(model, fields, args.times, yb, fig_width=6, block=False, axs=axs[i,:])
+                # axs[i].set_ylabel(r"Probe $\int \vert u_n \vert^2 dt$")
 
+        # axs[-1].set_xlabel("Time")
+        viz.apply_sublabels(axs.ravel(), x=5, y=-5, size='medium', weight='bold', ha='left', va='top')
         plt.show()
-        fig.savefig(os.path.splitext(args.filename)[0]+"_fields.png", dpi=300)
 
     def stft(self, args):
-        model, history, cfg, cm_train, cm_test, cm_train0, cm_test0 = core.load_model(args.filename)
+        model, history, history_state, cfg = core.load_model(args.filename)
 
         print("Configuration for model in %s is:" % args.filename)
         print(yaml.dump(cfg, default_flow_style=False))
@@ -418,30 +441,30 @@ class WaveTorch(object):
         plt.show()
 
     def animate(self, args):
-        model, history, cfg, cm_train, cm_test, cm_train0, cm_test0 = core.load_model(args.filename)
+        model, history, history_state, cfg = core.load_model(args.filename)
 
         print("Configuration for model in %s is:" % args.filename)
         print(yaml.dump(cfg, default_flow_style=False))
 
-        sr = cfg['data']['sr']
-        gender = cfg['data']['gender']
-        vowels = cfg['data']['vowels']
-        N_classes = len(vowels)
+        X, Y = data.load_all_vowels(
+                        cfg['data']['vowels'],
+                        gender='men', 
+                        sr=cfg['data']['sr'], 
+                        normalize=True, 
+                        max_samples=len(cfg['data']['vowels'])
+                    )
 
-        x_train, x_test, y_train, y_test = data.load_selected_vowels(
-                            vowels,
-                            gender=gender, 
-                            sr=sr, 
-                            normalize=True, 
-                            train_size=N_classes, 
-                            test_size=N_classes
-                        )
+        X = torch.nn.utils.rnn.pad_sequence(X, batch_first=True)
+        Y = torch.nn.utils.rnn.pad_sequence(Y, batch_first=True)
+        test_ds = TensorDataset(X, Y)
 
-        test_ds = TensorDataset(x_test, y_test)  
-        for xb, yb in DataLoader(test_ds, batch_size=1):
+        model.load_state_dict(history_state[cfg['training']['N_epochs']])
+
+        for i, (xb, yb) in enumerate(DataLoader(test_ds, batch_size=1)):
             with torch.no_grad():
+                this_savename = None if args.saveprefix is None else args.saveprefix + str(i) + '.mp4'
                 field_dist = model(xb, probe_output=False)
-                viz.animate_fields(model, field_dist, yb)
+                viz.animate_fields(model, field_dist, yb, filename=this_savename)
 
 if __name__ == '__main__':
     WaveTorch()
