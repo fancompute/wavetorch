@@ -34,6 +34,8 @@ data:
     - ae
     - ei
     - iy
+  # Crop the input data to a number of points in the middle
+  window_size: 1000
 rnn:
   # Hidden state size of the RNN
   N_hidden: 40

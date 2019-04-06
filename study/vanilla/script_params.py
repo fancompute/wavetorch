@@ -10,12 +10,12 @@ rand_seed = 2019
 start_file = './study/vanilla/laptop_rnn.yml'
 
 # Define various parameter values to be explored
-params = {'gender': ['men', 'both'],
-			'f_hidden': ['leaky_relu', 'tanh']
-			}
+params = { 
+			'window_size': ['', '1000']
+		 }
 
 # We'll print results to file so that we can access later
-out_file = './study/vanilla/results_3vowels_nocv.txt'
+out_file = './study/vanilla/params_3vowels_nocv.txt'
 
 # Temp file we'll use do define configurations
 temp_file = './study/vanilla/temp.yml'
@@ -34,9 +34,9 @@ if __name__ == '__main__':
 	# Run the starting configuration
 	torch.manual_seed(rand_seed)
 	np.random.seed(rand_seed)
-	(acc_train_st, acc_test_st) = vanilla_rnn.main(['--config', start_file])
+	# (acc_train_st, acc_test_st) = vanilla_rnn.main(['--config', start_file])
 
-	print('Starting conf. train accuracy: %1.2f; test accuracy: %1.2f. \n' % (acc_train_st, acc_test_st), file=print_out)
+	# print('Starting conf. train accuracy: %1.2f; test accuracy: %1.2f. \n' % (np.float16(acc_train_st), np.float16(acc_test_st)), file=print_out)
 
 	# Iterate over all parameters that are to be changed
 	for key, values in params.items():

@@ -1,0 +1,37 @@
+Starting configuration: 
+
+data:
+  gender: both
+  sr: 10000
+  vowels:
+  - ae
+  - ei
+  - iy
+  window_size: null
+general:
+  rand_seed: 2019
+rnn:
+  L2_reg: 0.0001
+  N_hidden: 70
+  W_scale: 0.2
+  f_hidden: null
+  grad_clip: 10
+  model: rnn
+training:
+  N_epochs: 400
+  batch_size: 9
+  display_step: 10
+  lr: 5.0e-05
+  lr_gamma: 0.5
+  lr_step: 50
+  max_samples: null
+  prefix: null
+  train_test_divide: 5
+  use_cross_validation: true
+
+For parameters {'f_hidden': '', 'prefix': '3vowels_cv_both'} final train and test accuracies are [0.789  0.7554 0.762  0.7866 0.858 ], [0.651  0.857  0.778  0.7593 0.926 ]
+Average values are: 0.79, 0.794
+For parameters {'f_hidden': 'leaky_relu', 'prefix': '3vowels_cv_both'} final train and test accuracies are [0.824 0.818 0.811 0.84  0.818], [0.6665 0.8887 0.8096 0.815  0.778 ]
+Average values are: 0.8223, 0.7915
+For parameters {'f_hidden': 'tanh', 'prefix': '3vowels_cv_both'} final train and test accuracies are [0.798  0.7466 0.7554 0.751  0.782 ], [0.651  0.857  0.778  0.7407 0.778 ]
+Average values are: 0.7666, 0.7607

@@ -7,11 +7,11 @@ training:
   # Number of training epochs
   N_epochs: 400
   # Optimizer learning rate
-  lr: 0.00005    
+  lr: 0.0001    
   # Batch size     
   batch_size: 9
   # Total size of samples 
-  max_samples: 132
+  max_samples: 
   # 1/train_test_divide will go into test, the rest into train
   train_test_divide: 5
   # Use cross validation? 
@@ -27,16 +27,18 @@ data:
   sr: 10000
   # Which gender to pull vowel data from. Can be one of women, men, or both. 
   # If both, training and testing datasets distributed equally over the genders
-  gender: men
+  gender: both
   # Which vowel classes to train on.
   # Can be any elements from the set: [ae, eh, ih, oo, ah, ei, iy, uh, aw, er, oa, uw].
   vowels: 
     - ae
     - ei
     - iy
+  # Crop the input data to a number of points in the middle
+  window_size: 1000
 rnn:
   # Hidden state size of the RNN
-  N_hidden: 70
+  N_hidden: 100
   # Hidden-to-hidden activation function, can be anything from torch.nn.functional, 
   # e.g. relu, leaky_relu or logsigmoid, or None for linear
   f_hidden: 

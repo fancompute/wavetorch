@@ -129,6 +129,8 @@ def main(args):
     for samp in X:
         X_norm.append((samp - mean)/std)
 
+    X = X_norm
+
     skf = StratifiedKFold(n_splits=cfg['training']['train_test_divide'], random_state=None, shuffle=True)
     samps = [y.argmax().item() for y in Y]
     num = 1
@@ -144,8 +146,13 @@ def main(args):
     for train_index, test_index in skf.split(np.zeros(len(samps)), samps):
         if cfg['training']['use_cross_validation']: print("Cross validation fold #%d" % num)
 
-        x_train = torch.nn.utils.rnn.pad_sequence([X_norm[i] for i in train_index], batch_first=True)
-        x_test = torch.nn.utils.rnn.pad_sequence([X_norm[i] for i in test_index], batch_first=True)
+        if cfg['data']['window_size']:
+            crop = cfg['data']['window_size']
+            x_train = torch.nn.utils.rnn.pad_sequence([X[i][int(len(X[i])/2-crop/2):int(len(X[i])/2+crop/2)] for i in train_index], batch_first=True)
+        else:
+            x_train = torch.nn.utils.rnn.pad_sequence([X[i] for i in train_index], batch_first=True)
+
+        x_test = torch.nn.utils.rnn.pad_sequence([X[i] for i in test_index], batch_first=True)
         y_train = torch.nn.utils.rnn.pad_sequence([Y[i] for i in train_index], batch_first=True)
         y_test = torch.nn.utils.rnn.pad_sequence([Y[i] for i in test_index], batch_first=True)
 
