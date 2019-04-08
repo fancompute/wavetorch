@@ -17,15 +17,15 @@ data:
 geom:
   use_design_region: true
   use_rand_init: false
-  Nx: 140
-  Ny: 140
+  Nx: 160
+  Ny: 100
   dt: 0.0001
   h:  0.05
   c0: 331
   c1: 150
   px: 
   py: 
-  pd: 35
+  pd: 20
   src_x: 
   src_y:
   pml:
