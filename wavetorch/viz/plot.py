@@ -68,7 +68,7 @@ def plot_total_field(model, yb, ylabel, block=False, ax=None, fig_width=4, cbar=
                 extend='both'
             else:
                 extend='min'
-            plt.colorbar(h, cax=cax, extend=extend, orientation='horizontal', label=r"$\sum_t \vert u_t \vert^2$")
+            plt.colorbar(h, cax=cax, orientation='horizontal', label=r"$\sum_t{ \left\vert u_t{\left(x,y\right)} \right\vert^2 }$")
             # cax.set_title(r"$\sum_n \vert u_n \vert^2$")
 
         plot_structure(model, ax=ax, outline=True, outline_pml=True, vowel_probe_labels=None, highlight_onehot=ylabel, bg='dark', alpha=0.5)
@@ -102,6 +102,7 @@ def plot_structure_evolution(model, model_states, epochs=[0, 1], quantity='c', f
         axs[j].axis('image')
         axs[j].axis('off')
 
+point_properties = {'markerfacecolor': 'none', 'markeredgewidth': 1.0, 'ms': 3}
 def _plot_probes(model, ax, vowel_probe_labels=None, highlight_onehot=None, bg='light'):
     color_dim = '#cccccc' if bg == 'light' else '#555555'
     color_txt = '#000000' if bg == 'light' else '#ffffff'
@@ -113,17 +114,17 @@ def _plot_probes(model, ax, vowel_probe_labels=None, highlight_onehot=None, bg='
     markers = []
     for i in range(0, len(px)):
         if highlight_onehot is None:
-            marker, = ax.plot(px[i], py[i], "ro", ms=4, mew=0.0)
+            marker, = ax.plot(px[i], py[i], "o", markeredgecolor='r', **point_properties)
         else:
-            marker, = ax.plot(px[i], py[i], "o", markeredgecolor=color_highlight if highlight_onehot[0,i].item() == 1 else color_dim, markerfacecolor="none", markeredgewidth=1.0, ms=4)
+            marker, = ax.plot(px[i], py[i], "o", markeredgecolor=color_highlight if highlight_onehot[0,i].item() == 1 else color_dim, **point_properties)
         if vowel_probe_labels is not None:
             ax.annotate(vowel_probe_labels[i], xy=(px[i], py[i]), xytext=(5,0), textcoords="offset points", ha="left", va="center", fontsize="small", bbox=bbox_white, color=color_txt)
         markers.append(marker)        
 
     if highlight_onehot is None:
-        marker, = ax.plot(model.src_x.numpy(), model.src_y.numpy(), "ko", ms=4, mew=0.0)
+        marker, = ax.plot(model.src_x.numpy(), model.src_y.numpy(), "o", markeredgecolor='k', **point_properties)
     else:
-        marker, = ax.plot(model.src_x.numpy(), model.src_y.numpy(), "o", markeredgecolor=color_dim, markerfacecolor="none", markeredgewidth=1.0, ms=4)
+        marker, = ax.plot(model.src_x.numpy(), model.src_y.numpy(), "o", markeredgecolor=color_dim, **point_properties)
 
     if vowel_probe_labels is not None:
         ax.annotate("source", rotation=90, xy=(model.src_x.numpy(), model.src_y.numpy()), xytext=(-5,0), textcoords="offset points", ha="right", va="center", fontsize="small", bbox=bbox_white, color=color_txt)
@@ -169,18 +170,18 @@ def plot_structure(model, ax=None, outline=False, outline_pml=True, vowel_probe_
 
     return h, markers
 
-def plot_probe_integrals(model, fields_in, ylabel, fig_width=6, block=False, ax=None):
+def plot_probe_integrals(model, fields_in, ylabel, x, block=False, ax=None):
     probe_fields = fields_in[0, :, model.px, model.py].numpy()
 
     I = np.cumsum(np.abs(probe_fields)**2, axis=0)
 
     if ax is None:
-        fig, ax = plt.subplots(1, 1, constrained_layout=True, figsize=(4, 3))
+        fig, axs = plt.subplots(3, 2, constrained_layout=True, figsize=(3.7, 2))
 
-    # ax.plot(I, "-")
     for j in range(I.shape[1]):
-        ax.plot(I[:,j], "-", color="#98df8a" if ylabel[0,j].item() == 1 else "#cccccc")
+        ax[j,1].plot(I[:,j], "-" if ylabel[0,j].item() == 1 else "--")
 
+    ax[ylabel[0,:].argmax().item(),0].plot(x.squeeze().numpy(), linewidth=0.75)
     plt.show(block=block)
 
 
@@ -212,7 +213,7 @@ def plot_field_snapshot(model, fields_in, times, ylabel, fig_width=6, block=Fals
         axs[i].set_xticks([])
         axs[i].set_yticks([])
 
-        axs[i].text(0.5, 0.03, "time step %d/%d" % (time, fields_in.shape[1]), transform=axs[i].transAxes, ha="center", va="bottom", bbox=bbox_white)
+        axs[i].text(0.5, 0.03, "time step %d/%d" % (time, fields_in.shape[1]), transform=axs[i].transAxes, ha="center", va="bottom", bbox=bbox_white, fontsize='smaller')
 
     plt.colorbar(h, ax=axs, label=r"$u_n{(x,y)}$", shrink=0.80)
 
@@ -305,7 +306,7 @@ def plot_confusion_matrix(cm, ax=None, figsize=(4,4), title=None, normalize=Fals
     if title is not None:
         ax.set_title(title)
 
-def apply_sublabels(axs, x=[-50], y=0, size='medium', weight='bold', ha='right', va='top', prefix='', postfix='', invert_color_inds=[], bg=None):
+def apply_sublabels(axs, xy=[(-50, 0)], size='medium', weight='bold', ha='right', va='top', prefix='', postfix='', colors=['k'], bg=None):
     '''
     Applys panel labels (a, b, c, ... ) in order to the axis handles stored in the list axs
     
@@ -314,7 +315,9 @@ def apply_sublabels(axs, x=[-50], y=0, size='medium', weight='bold', ha='right',
     invert_color_inds, specifies which labels should use white text, which is useful for darker pcolor plots
     '''
 
-    # assert len(x) == len(axs), "Lengths must match"
+    assert len(xy) == len(axs) or len(xy) == 1, "Lengths must match"
+    assert len(colors) == len(axs) or len(colors) == 1, "Lengths must match"
+
     
     if bg is not None:
         bbox_props = dict(boxstyle="round,pad=0.1", fc=bg, ec="none", alpha=0.9)
@@ -327,18 +330,16 @@ def apply_sublabels(axs, x=[-50], y=0, size='medium', weight='bold', ha='right',
         postfix = postfix + '}'
     
     for n, ax in enumerate(axs):
-        if in1d(n, invert_color_inds):
-            color='w'
-        else:
-            color='k'
+        this_xy = xy[n] if len(xy) == len(axs) else xy[0]
+        this_color = colors[n] if len(colors) == len(axs) else colors[0]
         
         ax.annotate(prefix + ascii_lowercase[n] + postfix,
                     xy=(0, 1),
-                    xytext=(x, y),
+                    xytext=this_xy,
                     xycoords='axes fraction',
                     textcoords='offset points',
                     size=size,
-                    color=color,
+                    color=this_color,
                     weight=weight,
                     horizontalalignment=ha,
                     verticalalignment=va,

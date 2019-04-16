@@ -1,3 +1,7 @@
+import warnings
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+
 import argparse
 import yaml
 import time
@@ -53,18 +57,22 @@ args_summary.add_argument('--vmin', type=float, default=1e-3)
 args_summary.add_argument('--vmax', type=float, default=1.0)
 args_summary.add_argument('--fig', type=str, default=None)
 args_summary.add_argument('--title_off', action='store_true')
+args_summary.add_argument('--vowel_samples', nargs='+', type=int, default=None)
 args_summary.add_argument('filename', type=str)
 
 args_fields = subargs.add_parser('fields', parents=[args_global])
 args_fields.add_argument('filename', type=str)
 args_fields.add_argument('times', nargs='+', type=int)
+args_fields.add_argument('--vowel_samples', nargs='+', type=int, default=None)
 
 args_stft = subargs.add_parser('stft', parents=[args_global])
 args_stft.add_argument('filename', type=str)
+args_stft.add_argument('--vowel_samples', nargs='+', type=int, default=None)
 
 args_animate = subargs.add_parser('animate', parents=[args_global])
 args_animate.add_argument('filename', type=str)
 args_animate.add_argument('saveprefix', type=str, default=None)
+args_animate.add_argument('--vowel_samples', nargs='+', type=int, default=None)
 
 class WaveTorch(object):
 
@@ -100,13 +108,7 @@ class WaveTorch(object):
 
         N_classes = len(cfg['data']['vowels'])
 
-        X, Y = data.load_all_vowels(
-                    cfg['data']['vowels'],
-                    gender=cfg['data']['gender'], 
-                    sr=cfg['data']['sr'], 
-                    normalize=True,
-                    max_samples=cfg['training']['max_samples']
-                    )
+        X, Y, _ = data.load_all_vowels(cfg['data']['vowels'], gender=cfg['data']['gender'], sr=cfg['data']['sr'], normalize=True, max_samples=cfg['training']['max_samples'])
 
         skf = StratifiedKFold(n_splits=cfg['training']['train_test_divide'], random_state=None, shuffle=True)
         samps = [y.argmax().item() for y in Y]
@@ -204,7 +206,7 @@ class WaveTorch(object):
 
         gs = fig.add_gridspec(1, 2, width_ratios=[1, 0.35])
         gs_left  = gs[0].subgridspec(3, 3, width_ratios=[1.25, 0.75, 0.75], height_ratios=[1.0, 1.0, 1.0])
-        gs_right = gs[1].subgridspec(N_classes+1, 1, height_ratios=[0.05] + [1 for i in range(0,N_classes)])
+        gs_right = gs[1].subgridspec(N_classes+1, 1, height_ratios=[1 for i in range(0,N_classes)] + [0.05])
         gs_bot   = gs_left[2,:].subgridspec(1, 2)
 
         ax_c0 = fig.add_subplot(gs_left[0,0])
@@ -264,6 +266,8 @@ class WaveTorch(object):
                     xy=(epochs[-1], history_mean['acc_test'].tail(1).item()*100), xycoords='data',
                     xytext=(-1, -5), textcoords='offset points', ha='left', va='center', fontsize='small',
                     color=COL_TEST, bbox=viz.bbox_white)
+        print('Accuracy (train): %.1f%% +/- %.1f%%' % (history_mean['acc_train'].tail(1).item()*100, history_std['acc_train'].tail(1).item()*100))
+        print('Accuracy  (test): %.1f%% +/- %.1f%%' % (history_mean['acc_test'].tail(1).item()*100, history_std['acc_test'].tail(1).item()*100))
 
         model.load_state_dict(history_state[0])
         h, _ = viz.plot_structure(model, ax=ax_c0, vowel_probe_labels=vowels)
@@ -278,9 +282,9 @@ class WaveTorch(object):
                    bbox_transform=ax_c1.transAxes,
                    borderpad=0,
                    )
-        cbar= plt.colorbar(h, cax=axins, orientation='horizontal',
-         fraction=0.1, shrink=0.4, pad=0, panchor=(0.5, 1.1), ticks=[cfg['geom']['c0'], cfg['geom']['c1']] )
-        cbar.ax.set_title(r'Wave speed $c{(x,y)}$')
+        cbar= plt.colorbar(h, cax=axins, orientation='horizontal', format='%.2f',
+         fraction=0.1, shrink=0.4, pad=0, panchor=(0.5, 1.09), ticks=[cfg['geom']['c0'], cfg['geom']['c1']] )
+        cbar.ax.set_title(r'speed $c{(x,y)}$')
         # cbar.ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=1))
         # plt.colorbar(h, ax=[ax_c1], orientation='vertical', label=r'$c$', fraction=0.1, shrink=0.5, pad=0)
 
@@ -298,28 +302,21 @@ class WaveTorch(object):
         viz.plot_confusion_matrix(cm_train, title="Training dataset", normalize=True, ax=ax_cm_train1, labels=vowels)
         viz.plot_confusion_matrix(cm_test, title="Testing dataset", normalize=True, ax=ax_cm_test1, labels=vowels)
 
-        X, Y = data.load_all_vowels(
-                        vowels,
-                        gender='men', 
-                        sr=sr, 
-                        normalize=True, 
-                        max_samples=N_classes
-                    )
-        X = torch.nn.utils.rnn.pad_sequence(X, batch_first=True)
-        Y = torch.nn.utils.rnn.pad_sequence(Y, batch_first=True)
-        test_ds = TensorDataset(X, Y)
 
-        model.load_state_dict(history_state[cfg['training']['N_epochs']])
+        X, Y, F = data.load_all_vowels(vowels, gender='both', sr=sr, random_state=0)
+
         # model.load_state_dict(history_state[0])
 
-        for xb, yb in DataLoader(test_ds, batch_size=1):
+        for i in range(N_classes):
+            xb, yb = data.select_vowel_sample(X, Y, F, i, ind=args.vowel_samples[i] if args.vowel_samples is not None else None)
             with torch.no_grad():
                 field_dist = model(xb, probe_output=False)
                 probe_series = field_dist[0, :, model.px, model.py]
-                viz.plot_total_field(model, field_dist, yb, ax=ax_fields[1+yb.argmax().item()], cbar=True, cax=ax_fields[0], vmin=args.vmin, vmax=args.vmax)
+                viz.plot_total_field(model, field_dist, yb, ax=ax_fields[yb.argmax().item()], cbar=True, cax=ax_fields[-1], vmin=args.vmin, vmax=args.vmax)
 
-        viz.apply_sublabels([ax_c0, ax_cm_train0, ax_cm_test0, ax_c1, ax_cm_train1, ax_cm_test1, ax_loss, ax_acc] + ax_fields[1::],
-                            x=-30)
+        viz.apply_sublabels([ax_c0, ax_cm_train0, ax_cm_test0, ax_c1, ax_cm_train1, ax_cm_test1, ax_loss, ax_acc] + ax_fields[0:-1],
+                            xy=[(-10,0), (-20,0), (-20,0), (-10,0), (-20,0), (-20,0), (-25,0), (-40,0), (8,-8), (8,-8), (8,-8)],
+                            colors=['k', 'k', 'k', 'k', 'k', 'k', 'k', 'k', 'w', 'w', 'w'])
 
         plt.show()
         if args.fig is not None:
@@ -338,28 +335,22 @@ class WaveTorch(object):
         vowels = cfg['data']['vowels']
         N_classes = len(vowels)
 
-        X, Y = data.load_all_vowels(
-                                vowels,
-                                gender='men', 
-                                sr=sr, 
-                                normalize=True, 
-                                max_samples=N_classes
-                            )
-        X = torch.nn.utils.rnn.pad_sequence(X, batch_first=True)
-        Y = torch.nn.utils.rnn.pad_sequence(Y, batch_first=True)
-        test_ds = TensorDataset(X, Y)
+        X, Y, F = data.load_all_vowels(vowels, gender='both', sr=sr, normalize=True, random_state=0)
 
         # fig, axs = plt.subplots(N_classes, 1, constrained_layout=True, figsize=(4, 3), sharex=True, sharey=True)
-        fig, axs = plt.subplots(N_classes, N_classes, constrained_layout=True, figsize=(6.5, 6.5), sharex=True, sharey=True)
-        for i, (xb, yb) in enumerate(DataLoader(test_ds, batch_size=1)):
+        fig, axs = plt.subplots(N_classes, len(args.times), constrained_layout=True, figsize=(6.5, 6.5), sharex=True, sharey=True)
+        fig2, axs2 = plt.subplots(3, 2, constrained_layout=True, figsize=(3.7, 2))
+        for i in range(N_classes):
+            xb, yb = data.select_vowel_sample(X, Y, F, i, ind=args.vowel_samples[i] if args.vowel_samples is not None else None)
             with torch.no_grad():
                 fields = model(xb, probe_output=False)
-                # viz.plot_probe_integrals(model, fields, yb, fig_width=6, block=False, ax=axs[i])
+                viz.plot_probe_integrals(model, fields, yb, xb, ax=axs2)
                 viz.plot_field_snapshot(model, fields, args.times, yb, fig_width=6, block=False, axs=axs[i,:])
+                axs[i,0].text(-0.05, 0.5, vowels[i] + ' vowel', transform=axs[i,0].transAxes, ha="right", va="center")
                 # axs[i].set_ylabel(r"Probe $\int \vert u_n \vert^2 dt$")
 
         # axs[-1].set_xlabel("Time")
-        viz.apply_sublabels(axs.ravel(), x=5, y=-5, size='medium', weight='bold', ha='left', va='top')
+        viz.apply_sublabels(axs.ravel(), xy=[(5,-5)], size='medium', weight='bold', ha='left', va='top')
         plt.show()
 
     def stft(self, args):
@@ -373,23 +364,16 @@ class WaveTorch(object):
         vowels = cfg['data']['vowels']
         N_classes = len(vowels)
 
-        X, Y = data.load_all_vowels(
-                                vowels,
-                                gender='men', 
-                                sr=sr, 
-                                normalize=True, 
-                                max_samples=N_classes
-                            )
-        X = torch.nn.utils.rnn.pad_sequence(X, batch_first=True)
-        Y = torch.nn.utils.rnn.pad_sequence(Y, batch_first=True)
-        test_ds = TensorDataset(X, Y)  
+        X, Y, F = data.load_all_vowels(vowels, gender='both', sr=sr, normalize=True, random_state=0)
 
-        fig, axs = plt.subplots(N_classes, N_classes+1, constrained_layout=True, figsize=(5.5*(N_classes+1)/N_classes,5.5), sharex=True, sharey=True)
+        fig, axs = plt.subplots(N_classes, N_classes+1, constrained_layout=True, figsize=(4.5*(N_classes+1)/N_classes,4.5), sharex=True, sharey=True)
 
-        for xb, yb in DataLoader(test_ds, batch_size=1):
+        for i in range(N_classes):
+            xb, yb = data.select_vowel_sample(X, Y, F, i, ind=args.vowel_samples[i] if args.vowel_samples is not None else None)
             with torch.no_grad():
-                i = yb.argmax().item()
-                ax = axs[i, 0]
+                j = yb.argmax().item()
+                ax = axs[j, 0]
+                ax.set_facecolor('black')
 
                 field_dist = model(xb, probe_output=False)
                 probe_series = field_dist[0, :, model.px, model.py]
@@ -407,13 +391,13 @@ class WaveTorch(object):
                     cmap=plt.cm.inferno
                 )
                 ax.set_ylim([0,sr/2])
-                if i == 0:
-                    ax.set_title("input signal", weight="bold")
+                if j == 0:
+                    ax.set_title("Input signal")
 
-                for j in range(1, probe_series.shape[1]+1):
-                    ax = axs[i, j]
+                for k in range(1, probe_series.shape[1]+1):
+                    ax = axs[j, k]
                     
-                    output_stft = np.abs(librosa.stft(probe_series[:,j-1].numpy(), n_fft=256))
+                    output_stft = np.abs(librosa.stft(probe_series[:,k-1].numpy(), n_fft=256))
 
                     librosa.display.specshow(
                         librosa.amplitude_to_db(output_stft,ref=np.max(input_stft)),
@@ -427,17 +411,17 @@ class WaveTorch(object):
                     )
                     ax.set_ylim([0,sr/2])
 
-                    if i == 0:
-                        ax.set_title("probe %d" % (j), weight="bold")
-                    if j == N_classes:
-                        ax.text(1.05, 0.5, vowels[i], transform=ax.transAxes, ha="left", va="center", fontsize="large", rotation=-90, weight="bold")
+                    if j == 0:
+                        ax.set_title("Output probe %d" % (k))
+                    if k == 1:
+                        ax.text(-0.3, 0.5, vowels[j] + ' vowel', transform=ax.transAxes, ha="right", va="center")
                     
-                    if j > 0:
+                    if k > 0:
                         ax.set_ylabel('')
-                    if i < N_classes-1:
+                    if j < N_classes-1:
                         ax.set_xlabel('')
-                    # if i == j:
-                        # ax.text(0.5, 0.95, '%s at probe #%d' % (vowels[i], j+1), color="w", transform=ax.transAxes, ha="center", va="top", fontsize="large")
+                    # if j == k:
+                        # ax.text(0.5, 0.95, '%s at probe #%d' % (vowels[j], k+1), color="w", transform=ax.transAxes, ha="center", va="top", fontsize="large")
         plt.show()
 
     def animate(self, args):
