@@ -6,7 +6,7 @@ import seaborn as sns
 import librosa
 import librosa.display
 
-from string import ascii_lowercase
+from string import ascii_lowercase, ascii_uppercase
 from numpy import in1d
 
 from matplotlib import rcParams
@@ -333,7 +333,7 @@ def apply_sublabels(axs, xy=[(-50, 0)], size='medium', weight='bold', ha='right'
         this_xy = xy[n] if len(xy) == len(axs) else xy[0]
         this_color = colors[n] if len(colors) == len(axs) else colors[0]
         
-        ax.annotate(prefix + ascii_lowercase[n] + postfix,
+        ax.annotate(prefix + ascii_uppercase[n] + postfix,
                     xy=(0, 1),
                     xytext=this_xy,
                     xycoords='axes fraction',

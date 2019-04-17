@@ -315,7 +315,7 @@ class WaveTorch(object):
                 viz.plot_total_field(model, field_dist, yb, ax=ax_fields[yb.argmax().item()], cbar=True, cax=ax_fields[-1], vmin=args.vmin, vmax=args.vmax)
 
         viz.apply_sublabels([ax_c0, ax_cm_train0, ax_cm_test0, ax_c1, ax_cm_train1, ax_cm_test1, ax_loss, ax_acc] + ax_fields[0:-1],
-                            xy=[(-10,0), (-20,0), (-20,0), (-10,0), (-20,0), (-20,0), (-25,0), (-40,0), (8,-8), (8,-8), (8,-8)],
+                            xy=[(-10,0), (-25,0), (-25,0), (-10,0), (-25,0), (-25,0), (-25,0), (-40,0), (8,-6), (8,-6), (8,-6)],
                             colors=['k', 'k', 'k', 'k', 'k', 'k', 'k', 'k', 'w', 'w', 'w'])
 
         plt.show()
