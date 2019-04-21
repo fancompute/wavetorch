@@ -80,27 +80,24 @@ def plot_total_field(model, yb, ylabel, block=False, ax=None, fig_width=4, cbar=
             plt.show(block=block)
 
 
-def plot_structure_evolution(model, model_states, epochs=[0, 1], quantity='c', fig_width=5):
-    Nx = int(np.ceil(np.sqrt(len(epochs))))
-    Ny = int(np.ceil(np.sqrt(len(epochs))))
+def plot_structure_evolution(model, model_states, epochs=[0, 1], quantity='c', figsize=(5.6,1.5)):
+    Nx = int(len(epochs))
+    Ny = 1
 
-    Wx = model.Nx.item()
-    Wy = model.Ny.item()
-
-    fig_height = fig_width * Nx*Wx/Ny/Wy
-
-    fig, axs = plt.subplots(Ny, Nx, constrained_layout=True, figsize=(fig_width, fig_height))
+    fig, axs = plt.subplots(Ny, Nx, constrained_layout=True, figsize=figsize)
     axs = axs.ravel()
     for i, epoch in enumerate(epochs):
-        model.load_state_dict(model_states[i])
-        plot_structure(model, ax=axs[i], quantity='c')
-        axs[i].text(0.5, 0.01, 'epoch %d' % epoch, transform=axs[i].transAxes, ha="center", va="bottom", fontsize="small")
+        model.load_state_dict(model_states[epoch])
+        h, _ = plot_structure(model, ax=axs[i], outline=False, outline_pml=True, vowel_probe_labels=None, highlight_onehot=None, bg='light', alpha=1.0)
+        axs[i].set_title('Epoch %d' % epoch)
 
     for j in range(i+1,len(axs)):
         axs[j].set_xticks([])
         axs[j].set_yticks([])
         axs[j].axis('image')
         axs[j].axis('off')
+
+    plt.colorbar(h, ax=axs, shrink=0.5, label='Wave speed')
 
 point_properties = {'markerfacecolor': 'none', 'markeredgewidth': 1.0, 'ms': 3}
 def _plot_probes(model, ax, vowel_probe_labels=None, highlight_onehot=None, bg='light'):
@@ -150,9 +147,9 @@ def plot_structure(model, ax=None, outline=False, outline_pml=True, vowel_probe_
         Z = model.c0.item() + (model.c1.item()-model.c0.item())*rho
         limits = np.array([model.c0.item(), model.c1.item()])
         if model.c0.item() < model.c1.item():
-            cmap = plt.cm.Purples
+            cmap = plt.cm.Greens
         else:
-            cmap = plt.cm.Purples_r
+            cmap = plt.cm.Greens_r
         h = ax.imshow(Z, origin="bottom", rasterized=True, cmap=cmap, vmin=limits.min(), vmax=limits.max())
     
     if outline_pml:
