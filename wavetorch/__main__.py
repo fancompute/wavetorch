@@ -289,7 +289,6 @@ class WaveTorch(object):
         viz.plot_confusion_matrix(cm_test, title="Testing dataset", normalize=True, ax=ax_cm_test1, labels=vowels)
 
         X, Y, F = data.load_all_vowels(vowels, gender='both', sr=sr, random_state=0)
-        print(X[0].dtype)
 
         # model.load_state_dict(history_state[0])
 
