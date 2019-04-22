@@ -41,6 +41,8 @@ args_global.add_argument('--num_threads', type=int, default=4,
                             help='Number of threads to use')
 args_global.add_argument('--use-cuda', action='store_true',
                             help='Use CUDA to perform computations')
+args_global.add_argument('--dtype', type=str, default='float32',
+                            help='Data type to use for tensors. Either float32 or float64')
 
 ### Training mode
 args_train = subargs.add_parser('train', parents=[args_global])
@@ -83,6 +85,13 @@ class WaveTorch(object):
             args.dev = torch.device('cuda')
         else:
             args.dev = torch.device('cpu')
+
+        if args.dtype == 'float32':
+            torch.set_default_dtype(torch.float32)
+        elif args.dtype == 'float64':
+            torch.set_default_dtype(torch.float64)
+        else:
+            raise ValueError('Unsupported data type: %s; should be either float32 or float64' % args.dtype)
 
         torch.set_num_threads(args.num_threads)
 
@@ -279,8 +288,8 @@ class WaveTorch(object):
         viz.plot_confusion_matrix(cm_train, title="Training dataset", normalize=True, ax=ax_cm_train1, labels=vowels)
         viz.plot_confusion_matrix(cm_test, title="Testing dataset", normalize=True, ax=ax_cm_test1, labels=vowels)
 
-
         X, Y, F = data.load_all_vowels(vowels, gender='both', sr=sr, random_state=0)
+        print(X[0].dtype)
 
         # model.load_state_dict(history_state[0])
 

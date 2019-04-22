@@ -78,16 +78,16 @@ def load_all_vowels(str_classes, gender='both', sr=None, normalize=True, dir='da
 
     # Pack the samples into a list of tensors
     if gender == 'both':
-        X = [torch.tensor(x) for x in x_m + x_w]
-        Y = [torch.tensor(y) for y in y_m + y_w]
+        X = [torch.tensor(x, dtype=torch.get_default_dtype()) for x in x_m + x_w]
+        Y = [torch.tensor(y, dtype=torch.get_default_dtype()) for y in y_m + y_w]
         F = F_m + F_w
     elif gender == 'women':
-        X = [torch.tensor(x) for x in x_w]
-        Y = [torch.tensor(y) for y in y_w]
+        X = [torch.tensor(x, dtype=torch.get_default_dtype()) for x in x_w]
+        Y = [torch.tensor(y, dtype=torch.get_default_dtype()) for y in y_w]
         F = F_w
     else:
-        X = [torch.tensor(x) for x in x_m]
-        Y = [torch.tensor(y) for y in y_m]
+        X = [torch.tensor(x, dtype=torch.get_default_dtype()) for x in x_m]
+        Y = [torch.tensor(y, dtype=torch.get_default_dtype()) for y in y_m]
         F = F_m
 
     print("dataset: selected %d vowel samples" % len(X))
