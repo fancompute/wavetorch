@@ -8,11 +8,11 @@ This python package computes solutions of the [scalar wave equation](https://en.
 
 This package is designed around vowel recognition, using the the dataset available from James Hillenbrand's [website](https://homepages.wmich.edu/~hillenbr/voweldata.html). However, the core components provided by this package, namely the `WaveCell` module and the training routines, could be applied to many different time series learning tasks. 
 
-Note that, in principle, you could adapt this code to be used as a component in a larger neural network stack, our focus is on training models of physical systems described by the wave equation on dynamic time-series data.
+Note that, in principle, you could adapt this code to be used as a component in a larger neural network stack. However, our focus is on training numerical models of physical systems to learn features of data with temporal dynamics.
 
 ## Usage
 
-Here we describe how to use the package for vowel recognition.
+Below we describe how to use the package for vowel recognition. Note that all of the raw audio files are included in this repository.
 
 ### Training
 
