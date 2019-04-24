@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=nonlinear_speed
-#SBATCH --output="./study/kerr-3vow/%A.log"
+#SBATCH --output="./study/nonlinear_speed/%A.log"
 #SBATCH -p normal
 #SBATCH --cpus-per-task=8
 #SBATCH --time=24:00:00
