@@ -1,4 +1,4 @@
-"""Perform vowel recognition training.
+"""Generate a summary of a previously trained vowel recognition model.
 """
 
 import torch

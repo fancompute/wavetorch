@@ -39,7 +39,7 @@ python ./study/vowel_summary.py <PATH_TO_MODEL>
 
 Snapshots of the scalar field distribution for randomly selected vowels samples can be generated like so:
 ```
-python ./study/vowel_misc.py fields <PATH_TO_MODEL> 1500 2500 3500 ...
+python ./study/vowel_analyze.py fields <PATH_TO_MODEL> 1500 2500 3500 ...
 ```
 
 ![](../master/img/fields.png)
@@ -48,7 +48,7 @@ python ./study/vowel_misc.py fields <PATH_TO_MODEL> 1500 2500 3500 ...
 
 A matrix of short time Fourier transforms of the received signal, where the row corresponds to an input vowel and the column corresponds to a particular probe (matching the confusion matrix distribution) can be generated like so:
 ```
-python ./study/vowel_misc.py stft <PATH_TO_MODEL>
+python ./study/vowel_analyze.py stft <PATH_TO_MODEL>
 ```
 
 ![](../master/img/stft.png)

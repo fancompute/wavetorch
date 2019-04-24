@@ -27,7 +27,7 @@ training:
   # For example, a value of 3 would result in 2/3 of the set being used for training and 1/3 being used for testing
   N_folds: 3
 
-  # If true, k-fold cross validation is performed where k is the value specified above for number_of_folds
+  # If true, k-fold cross validation is performed where k = N_folds
   cross_validation: false
 
 data:

@@ -1,6 +1,9 @@
-import warnings
-with warnings.catch_warnings():
-    warnings.simplefilter("ignore")
+"""Perform various analysis tasks on a saved model.
+"""
+
+import torch
+import wavetorch
+from torch.utils.data import TensorDataset, DataLoader
 
 import argparse
 import yaml
@@ -11,50 +14,22 @@ import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 import matplotlib as mpl
 
-import torch
-from torch.utils.data import TensorDataset, random_split, DataLoader
-from torch.nn.functional import pad
-
-from sklearn.model_selection import StratifiedKFold
-
 import pandas as pd
 
 import librosa
 import librosa.display
 
-from . import core
-from . import data
-from . import viz
-
-import os
-
-
 COL_TRAIN = "#1f77b4"
 COL_TEST  = "#2ca02c"
 
 parser = argparse.ArgumentParser() 
-subargs = parser.add_subparsers(prog='wavetorch', title="commands", dest="command") 
-
-# Global options
-args_global = argparse.ArgumentParser(add_help=False)
-args_global.add_argument('--num_threads', type=int, default=4,
-                            help='Number of threads to use')
-args_global.add_argument('--use-cuda', action='store_true',
-                            help='Use CUDA to perform computations')
-
-args_fields = subargs.add_parser('fields', parents=[args_global])
-args_fields.add_argument('filename', type=str)
-args_fields.add_argument('times', nargs='+', type=int)
-args_fields.add_argument('--vowel_samples', nargs='+', type=int, default=None)
-
-args_stft = subargs.add_parser('stft', parents=[args_global])
-args_stft.add_argument('filename', type=str)
-args_stft.add_argument('--vowel_samples', nargs='+', type=int, default=None)
-
-args_animate = subargs.add_parser('animate', parents=[args_global])
-args_animate.add_argument('filename', type=str)
-args_animate.add_argument('saveprefix', type=str, default=None)
-args_animate.add_argument('--vowel_samples', nargs='+', type=int, default=None)
+parser.add_argument('command', type=str)
+parser.add_argument('filename', type=str)
+parser.add_argument('--times', nargs='+', type=int, default=None)
+parser.add_argument('--saveprefix', type=str, default=None)
+parser.add_argument('--vowel_samples', nargs='+', type=int, default=None)
+parser.add_argument('--num_threads', type=int, default=4)
+parser.add_argument('--use-cuda', action='store_true')
 
 class WaveTorch(object):
 
@@ -76,7 +51,7 @@ class WaveTorch(object):
         getattr(self, args.command)(args)
 
     def fields(self, args):
-        model, history, history_state, cfg = core.load_model(args.filename)
+        model, history, history_state, cfg = wavetorch.core.load_model(args.filename)
 
         print("Configuration for model in %s is:" % args.filename)
         print(yaml.dump(cfg, default_flow_style=False))
@@ -86,26 +61,26 @@ class WaveTorch(object):
         vowels = cfg['data']['vowels']
         N_classes = len(vowels)
 
-        X, Y, F = data.load_all_vowels(vowels, gender='both', sr=sr, normalize=True, random_state=0)
+        X, Y, F = wavetorch.data.load_all_vowels(vowels, gender='both', sr=sr, normalize=True, random_state=0)
 
         # fig, axs = plt.subplots(N_classes, 1, constrained_layout=True, figsize=(4, 3), sharex=True, sharey=True)
         fig, axs = plt.subplots(N_classes, len(args.times), constrained_layout=True, figsize=(6.5, 6.5), sharex=True, sharey=True)
         fig2, axs2 = plt.subplots(3, 2, constrained_layout=True, figsize=(3.7, 2))
         for i in range(N_classes):
-            xb, yb = data.select_vowel_sample(X, Y, F, i, ind=args.vowel_samples[i] if args.vowel_samples is not None else None)
+            xb, yb = wavetorch.data.select_vowel_sample(X, Y, F, i, ind=args.vowel_samples[i] if args.vowel_samples is not None else None)
             with torch.no_grad():
                 fields = model(xb, probe_output=False)
-                viz.plot_probe_integrals(model, fields, yb, xb, ax=axs2)
-                viz.plot_field_snapshot(model, fields, args.times, yb, fig_width=6, block=False, axs=axs[i,:])
+                wavetorch.viz.plot_probe_integrals(model, fields, yb, xb, ax=axs2)
+                wavetorch.viz.plot_field_snapshot(model, fields, args.times, yb, fig_width=6, block=False, axs=axs[i,:])
                 axs[i,0].text(-0.05, 0.5, vowels[i] + ' vowel', transform=axs[i,0].transAxes, ha="right", va="center")
                 # axs[i].set_ylabel(r"Probe $\int \vert u_n \vert^2 dt$")
 
         # axs[-1].set_xlabel("Time")
-        viz.apply_sublabels(axs.ravel(), xy=[(5,-5)], size='medium', weight='bold', ha='left', va='top')
+        wavetorch.viz.apply_sublabels(axs.ravel(), xy=[(5,-5)], size='medium', weight='bold', ha='left', va='top')
         plt.show()
 
     def stft(self, args):
-        model, history, history_state, cfg = core.load_model(args.filename)
+        model, history, history_state, cfg = wavetorch.core.load_model(args.filename)
 
         print("Configuration for model in %s is:" % args.filename)
         print(yaml.dump(cfg, default_flow_style=False))
@@ -115,12 +90,12 @@ class WaveTorch(object):
         vowels = cfg['data']['vowels']
         N_classes = len(vowels)
 
-        X, Y, F = data.load_all_vowels(vowels, gender='both', sr=sr, normalize=True, random_state=0)
+        X, Y, F = wavetorch.data.load_all_vowels(vowels, gender='both', sr=sr, normalize=True, random_state=0)
 
         fig, axs = plt.subplots(N_classes, N_classes+1, constrained_layout=True, figsize=(4.5*(N_classes+1)/N_classes,4.5), sharex=True, sharey=True)
 
         for i in range(N_classes):
-            xb, yb = data.select_vowel_sample(X, Y, F, i, ind=args.vowel_samples[i] if args.vowel_samples is not None else None)
+            xb, yb = wavetorch.data.select_vowel_sample(X, Y, F, i, ind=args.vowel_samples[i] if args.vowel_samples is not None else None)
             with torch.no_grad():
                 j = yb.argmax().item()
                 ax = axs[j, 0]
@@ -176,30 +151,21 @@ class WaveTorch(object):
         plt.show()
 
     def animate(self, args):
-        model, history, history_state, cfg = core.load_model(args.filename)
+        model, history, history_state, cfg = wavetorch.core.load_model(args.filename)
 
         print("Configuration for model in %s is:" % args.filename)
         print(yaml.dump(cfg, default_flow_style=False))
 
-        X, Y = data.load_all_vowels(
-                        cfg['data']['vowels'],
-                        gender='men', 
-                        sr=cfg['data']['sr'], 
-                        normalize=True, 
-                        max_samples=len(cfg['data']['vowels'])
-                    )
-
-        X = torch.nn.utils.rnn.pad_sequence(X, batch_first=True)
-        Y = torch.nn.utils.rnn.pad_sequence(Y, batch_first=True)
-        test_ds = TensorDataset(X, Y)
+        X, Y, F = wavetorch.data.load_all_vowels(cfg['data']['vowels'], gender=cfg['data']['gender'], sr=cfg['data']['sr'], normalize=True, random_state=0)
 
         model.load_state_dict(history_state[cfg['training']['N_epochs']])
 
-        for i, (xb, yb) in enumerate(DataLoader(test_ds, batch_size=1)):
+        for i in range(len(cfg['data']['vowels'])):
+            xb, yb = wavetorch.data.select_vowel_sample(X, Y, F, i, ind=args.vowel_samples[i] if args.vowel_samples is not None else None)
             with torch.no_grad():
                 this_savename = None if args.saveprefix is None else args.saveprefix + str(i) + '.mp4'
                 field_dist = model(xb, probe_output=False)
-                viz.animate_fields(model, field_dist, yb, filename=this_savename)
+                wavetorch.viz.animate_fields(model, field_dist, yb, filename=this_savename, interval=1)
 
 if __name__ == '__main__':
     WaveTorch()
