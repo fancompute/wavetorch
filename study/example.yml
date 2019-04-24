@@ -1,9 +1,15 @@
+# Random seed for pytorch and all shuffle functions
+seed: 10
+
+# Data type to use for tensors, either float32 or float64
+dtype: float64
+
 training:
   # This prefix is applied to the filename when saving the model; if not specified a date/time is used
-  prefix: example
+  prefix: ex
 
   # Number of training epochs
-  N_epochs: 20
+  N_epochs: 5
 
   # Optimizer learning rate
   lr: 0.0004
@@ -13,15 +19,16 @@ training:
 
   # Limit the maximum number of samples to this number 
   # If unspecified then all samples available for the specified vowel classes and gender are used
-  max_samples: 
+  max_samples: 12
 
-  # This number should be an integer and it is used to deterine the split between the training and testing datasets
-  # (1/train_test_divide) * (the total number of samples) is the size of the test dataset
-  # e.g. for a value of 3, 2/3 of the total number of samples are used for training and 1/3 are used for testing
-  train_test_divide: 5
+  # This number should be an integer and is used to determine the split between the training and testing datasets
+  # (1/N_folds) * (the total number of samples) is the size of the test dataset
+  # (1-1/N_folds) * (the total number of samples) is the size of the training dataset
+  # For example, a value of 3 would result in 2/3 of the set being used for training and 1/3 being used for testing
+  N_folds: 3
 
-  # If true, k-fold cross validation is performed where k is the value specified above for train_test_divide
-  use_cross_validation: false
+  # If true, k-fold cross validation is performed where k is the value specified above for number_of_folds
+  cross_validation: false
 
 data:
   # Sampling rate to use for vowel data
@@ -42,7 +49,7 @@ data:
     - oa
 
 geom:
-  # Use the (currently hardcoded) design region which sits between the src and probes with a 5 gride cell buffer
+  # Use the (currently hard coded) design region which sits between the src and probes with a 5 gride cell buffer
   use_design_region: true
 
   # Use a random initialization for the distribution of c
@@ -55,16 +62,16 @@ geom:
   Ny: 100
 
   # Time step (spatial step size is determined automatically)
-  dt: 0.707
+  dt: 1.0
 
   # Spatial grid step size
-  h: 
+  h: # No value means it is determined automatically from the courant stability condition
 
   # Wave speed background value (e.g. in PML and non-design region)
   c0: 1.0
 
   # Wave speed value to use with c0 during binarization
-  c1: 0.7
+  c1: 0.5
 
   # Probe x-coordinates in grid cells
   px: 

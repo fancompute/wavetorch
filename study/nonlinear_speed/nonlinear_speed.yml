@@ -1,11 +1,13 @@
+seed:
+dtype: float32
 training:
-  prefix: real
+  prefix: nonlinear_speed
   N_epochs: 20
   lr: 0.0004
   batch_size: 9
   max_samples: 
-  train_test_divide: 5
-  use_cross_validation: true
+  N_folds: 5
+  cross_validation: true
 data:
   window_size: 1000
   sr: 10000
@@ -19,10 +21,10 @@ geom:
   use_rand_init: false
   Nx: 160
   Ny: 100
-  dt: 0.0001
-  h:  0.05
-  c0: 331
-  c1: 150
+  dt: 1.0
+  h:  
+  c0: 1.00
+  c1: 0.5
   px: 
   py: 
   pd: 20
@@ -31,9 +33,9 @@ geom:
   pml:
     N: 20
     p: 4.0
-    max: 10000
+    max: 3.0
   nonlinearity:
-    cnl: 0.0
+    cnl: -30
     b0: 0.0
     uth: 0.0
   binarization:
