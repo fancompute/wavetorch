@@ -12,9 +12,38 @@ import pandas as pd
 import copy
 
 def train(model, optimizer, criterion, train_dl, test_dl, 
-          N_epochs, batch_size, history=None, history_model_state=[], 
-          fold=None, name=None, savedir=None, cfg=None):
-    """Performs the training routine on model
+          N_epochs : int, batch_size : int, history=None, history_model_state=[], 
+          fold=None, name=None, savedir=None, cfg=None, accuracy=accuracy):
+    """Trains the model.
+
+    Parameters
+    ----------
+    model : 
+        The model to be trained
+    optimizer :
+        The pytorch optimizer used to perform training
+    criterion : 
+        The pytorch loss function
+    train_dl : 
+        The training dataset data loader
+    test_dl :
+        The testing dataset data loader
+    N_epochs : int
+        Number of epochs to perform training
+    batch_size : int
+        The batch size to use during training
+    history : 
+        ...
+    history_model_state :
+        ...
+    fold : 
+        ...
+    name : 
+        ...
+    savedir : 
+        ...
+    cfg : 
+        ...
     """
 
     if history is None:

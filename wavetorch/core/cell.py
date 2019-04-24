@@ -16,8 +16,7 @@ KERNEL_LAP = [[0.0,  1.0, 0.0],
               [0.0,  1.0, 0.0]]
 
 class WaveCell(torch.nn.Module):
-    """The recurrent neural network cell implementing the scalar wave equation
-    """
+    """The recurrent neural network cell that implements the scalar wave equation."""
 
     def __init__(self, dt : float, Nx : int, Ny : int,
                  src_x : int, src_y : int, px : List[int], py : List[int], 
@@ -26,7 +25,7 @@ class WaveCell(torch.nn.Module):
                  pml_N : int = 20, pml_p : float = 4.0, pml_max : float = 3.0, 
                  c0 : float = 1.0, c1 : float = 0.9, h : float= None,
                  init_rand : bool = True, design_region = None):
-        """Initialize the wave equation recurrent neural network cell
+        """Initialize the wave equation recurrent neural network cell.
 
         Parameters
         ----------
@@ -69,7 +68,7 @@ class WaveCell(torch.nn.Module):
         init_rand : bool
             Toggle
         design_region : array or tensor
-            
+            The mask for the design region
         """
 
         super(WaveCell, self).__init__()
@@ -136,14 +135,12 @@ class WaveCell(torch.nn.Module):
         self.register_buffer("laplacian", h**(-2) * torch.tensor([[KERNEL_LAP]]))
 
     def clip_to_design_region(self):
-        """Clips the wave speed to its background value outside of the design region
-        """
+        """Clip the wave speed to its background value outside of the design region."""
         with torch.no_grad():
             self.rho[self.design_region==0] = 0.0
 
     def proj_rho(self):
-        """Performs the projection of the density, rho, to the wave speed, c
-        """
+        """Perform the projection of the density, rho, to the wave speed, c."""
         eta = self.eta
         beta = self.beta
         LPF_rho = conv2d(self.rho.unsqueeze(0).unsqueeze(0), torch.tensor([[KERNEL_LPF]]), padding=1).squeeze()
@@ -151,8 +148,7 @@ class WaveCell(torch.nn.Module):
 
     @staticmethod
     def init_b(Nx, Ny, pml_N, pml_p, pml_max):
-        """Initializes the distribution of the dampening parameter for the "PML"
-        """
+        """Initialize the distribution of the dampening parameter for the PML."""
         b_vals = pml_max * torch.linspace(0.0, 1.0, pml_N+1) ** pml_p
 
         b_x = torch.zeros(Nx, Ny)
@@ -166,17 +162,16 @@ class WaveCell(torch.nn.Module):
         return torch.sqrt( b_x**2 + b_y**2 )
 
     def step(self, x, y1, y2, c_linear, proj_rho):
-        """Take a step through time
+        """Take a step through time.
 
         Parameters
         ----------
         x : 
-            Input(s) value at current time step
-            Can be batched in first dim
+            Input value(s) at current time step, batched in first dimension
         y1 : 
-            Scalar wave field one time step ago (hidden state)
+            Scalar wave field one time step ago (part of the hidden state)
         y2 : 
-            Scalar wave field two time steps ago (hidden state)
+            Scalar wave field two time steps ago (part of the hidden state)
         c_linear :
             The distribution of the linear wave speed 
             This is passed in to avoid adding extra operations by projecting on each time step
@@ -207,13 +202,12 @@ class WaveCell(torch.nn.Module):
         return y, y, y1
 
     def forward(self, x, probe_output=True):
-        """Run the forward pass of the simulation for the input(s)
+        """Propagate forward in time for the length of the input.
 
         Parameters
         ----------
         x : 
-            Input sequence(s)
-            Can be batched in first dimension
+            Input sequence(s), batched in first dimension
         probe_output : bool
             Defines whether the output is the probe vector or the entire spatial
             distribution of the scalar wave field in time
@@ -249,8 +243,7 @@ class WaveCell(torch.nn.Module):
 
     @staticmethod
     def integrate_probe_points(px, py, y):
-        """Perform the integration of the field at the probe point
-        """
+        """Perform the integration of the field at the probe point."""
         I = torch.sum(torch.abs(y[:, :, px, py]).pow(2), dim=1)
         return I / torch.sum(I, dim=1, keepdim=True)
 
