@@ -5,6 +5,7 @@ import matplotlib as mpl
 from sklearn.metrics import confusion_matrix
 
 import torch
+import wavetorch
 
 import time
 import os
@@ -33,6 +34,8 @@ def load_model(str_filename):
     from .cell import WaveCell
     print("Loading model from %s" % str_filename)
     data = torch.load(str_filename)
+
+    wavetorch.core.set_dtype(data["cfg"]['dtype'])
     model_state = data['model_state']
     model = WaveCell(model_state['dt'].numpy(),
                      model_state['Nx'].numpy(), 
@@ -71,3 +74,11 @@ def calc_cm(model, dataloader, verbose=True):
         y_truth = torch.cat(list_yb, dim=0)
 
     return confusion_matrix(y_truth.argmax(dim=1).numpy(), y_pred.argmax(dim=1).numpy())
+
+def set_dtype(dtype=None):
+    if dtype == 'float32' or dtype is None:
+        torch.set_default_dtype(torch.float32)
+    elif dtype == 'float64':
+        torch.set_default_dtype(torch.float64)
+    else:
+        raise ValueError('Unsupported data type: %s; should be either float32 or float64' % dtype)
