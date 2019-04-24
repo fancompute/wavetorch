@@ -18,7 +18,7 @@ Below we describe how to use the package for vowel recognition. Note that all of
 
 To train the model using the configuration specified by the file [study/example.yml](study/example.yml), issue the following command from the top-level of the repository:
 ```
-python -m wavetorch train ./study/example.yml
+python ./study/vowel_train.py ./study/example.yml
 ```
 The configuration file, [study/example.yml](study/example.yml), is commented to provide information on how the vowel data is processed, how the physics of the problem is specified, and how the training process is configured.
 
@@ -30,7 +30,7 @@ During training, the progress of the optimization will be printed to the screen.
 
 A summary of a trained model which was previously saved to disk can be generated like so:
 ```
-python -m wavetorch summary <PATH_TO_MODEL>
+python ./study/vowel_summary.py <PATH_TO_MODEL>
 ```
 
 ![](../master/img/summary.png)
@@ -39,7 +39,7 @@ python -m wavetorch summary <PATH_TO_MODEL>
 
 Snapshots of the scalar field distribution for randomly selected vowels samples can be generated like so:
 ```
-python -m wavetorch fields <PATH_TO_MODEL> 1500 2500 3500 ...
+python ./study/vowel_misc.py fields <PATH_TO_MODEL> 1500 2500 3500 ...
 ```
 
 ![](../master/img/fields.png)
@@ -48,7 +48,7 @@ python -m wavetorch fields <PATH_TO_MODEL> 1500 2500 3500 ...
 
 A matrix of short time Fourier transforms of the received signal, where the row corresponds to an input vowel and the column corresponds to a particular probe (matching the confusion matrix distribution) can be generated like so:
 ```
-python -m wavetorch stft <PATH_TO_MODEL>
+python ./study/vowel_misc.py stft <PATH_TO_MODEL>
 ```
 
 ![](../master/img/stft.png)
