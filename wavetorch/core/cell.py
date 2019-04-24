@@ -5,6 +5,16 @@ from torch.nn.functional import conv2d
 from torch import tanh
 import numpy as np
 
+# Low pass filter kernel used for binarization
+KERNEL_LPF = [[0,   1/8, 0],
+              [1/8, 1/2, 1/8],
+              [0,   1/8, 0]]
+
+# Laplacian kernel
+KERNEL_LAP = [[0.0,  1.0, 0.0],
+              [1.0, -4.0, 1.0],
+              [0.0,  1.0, 0.0]]
+
 class WaveCell(torch.nn.Module):
     """The recurrent neural network cell implementing the scalar wave equation
     """
@@ -123,7 +133,7 @@ class WaveCell(torch.nn.Module):
         if dt > 1 / cmax * h / np.sqrt(2):
             raise ValueError('The discretization defined by `h` and `dt` does not satisfy the CFL stability criteria')
 
-        self.register_buffer("laplacian", h**(-2) * torch.tensor([[[[0.0,  1.0, 0.0], [1.0, -4.0, 1.0], [0.0,  1.0, 0.0]]]]))
+        self.register_buffer("laplacian", h**(-2) * torch.tensor([[KERNEL_LAP]]))
 
     def clip_to_design_region(self):
         """Clips the wave speed to its background value outside of the design region
@@ -136,7 +146,7 @@ class WaveCell(torch.nn.Module):
         """
         eta = self.eta
         beta = self.beta
-        LPF_rho = conv2d(self.rho.unsqueeze(0).unsqueeze(0), torch.tensor([[[[0, 1/8, 0], [1/8, 1/2, 1/8], [0, 1/8, 0]]]]), padding=1).squeeze()
+        LPF_rho = conv2d(self.rho.unsqueeze(0).unsqueeze(0), torch.tensor([[KERNEL_LPF]]), padding=1).squeeze()
         return (tanh(beta*eta) + tanh(beta*(LPF_rho-eta))) / (tanh(beta*eta) + tanh(beta*(1-eta)))
 
     @staticmethod
