@@ -10,7 +10,10 @@ import time
 import os
 import socket
 
-def save_model(model, name, savedir='./study/', history=None, history_model_state=None, cfg=None, verbose=True):
+def save_model(model, name, savedir='./study/', 
+               history=None, history_model_state=None, cfg=None, verbose=True):
+    """Save the model state and history to a file
+    """
     str_filename = name +  '.pt'
     if not os.path.exists(savedir):
         os.makedirs(savedir)
@@ -25,6 +28,8 @@ def save_model(model, name, savedir='./study/', history=None, history_model_stat
 
 
 def load_model(str_filename):
+    """Load a previously saved model and its history from a file
+    """
     from .cell import WaveCell
     print("Loading model from %s" % str_filename)
     data = torch.load(str_filename)
@@ -42,11 +47,15 @@ def load_model(str_filename):
 
 
 def accuracy(out, yb):
+    """Compute the accuracy
+    """
     preds = torch.argmax(out, dim=1)
     return (preds == yb).float().mean().item()
 
 
 def calc_cm(model, dataloader, verbose=True):
+    """Calculate the confusion matrix
+    """
     with torch.no_grad():
         list_yb_pred = []
         list_yb = []

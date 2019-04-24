@@ -18,6 +18,8 @@ import torch
 bbox_white = dict(boxstyle="round,pad=0.3", fc="white", ec="none", alpha=0.75)
 
 def plot_stft_spectrum(y, n_fft=256, block=False, ax=None, sr=None):
+    """Plot the short time Fourier transform of a sequence
+    """
     N_classes = probe_series.shape[0]
     for j in range(0, N_classes):
         i = yb.argmax().item()
@@ -51,6 +53,8 @@ def plot_stft_spectrum(y, n_fft=256, block=False, ax=None, sr=None):
 
 
 def plot_total_field(model, yb, ylabel, block=False, ax=None, fig_width=4, cbar=True, cax=None, vmin=1e-3, vmax=1.0):
+    """Plot the total (time-integrated) field over the computatonal domain for a given vowel sample 
+    """
     with torch.no_grad():
         y_tot = torch.abs(yb).pow(2).sum(dim=1)
 
@@ -81,6 +85,8 @@ def plot_total_field(model, yb, ylabel, block=False, ax=None, fig_width=4, cbar=
 
 
 def plot_structure_evolution(model, model_states, epochs=[0, 1], quantity='c', figsize=(5.6,1.5)):
+    """Plot the spatial distribution of material for the given epochs
+    """
     Nx = int(len(epochs))
     Ny = 1
 
@@ -129,6 +135,8 @@ def _plot_probes(model, ax, vowel_probe_labels=None, highlight_onehot=None, bg='
 
 
 def plot_structure(model, ax=None, outline=False, outline_pml=True, vowel_probe_labels=None, highlight_onehot=None, bg='light', alpha=1.0):
+    """Plot the spatial distribution of the wave speed
+    """
     lc = '#000000' if bg == 'light' else '#ffffff'
 
     rho = model.proj_rho().detach().numpy().transpose()
@@ -168,6 +176,8 @@ def plot_structure(model, ax=None, outline=False, outline_pml=True, vowel_probe_
     return h, markers
 
 def plot_probe_integrals(model, fields_in, ylabel, x, block=False, ax=None):
+    """Plot the time integrated probe signals
+    """
     probe_fields = fields_in[0, :, model.px, model.py].numpy()
 
     I = np.cumsum(np.abs(probe_fields)**2, axis=0)
@@ -183,6 +193,8 @@ def plot_probe_integrals(model, fields_in, ylabel, x, block=False, ax=None):
 
 
 def plot_field_snapshot(model, fields_in, times, ylabel, fig_width=6, block=False, axs=None):
+    """Plot snapshots in time of the scalar wave field
+    """
     fields = fields_in[0, times, :, :]
 
     if axs is None:

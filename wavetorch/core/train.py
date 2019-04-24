@@ -11,7 +11,11 @@ import pandas as pd
 
 import copy
 
-def train(model, optimizer, criterion, train_dl, test_dl, N_epochs, batch_size, history=None, history_model_state=[], fold=None, name=None, savedir=None, cfg=None):
+def train(model, optimizer, criterion, train_dl, test_dl, 
+          N_epochs, batch_size, history=None, history_model_state=[], 
+          fold=None, name=None, savedir=None, cfg=None):
+    """Performs the training routine on model
+    """
 
     if history is None:
         history = pd.DataFrame(columns=['time', 'epoch', 'fold', 'loss_train', 'loss_test', 'acc_train', 'acc_test', 'cm_train', 'cm_test'])

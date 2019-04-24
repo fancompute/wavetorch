@@ -1,17 +1,66 @@
+from typing import List
+
 import torch
 from torch.nn.functional import conv2d
 from torch import tanh
-import time
 import numpy as np
-from .utils import accuracy
 
 class WaveCell(torch.nn.Module):
+    """The recurrent neural network cell implementing the scalar wave equation
+    """
 
-    def __init__(
-            self, dt, Nx, Ny, src_x, src_y, px, py, 
-            nl_c=0.0, nl_uth=1.0, nl_b0=0.0, eta=0.5, beta=100.0,
-            pml_N=20, pml_p=4.0, pml_max=3.0, c0=1.0, c1=0.9, h=None,
-            init_rand=True, design_region=None):
+    def __init__(self, dt : float, Nx : int, Ny : int,
+                 src_x : int, src_y : int, px : List[int], py : List[int], 
+                 nl_c : float = 0.0, nl_uth : float = 1.0, nl_b0 : float = 0.0, 
+                 eta : float = 0.5, beta: float = 100.0,
+                 pml_N : int = 20, pml_p : float = 4.0, pml_max : float = 3.0, 
+                 c0 : float = 1.0, c1 : float = 0.9, h : float= None,
+                 init_rand : bool = True, design_region = None):
+        """Initialize the wave equation recurrent neural network cell
+
+        Parameters
+        ----------
+        dt : float
+            The time step size
+        Nx : int
+            Number of x-direction grid cells in the computational domain
+        Ny : int
+            Number of y-direction grid cells in the computational domain
+        src_x : int
+            x-coordinate of the source
+        src_y : int
+            y-coordinate of the source
+        px : list or array
+            x-coordinates of the probes
+        py : list or array
+            y-coordinates of the probes
+        nl_c : float
+            Nonlinear wave speed parameter
+        nl_uth : float
+            Nonlinear saturable absorption threshold
+        nl_b0 : float
+            Nonlinear saturable absorption strength
+        eta : float
+            Binarize eta parameter
+        beta : float
+            Binarize beta parameter
+        pml_N : int
+            PML layer thickness in grid cells
+        pml_p : float
+            PML polynomial order
+        pml_max : float
+            PML maximum dampening strength
+        c0 : float
+            Background wave speed value
+        c1 : float
+            Optimized (material) wave speed value
+        h : float
+            Spatial step size
+        init_rand : bool
+            Toggle
+        design_region : array or tensor
+            
+        """
 
         super(WaveCell, self).__init__()
 
@@ -77,10 +126,14 @@ class WaveCell(torch.nn.Module):
         self.register_buffer("laplacian", h**(-2) * torch.tensor([[[[0.0,  1.0, 0.0], [1.0, -4.0, 1.0], [0.0,  1.0, 0.0]]]]))
 
     def clip_to_design_region(self):
+        """Clips the wave speed to its background value outside of the design region
+        """
         with torch.no_grad():
             self.rho[self.design_region==0] = 0.0
 
     def proj_rho(self):
+        """Performs the projection of the density, rho, to the wave speed, c
+        """
         eta = self.eta
         beta = self.beta
         LPF_rho = conv2d(self.rho.unsqueeze(0).unsqueeze(0), torch.tensor([[[[0, 1/8, 0], [1/8, 1/2, 1/8], [0, 1/8, 0]]]]), padding=1).squeeze()
@@ -88,6 +141,8 @@ class WaveCell(torch.nn.Module):
 
     @staticmethod
     def init_b(Nx, Ny, pml_N, pml_p, pml_max):
+        """Initializes the distribution of the dampening parameter for the "PML"
+        """
         b_vals = pml_max * torch.linspace(0.0, 1.0, pml_N+1) ** pml_p
 
         b_x = torch.zeros(Nx, Ny)
@@ -101,6 +156,24 @@ class WaveCell(torch.nn.Module):
         return torch.sqrt( b_x**2 + b_y**2 )
 
     def step(self, x, y1, y2, c_linear, proj_rho):
+        """Take a step through time
+
+        Parameters
+        ----------
+        x : 
+            Input(s) value at current time step
+            Can be batched in first dim
+        y1 : 
+            Scalar wave field one time step ago (hidden state)
+        y2 : 
+            Scalar wave field two time steps ago (hidden state)
+        c_linear :
+            The distribution of the linear wave speed 
+            This is passed in to avoid adding extra operations by projecting on each time step
+        proj_rho :
+            The distribution of the material density
+            This is passed in to generate the necessary nonlinearities 
+        """
         dt = self.dt
 
         if self.use_satabs_nonlinearity:
@@ -124,6 +197,18 @@ class WaveCell(torch.nn.Module):
         return y, y, y1
 
     def forward(self, x, probe_output=True):
+        """Run the forward pass of the simulation for the input(s)
+
+        Parameters
+        ----------
+        x : 
+            Input sequence(s)
+            Can be batched in first dimension
+        probe_output : bool
+            Defines whether the output is the probe vector or the entire spatial
+            distribution of the scalar wave field in time
+        """
+
         # hacky way of figuring out if we're on the GPU from inside the model
         device = "cuda" if next(self.parameters()).is_cuda else "cpu"
         
@@ -154,6 +239,8 @@ class WaveCell(torch.nn.Module):
 
     @staticmethod
     def integrate_probe_points(px, py, y):
+        """Perform the integration of the field at the probe point
+        """
         I = torch.sum(torch.abs(y[:, :, px, py]).pow(2), dim=1)
         return I / torch.sum(I, dim=1, keepdim=True)
 

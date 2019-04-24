@@ -10,14 +10,15 @@ import random
 from sklearn.model_selection import train_test_split
 
 def normalize_vowel(wav_data):
+    """Normalize the amplitude of a vowel waveform
+    """
     total_power = np.square(wav_data).sum()
 
     return wav_data / np.sqrt(total_power)
 
 
 def load_vowel(file, sr=None, normalize=True):
-    """
-    Use librosa to to load a single vowel with a specified sample rate
+    """Use librosa to to load a single vowel with a specified sample rate
     """
 
     data, rate = librosa.load(file, sr=sr)
@@ -29,8 +30,7 @@ def load_vowel(file, sr=None, normalize=True):
 
 
 def load_all_vowels(str_classes, gender='both', sr=None, normalize=True, dir='data/vowels/', ext='.wav', max_samples=None, random_state=None):
-    """
-    Loads all available vowel samples associated with `str_classes` and `gender`
+    """Loads all available vowel samples associated with `str_classes` and `gender`
 
     If `max_samples` is specified, then the *total* number of samples returned is limited to this number. In the case of 
     both genders being sampled, the vowels are equally distributed among men and women.
@@ -95,6 +95,8 @@ def load_all_vowels(str_classes, gender='both', sr=None, normalize=True, dir='da
     return X, Y, F
 
 def select_vowel_sample(X, Y, F, y_class, ind=None):
+    """Select a specific vowel sample from the set
+    """
     labels_ints = [y.argmax().item() for y in Y]
     inds_this_clss = [i for i in range(len(labels_ints)) if labels_ints[i] == y_class]
 
