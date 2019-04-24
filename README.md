@@ -1,16 +1,18 @@
 # wavetorch
 
+![](../master/img/optimization.png)
+
 ## Introduction
 
-This python package computes solutions to the [scalar wave equation](https://en.wikipedia.org/wiki/Wave_equation). Using backpropagation, `wavetorch` also computes gradients of those solutions with respect to the spatial distribution of the wave speed. In practice, the wave speed could be related to a material density distribution in an acoustic setting, or to a distribution of materials with different refractive indices in an optical setting. 
+This python package computes solutions of the [scalar wave equation](https://en.wikipedia.org/wiki/Wave_equation) in the time domain. It also computes gradients of these solutions, using pytorch, with respect to the spatial distribution of  material density within a domain. The wave equation is discretized with finite differences and implemented in a recurrent neural network (RNN) cell, `WaveCell`, which subclasses `torch.nn.Module`. All of the standard pytorch optimization modules can be used for training. An example of the evolution of the structure during training, described by its spatial wave speed distribution, is shown above.
 
-In this package, the wave equation is discretized using centered finite differences in both space and time. This discretization is implemented in a custom RNN cell which subclasses `torch.nn.Module` from pytorch. The optimizers provided by pytorch (e.g. ADAM, SGD, LBFGS, etc) are used to optimize the physical system described by the scalar wave equation.
+This package is designed around vowel recognition, using the the dataset available from James Hillenbrand's [website](https://homepages.wmich.edu/~hillenbr/voweldata.html). However, the core components provided by this package, namely the `WaveCell` module and the training routines, could be applied to many different time series learning tasks. 
 
-## Application: Vowel recognition
-
-This package is designed around the application of vowel recognition. A dataset [1] of 12 vowel classes recorded from 45 male and 48 female speakers is located in the `data/` subfolder.
+Note that, in principle, you could adapt this code to be used as a component in a larger neural network stack, our focus is on training models of physical systems described by the wave equation on dynamic time-series data.
 
 ## Usage
+
+Here we describe how to use the package for vowel recognition.
 
 ### Training
 
@@ -61,8 +63,3 @@ python -m wavetorch stft <PATH_TO_MODEL>
 * `numpy`
 * `yaml`
 * `pandas`
-
-## References
-
-1. James  Hillenbrand,  Laura  A.  Getty,  Michael  J.  Clark, and  Kimberlee  Wheeler,  "[Acoustic  characteristics  of
-American English vowels](http://dx.doi.org/%2010.1121/1.411872)," The Journal of the Acoustical Society of America **97**, 3099–3111 (1995). *The associated dataset is available for download from [here](https://homepages.wmich.edu/~hillenbr/voweldata.html).*
