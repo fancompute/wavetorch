@@ -125,7 +125,7 @@ if __name__ == '__main__':
                                             savedir=args.savedir,
                                             cfg=cfg)
         
-        wavetorch.core.save_model(model, args.name, savedir, history, history_model_state, cfg)
+        wavetorch.core.save_model(model, args.name, args.savedir, history, history_model_state, cfg)
 
         if not cfg['training']['cross_validation']:
             break
