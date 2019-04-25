@@ -24,9 +24,18 @@ parser.add_argument('--name', type=str, default=time.strftime('%Y%m%d%H%M%S'),
 parser.add_argument('--savedir', type=str, default='./study/',
                     help='Directory in which the model file is saved. Defaults to ./study/')
 
-def train(config, name, savedir, dev):
-    print("Using configuration from %s: " % config)
-    with open(config, 'r') as ymlfile:
+if __name__ == '__main__':
+    args = parser.parse_args()
+
+    if args.use_cuda and torch.cuda.is_available():
+        args.dev = torch.device('cuda')
+    else:
+        args.dev = torch.device('cpu')
+
+    torch.set_num_threads(args.num_threads)
+
+    print("Using configuration from %s: " % args.config)
+    with open(args.config, 'r') as ymlfile:
          cfg = yaml.load(ymlfile)
          print(yaml.dump(cfg, default_flow_style=False))
 
@@ -34,7 +43,7 @@ def train(config, name, savedir, dev):
         torch.manual_seed(cfg['seed'])
 
     if cfg['training']['prefix'] is not None:
-        name = cfg['training']['prefix'] + '_' + name
+        args.name = cfg['training']['prefix'] + '_' + args.name
 
     N_classes = len(cfg['data']['vowels'])
 
@@ -58,10 +67,10 @@ def train(config, name, savedir, dev):
         y_train = torch.nn.utils.rnn.pad_sequence([Y[i] for i in train_index], batch_first=True)
         y_test = torch.nn.utils.rnn.pad_sequence([Y[i] for i in test_index], batch_first=True)
 
-        x_train = x_train.to(dev)
-        x_test  = x_test.to(dev)
-        y_train = y_train.to(dev)
-        y_test  = y_test.to(dev)
+        x_train = x_train.to(args.dev)
+        x_test  = x_test.to(args.dev)
+        y_train = y_train.to(args.dev)
+        y_test  = y_test.to(args.dev)
 
         train_ds = TensorDataset(x_train, y_train)
         test_ds  = TensorDataset(x_test, y_test)
@@ -89,11 +98,11 @@ def train(config, name, savedir, dev):
                     cfg['geom']['dt'], cfg['geom']['Nx'], cfg['geom']['Ny'], src_x, src_y, px, py,
                     pml_N=cfg['geom']['pml']['N'], pml_p=cfg['geom']['pml']['p'], pml_max=cfg['geom']['pml']['max'], 
                     c0=cfg['geom']['c0'], c1=cfg['geom']['c1'], eta=cfg['geom']['binarization']['eta'], beta=cfg['geom']['binarization']['beta'], 
-                    init_rand=cfg['geom']['use_rand_init'], design_region=design_region, h=cfg['geom']['h'],
+                    init=cfg['geom']['init'], design_region=design_region, h=cfg['geom']['h'],
                     nl_b0=cfg['geom']['nonlinearity']['b0'], nl_uth=cfg['geom']['nonlinearity']['uth'],
                     nl_c=cfg['geom']['nonlinearity']['cnl'] 
                     )
-        model.to(dev)
+        model.to(args.dev)
 
         ### Train
         optimizer = torch.optim.Adam(model.parameters(), lr=cfg['training']['lr'])
@@ -112,23 +121,11 @@ def train(config, name, savedir, dev):
                                             history=history,
                                             history_model_state=history_model_state,
                                             fold=num if cfg['training']['cross_validation'] else -1,
-                                            name=name,
-                                            savedir=savedir,
+                                            name=args.name,
+                                            savedir=args.savedir,
                                             cfg=cfg)
         
-        wavetorch.core.save_model(model, name, savedir, history, history_model_state, cfg)
+        wavetorch.core.save_model(model, args.name, savedir, history, history_model_state, cfg)
 
         if not cfg['training']['cross_validation']:
             break
-
-if __name__ == '__main__':
-    args = parser.parse_args()
-
-    if args.use_cuda and torch.cuda.is_available():
-        args.dev = torch.device('cuda')
-    else:
-        args.dev = torch.device('cpu')
-
-    torch.set_num_threads(args.num_threads)
-
-    train(args.config, args.name, args.savedir, args.dev)
