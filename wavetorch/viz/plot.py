@@ -236,7 +236,7 @@ def plot_field_snapshot(model, fields, times, ylabel, fig_width=6, block=False, 
     plt.show(block=block)
 
 
-def animate_fields(model, field_dist, ylabel, block=True, filename=None, interval=30, fps=30, bitrate=768, crop=0.9, fig_width=3.5):
+def animate_fields(model, field_dist, ylabel, block=True, filename=None, interval=30, window_length=None, fig_width=3.5):
 
     field_max = field_dist.max().item()
 
@@ -253,14 +253,13 @@ def animate_fields(model, field_dist, ylabel, block=True, filename=None, interva
         im.set_array(field_dist[0, i, :, :].numpy().transpose())
         return (im, title, *markers)
 
-    anim = animation.FuncAnimation(fig, animate, interval=interval, frames=int(crop*field_dist.shape[1])-1, blit=True, repeat_delay=1)
+    frames = None if window_length == None else range(int(field_dist.shape[1]/2-window_length/2),int(field_dist.shape[1]/2+window_length/2))
+    anim = animation.FuncAnimation(fig, animate, interval=interval, frames=frames, blit=True, repeat_delay=1)
 
     if filename is not None:
-        Writer = animation.writers['ffmpeg']
-        anim.save(filename, writer=Writer(fps=fps, bitrate=bitrate))
-        plt.close(fig)
-    else:
-        plt.show(block=block)
+        anim.save(filename, writer='imagemagick')
+    
+    plt.show(block=block)
 
 
 def plot_confusion_matrix(cm, ax=None, figsize=(4,4), title=None, normalize=False, labels="auto"):
