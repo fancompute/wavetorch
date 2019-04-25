@@ -2,7 +2,7 @@ seed:
 dtype: float32
 training:
   prefix: linear
-  N_epochs: 20
+  N_epochs: 30
   lr: 0.0004
   batch_size: 9
   max_samples: 
@@ -24,10 +24,10 @@ geom:
   dt: 0.707
   h:  
   c0: 1.00
-  c1: 0.80
+  c1: 0.50
   px: 
   py: 
-  pd: 35
+  pd: 20
   src_x: 
   src_y:
   pml:
