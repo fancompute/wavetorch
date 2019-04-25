@@ -192,16 +192,15 @@ def plot_probe_integrals(model, fields_in, ylabel, x, block=False, ax=None):
     plt.show(block=block)
 
 
-def plot_field_snapshot(model, fields_in, times, ylabel, fig_width=6, block=False, axs=None):
+def plot_field_snapshot(model, fields, times, ylabel, fig_width=6, block=False, axs=None, label=True, cbar=True, Ny=1):
     """Plot snapshots in time of the scalar wave field
     """
-    fields = fields_in[0, times, :, :]
+    field_slices = fields[0, times, :, :]
 
     if axs is None:
         # Nx = int(np.ceil(np.sqrt(len(times))))
         # Ny = int(np.ceil(np.sqrt(len(times))))
-        Nx = len(times)
-        Ny = 1
+        Nx = int(len(times)/Ny)
 
         Wx = model.Nx.item()
         Wy = model.Ny.item()
@@ -211,10 +210,10 @@ def plot_field_snapshot(model, fields_in, times, ylabel, fig_width=6, block=Fals
 
     axs = axs.ravel()
 
-    field_max = fields.max().item()
+    field_max = field_slices.max().item()
 
     for i, time in enumerate(times):
-        field = fields[i, :, :].numpy().transpose()
+        field = field_slices[i, :, :].numpy().transpose()
         
         h = axs[i].imshow(field, cmap=plt.cm.RdBu, vmin=-field_max, vmax=+field_max, origin="bottom", rasterized=True)
         plot_structure(model, ax=axs[i], outline=True, outline_pml=True, highlight_onehot=ylabel, bg='light')
@@ -222,9 +221,11 @@ def plot_field_snapshot(model, fields_in, times, ylabel, fig_width=6, block=Fals
         axs[i].set_xticks([])
         axs[i].set_yticks([])
 
-        axs[i].text(0.5, 0.03, "time step %d/%d" % (time, fields_in.shape[1]), transform=axs[i].transAxes, ha="center", va="bottom", bbox=bbox_white, fontsize='smaller')
+        if label:
+            axs[i].text(0.5, 0.03, "time step %d/%d" % (time, fields.shape[1]), transform=axs[i].transAxes, ha="center", va="bottom", bbox=bbox_white, fontsize='smaller')
 
-    plt.colorbar(h, ax=axs, label=r"$u_n{(x,y)}$", shrink=0.80)
+    if cbar:
+        plt.colorbar(h, ax=axs, label=r"$u_n{(x,y)}$", shrink=0.80)
 
     for j in range(i+1,len(axs)):
         axs[j].set_xticks([])
