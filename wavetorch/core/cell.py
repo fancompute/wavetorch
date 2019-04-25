@@ -24,7 +24,7 @@ class WaveCell(torch.nn.Module):
                  eta : float = 0.5, beta: float = 100.0,
                  pml_N : int = 20, pml_p : float = 4.0, pml_max : float = 3.0, 
                  c0 : float = 1.0, c1 : float = 0.9, h : float= None,
-                 init_rand : bool = True, design_region = None):
+                 init_rand : bool = False, design_region = None):
         """Initialize the wave equation recurrent neural network cell.
 
         Parameters
