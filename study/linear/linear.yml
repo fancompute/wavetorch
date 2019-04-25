@@ -18,7 +18,7 @@ data:
     - iy
 geom:
   use_design_region: true
-  use_rand_init: false
+  init: half
   Nx: 140
   Ny: 140
   dt: 0.707

@@ -52,8 +52,8 @@ geom:
   # Use the (currently hard coded) design region which sits between the src and probes with a 5 gride cell buffer
   use_design_region: true
 
-  # Use a random initialization for the distribution of c
-  use_rand_init: false
+  # Initialization of the design region, either 'rand', 'half', or 'blank'
+  init: half
 
   # Number of grid cells in x-dimension of simulation domain
   Nx: 150

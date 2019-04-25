@@ -24,7 +24,7 @@ class WaveCell(torch.nn.Module):
                  eta : float = 0.5, beta: float = 100.0,
                  pml_N : int = 20, pml_p : float = 4.0, pml_max : float = 3.0, 
                  c0 : float = 1.0, c1 : float = 0.9, h : float= None,
-                 init_rand : bool = False, design_region = None):
+                 init : str = 'half', design_region = None):
         """Initialize the wave equation recurrent neural network cell.
 
         Parameters
@@ -118,10 +118,14 @@ class WaveCell(torch.nn.Module):
             # Use all non-PML area as the design region
             self.register_buffer("design_region", self.b_boundary == 0)
 
-        if init_rand:
+        if init == 'rand':
             self.rho = torch.nn.Parameter( torch.round(torch.rand(Nx, Ny)) )
-        else:
+        elif init == 'half':
             self.rho = torch.nn.Parameter( torch.ones(Nx, Ny) * 0.5 )
+        elif init == 'blank':
+            self.rho = torch.nn.Parameter( torch.zeros(Nx, Ny) )
+        else:
+            raise ValueError('The domain initialization defined by `init = %s` is invalid' % init)
 
         self.clip_to_design_region()
 
@@ -130,7 +134,7 @@ class WaveCell(torch.nn.Module):
             h = dt * cmax * np.sqrt(2) * 1.01
 
         if dt > 1 / cmax * h / np.sqrt(2):
-            raise ValueError('The discretization defined by `h` and `dt` does not satisfy the CFL stability criteria')
+            raise ValueError('The discretization defined by `h = %f` and `dt = %f` does not satisfy the CFL stability criteria' % (h, dt))
 
         self.register_buffer("laplacian", h**(-2) * torch.tensor([[KERNEL_LAP]]))
 
