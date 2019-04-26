@@ -73,8 +73,16 @@ class WaveCell(torch.nn.Module):
 
         super(WaveCell, self).__init__()
 
-        if len(px) != len(py):
-            raise ValueError("Length of probe x and y coordinate vectors must be the same")
+        px = np.atleast_1d(px)
+        py = np.atleast_1d(py)
+        src_x = np.atleast_1d(src_x)
+        src_y = np.atleast_1d(src_y)
+
+        if px.size != py.size:
+            raise ValueError("Length of px and py must be the equal")
+
+        if src_x.size != src_y.size:
+            raise ValueError("Length of src_x and src_y must be the equal")
 
         # Time step
         self.register_buffer("dt", torch.tensor(dt))
@@ -201,7 +209,7 @@ class WaveCell(torch.nn.Module):
                      )
         
         # Insert the source
-        y[:, self.src_x, self.src_y] = y[:, self.src_x, self.src_y] + x.squeeze(1)
+        y[:, self.src_x, self.src_y] = y[:, self.src_x, self.src_y] + x.expand_as(y[:, self.src_x, self.src_y])
         
         return y, y, y1
 
