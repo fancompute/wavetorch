@@ -1,13 +1,11 @@
-# Study-specific Readme
+# Study scripts
 
-This folder contains various study configurations. A study is a particular problem configuration described by a YAML file. Some studies also have an associated SLURM job script for running the training routine on a cluster.
+This directory contains various study scripts and configuration files for interacting with wavetorch. Some of the scripts, particularly the ones in this folder, are self-contained. However, the `linear/` and `nonlinear_speed/` folders contain yaml configuration files and slurm job scripts for the vowel recognition task described in the paper. 
 
-The various studies have been organized into sub-folders. However, a good starting point may be `example.yml`. This study configuration file heavily commented.
-
-A study can be run from the command line (from the top-level directory of the repository) as follows:
-
+The yaml files are meant to be used in conjunction with the `vowel_train.py` script in this directory, like so:
 ```
 python ./study/vowel_train.py ./study/example.yml
 ```
+The `vowel_summary.py` and `vowel_analyze.py` scripts are intended to help with analysis of models which were previously trained and saved by `vowel_train.py`. The example configuration file in this directory, `example.yml`, is a good starting point for understanding the configuration options for the vowel recognition problem.
 
-**WARNING:** depending on the batch size, the window length, and the sample rate for the vowel data (all of which are specified in the YAML configuration file) the gradient computation may require a significant amount of memory. It is recommended to start small with the batch size and work your way up gradually, depending on what your machine can handle.
+For performing simulations of propagating waves in user-defined geometries, take a look at `propagate.py`.
