@@ -17,6 +17,8 @@ from matplotlib.gridspec import GridSpec
 
 import pandas as pd
 
+mpl.rcParams['text.usetex'] = True
+
 COL_TRAIN = "#1f77b4"
 COL_TEST  = "#2ca02c"
 
@@ -32,9 +34,12 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     model, history, history_state, cfg = wavetorch.core.load_model(args.filename)
-    if cfg['seed'] is not None:
-        torch.manual_seed(cfg['seed'])
 
+    try:
+        if cfg['seed'] is not None:
+            torch.manual_seed(cfg['seed'])
+    except:
+        pass
     print("Configuration for model in %s is:" % args.filename)
     print(yaml.dump(cfg, default_flow_style=False))
 
@@ -122,7 +127,7 @@ if __name__ == '__main__':
 
     X, Y, F = wavetorch.data.load_all_vowels(vowels, gender='both', sr=sr, random_state=0)
 
-    # model.load_state_dict(history_state[0])
+    model.load_state_dict(history_state[cfg['training']['N_epochs']])
 
     for i in range(N_classes):
         xb, yb = wavetorch.data.select_vowel_sample(X, Y, F, i, ind=args.vowel_samples[i] if args.vowel_samples is not None else None)
