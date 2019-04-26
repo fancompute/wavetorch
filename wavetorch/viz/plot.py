@@ -236,9 +236,9 @@ def plot_field_snapshot(model, fields, times, ylabel, fig_width=6, block=False, 
     plt.show(block=block)
 
 
-def animate_fields(model, field_dist, ylabel, block=True, filename=None, interval=30, window_length=None, fig_width=3.5):
+def animate_fields(model, fields, ylabel, batch=0, block=True, filename=None, interval=30, window_length=None, fig_width=3.5):
 
-    field_max = field_dist.max().item()
+    field_max = fields[batch, :, :, :].max().item()
 
     fig, ax = plt.subplots(1, 1, constrained_layout=True, figsize=(fig_width, fig_width*model.Ny/model.Nx))
     im = ax.imshow(np.zeros((model.Ny, model.Nx)), cmap=plt.cm.RdBu, animated=True, vmin=-field_max, vmax=+field_max, origin="bottom")
@@ -250,10 +250,10 @@ def animate_fields(model, field_dist, ylabel, block=True, filename=None, interva
 
     def animate(i):
         title.set_text("Time step n = %d" % i)
-        im.set_array(field_dist[0, i, :, :].numpy().transpose())
+        im.set_array(fields[batch, i, :, :].numpy().transpose())
         return (im, title, *markers)
 
-    frames = None if window_length == None else range(int(field_dist.shape[1]/2-window_length/2),int(field_dist.shape[1]/2+window_length/2))
+    frames = None if window_length == None else range(int(fields.shape[1]/2-window_length/2),int(fields.shape[1]/2+window_length/2))
     anim = animation.FuncAnimation(fig, animate, interval=interval, frames=frames, blit=True, repeat_delay=1)
 
     if filename is not None:
