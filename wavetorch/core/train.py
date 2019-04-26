@@ -1,9 +1,7 @@
 import torch
-from torch.nn.functional import conv2d
-from torch import tanh
 import time
 import numpy as np
-from .utils import accuracy, save_model
+from .utils import accuracy_onehot, save_model
 
 from sklearn.metrics import confusion_matrix
 
@@ -13,7 +11,7 @@ import copy
 
 def train(model, optimizer, criterion, train_dl, test_dl, 
           N_epochs : int, batch_size : int, history=None, history_model_state=[], 
-          fold=None, name=None, savedir=None, cfg=None, accuracy=accuracy):
+          fold=None, name=None, savedir=None, cfg=None, accuracy=None):
     """Trains the model.
 
     Parameters
@@ -79,7 +77,8 @@ def train(model, optimizer, criterion, train_dl, test_dl,
                 yb_pred = model(xb)
                 list_yb_pred.append(yb_pred)
                 list_yb.append(yb)
-                acc_train_tmp.append( accuracy(yb_pred, yb.argmax(dim=1)) )
+                if accuracy is not None:
+                    acc_train_tmp.append( accuracy(yb_pred, yb.argmax(dim=1)) )
 
             y_pred = torch.cat(list_yb_pred, dim=0)
             y_truth = torch.cat(list_yb, dim=0)
@@ -89,16 +88,19 @@ def train(model, optimizer, criterion, train_dl, test_dl,
             loss_test_tmp = []
             list_yb_pred = []
             list_yb = []
-            for num, (xb, yb) in enumerate(test_dl):
-                yb_pred = model(xb)
-                list_yb_pred.append(yb_pred)
-                list_yb.append(yb)
-                loss_test_tmp.append( criterion(yb_pred, yb.argmax(dim=1)) )
-                acc_test_tmp.append( accuracy(yb_pred, yb.argmax(dim=1)) )
+            cm_test = None
+            if test_dl is not None:
+                for num, (xb, yb) in enumerate(test_dl):
+                    yb_pred = model(xb)
+                    list_yb_pred.append(yb_pred)
+                    list_yb.append(yb)
+                    loss_test_tmp.append( criterion(yb_pred, yb.argmax(dim=1)) )
+                    if accuracy is not None:
+                        acc_test_tmp.append( accuracy_onehot(yb_pred, yb.argmax(dim=1)) )
 
-            y_pred = torch.cat(list_yb_pred, dim=0)
-            y_truth = torch.cat(list_yb, dim=0)
-            cm_test = confusion_matrix(y_truth.argmax(dim=1).numpy(), y_pred.argmax(dim=1).numpy())
+                y_pred = torch.cat(list_yb_pred, dim=0)
+                y_truth = torch.cat(list_yb, dim=0)
+                cm_test = confusion_matrix(y_truth.argmax(dim=1).numpy(), y_pred.argmax(dim=1).numpy())
 
         print('Epoch %2d/%2d --- Elapsed Time:  %4.2f min | Training Loss:  %.4e | Testing Loss:  %.4e | Training Accuracy:  %.4f | Testing Accuracy:  %.4f' % 
                 (epoch, N_epochs, (time.time()-t_epoch)/60, np.mean(loss_iter), np.mean(loss_test_tmp), np.mean(acc_train_tmp), np.mean(acc_test_tmp)))

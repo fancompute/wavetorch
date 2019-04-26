@@ -11,6 +11,11 @@ import time
 import os
 import socket
 
+def window_data(X, window_length):
+    """Window the sample, X, to a length of window_length centered at the middle of the original sample
+    """
+    return X[int(len(X)/2-window_length/2):int(len(X)/2+window_length/2)]
+
 def save_model(model, name, savedir='./study/', 
                history=None, history_model_state=None, cfg=None, verbose=True):
     """Save the model state and history to a file
@@ -49,11 +54,10 @@ def load_model(str_filename):
     return model, data["history"], data["history_model_state"], data["cfg"]
 
 
-def accuracy(out, yb):
-    """Compute the accuracy
+def accuracy_onehot(y_pred, y_label):
+    """Compute the accuracy for a onehot
     """
-    preds = torch.argmax(out, dim=1)
-    return (preds == yb).float().mean().item()
+    return (y_pred.argmax(dim=1) == y_label).float().mean().item()
 
 
 def calc_cm(model, dataloader, verbose=True):

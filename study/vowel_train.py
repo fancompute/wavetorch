@@ -58,8 +58,7 @@ if __name__ == '__main__':
         if cfg['training']['cross_validation']: print("Cross Validation Fold %2d/%2d" % (num+1, cfg['training']['N_folds']))
 
         if cfg['data']['window_size']:
-            crop = cfg['data']['window_size']
-            x_train = torch.nn.utils.rnn.pad_sequence([X[i][int(len(X[i])/2-crop/2):int(len(X[i])/2+crop/2)] for i in train_index], batch_first=True)
+            x_train = torch.nn.utils.rnn.pad_sequence([wavetorch.core.window_data(X[i], cfg['data']['window_size']) for i in train_index], batch_first=True)
         else:
             x_train = torch.nn.utils.rnn.pad_sequence([X[i] for i in train_index], batch_first=True)
 
@@ -123,6 +122,7 @@ if __name__ == '__main__':
                                             fold=num if cfg['training']['cross_validation'] else -1,
                                             name=args.name,
                                             savedir=args.savedir,
+                                            accuracy=wavetorch.core.accuracy_onehot,
                                             cfg=cfg)
         
         wavetorch.core.save_model(model, args.name, args.savedir, history, history_model_state, cfg)
