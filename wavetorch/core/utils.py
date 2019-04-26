@@ -39,8 +39,10 @@ def load_model(str_filename):
     from .cell import WaveCell
     print("Loading model from %s" % str_filename)
     data = torch.load(str_filename)
-
-    wavetorch.core.set_dtype(data["cfg"]['dtype'])
+    try:
+        wavetorch.core.set_dtype(data["cfg"]['dtype'])
+    except:
+        pass
     model_state = data['model_state']
     model = WaveCell(model_state['dt'].numpy(),
                      model_state['Nx'].numpy(), 
