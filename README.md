@@ -4,17 +4,29 @@
 
 ## Introduction
 
-This python package computes solutions of the [scalar wave equation](https://en.wikipedia.org/wiki/Wave_equation) in the time domain. It also computes gradients of these solutions, using pytorch, with respect to the spatial distribution of  material density within a domain. The wave equation is discretized with finite differences and implemented in a recurrent neural network (RNN) cell, `WaveCell`, which subclasses `torch.nn.Module`. All of the standard pytorch optimization modules can be used for training. An example of the evolution of the structure during training, described by its spatial wave speed distribution, is shown above.
+This python package computes time-domain solutions of the [scalar wave equation](https://en.wikipedia.org/wiki/Wave_equation). It also computes gradients of these solutions, using pytorch, with respect to the spatial distribution of material density inside a user-defined region of a larger domain. Here, the wave equation is discretized with finite differences and implemented in a recurrent neural network (RNN) cell, `WaveCell`, which subclasses `torch.nn.Module`. This allows all of the standard pytorch optimization modules to be used for training/optimization. An example of a structure's evolution during the training procedure is shown in the image above.
 
-This package is designed around vowel recognition, using the the dataset available from James Hillenbrand's [website](https://homepages.wmich.edu/~hillenbr/voweldata.html). However, the core components provided by this package, namely the `WaveCell` module and the training routines, could be applied to many different time series learning tasks. 
+This package is designed around vowel recognition, using the the dataset of raw audio recordings available from Prof James Hillenbrand's [website](https://homepages.wmich.edu/~hillenbr/voweldata.html). However, the core components provided by this package, namely the `WaveCell` module and the training routines, could be applied to other learning tasks on time-series data. 
 
-Note that, in principle, you could adapt this code to be used as a component in a larger neural network stack. However, our focus is on training numerical models of physical systems to learn features of data with temporal dynamics.
+If you find this package useful in your research, please consider citing our paper:
+
+ * arxiv reference coming very soon...
 
 ## Usage
 
-Below we describe how to use the package for vowel recognition. Note that all of the raw audio files are included in this repository.
+To use this package, simply clone and/or download the repository:
+```
+git clone https://github.com/fancompute/wavetorch.git
+```
+All interactions with this package can be carried out from the top level of the repository, as described below.
 
-### Training
+## Propagating waves
+
+A simple example of modeling a monochromatic excitation is provided in [study/propagate.py](study/propagate.py). 
+
+![](../master/img/propagate.png)
+
+### Training on vowel recognition
 
 To train the model using the configuration specified by the file [study/example.yml](study/example.yml), issue the following command from the top-level of the repository:
 ```
@@ -26,7 +38,7 @@ During training, the progress of the optimization will be printed to the screen.
 
 **WARNING:** depending on the batch size, the window length, and the sample rate for the vowel data (all of which are specified in the YAML configuration file) the gradient computation may require a significant amount of memory. It is recommended to start small with the batch size and work your way up gradually, depending on what your machine can handle.
 
-### Summary of results
+### Summary of vowel recognition results
 
 A summary of a trained model which was previously saved to disk can be generated like so:
 ```
@@ -35,16 +47,16 @@ python ./study/vowel_summary.py <PATH_TO_MODEL>
 
 ![](../master/img/summary.png)
 
-### Display field snapshots
+### Display field snapshots during vowel recognition
 
 Snapshots of the scalar field distribution for randomly selected vowels samples can be generated like so:
 ```
-python ./study/vowel_analyze.py fields <PATH_TO_MODEL> 1500 2500 3500 ...
+python ./study/vowel_analyze.py fields <PATH_TO_MODEL> --times 1500 2500 3500 ...
 ```
 
 ![](../master/img/fields.png)
 
-### Display short-time Fourier transform (STFT) of signals
+### Display short-time Fourier transform (STFT) of vowel waveforms
 
 A matrix of short time Fourier transforms of the received signal, where the row corresponds to an input vowel and the column corresponds to a particular probe (matching the confusion matrix distribution) can be generated like so:
 ```
