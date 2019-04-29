@@ -75,7 +75,3 @@ python ./study/vowel_analyze.py stft <PATH_TO_MODEL>
 * `numpy`
 * `yaml`
 * `pandas`
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details. Copyright 2018 Ian A. D. Williamson.
