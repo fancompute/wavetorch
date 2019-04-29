@@ -6,7 +6,7 @@
 
 This python package computes time-domain solutions of the [scalar wave equation](https://en.wikipedia.org/wiki/Wave_equation). It also computes gradients of these solutions, using pytorch, with respect to the spatial distribution of material density inside a user-defined region of a larger domain. Here, the wave equation is discretized with finite differences and implemented in a recurrent neural network (RNN) cell, `WaveCell`, which subclasses `torch.nn.Module`. This allows all of the standard pytorch optimization modules to be used for training/optimization. An example of a structure's evolution during the training procedure is shown in the image above.
 
-This package is designed around vowel recognition, using the the dataset of raw audio recordings available from Prof James Hillenbrand's [website](https://homepages.wmich.edu/~hillenbr/voweldata.html). However, the core components provided by this package, namely the `WaveCell` module and the training routines, could be applied to other learning tasks on time-series data. 
+This package is designed to perform vowel recognition, using the the dataset of raw audio recordings available from Prof James Hillenbrand's [website](https://homepages.wmich.edu/~hillenbr/voweldata.html). However, the core components provided by this package, namely the `WaveCell` module and the training routines, may be easily applied to other learning tasks involving time-series data. 
 
 If you find this package useful in your research, please consider citing our paper:
 
@@ -75,3 +75,7 @@ python ./study/vowel_analyze.py stft <PATH_TO_MODEL>
 * `numpy`
 * `yaml`
 * `pandas`
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details. Copyright 2018 Ian A. D. Williamson.
