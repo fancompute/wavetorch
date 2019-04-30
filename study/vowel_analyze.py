@@ -29,6 +29,7 @@ parser.add_argument('--times', nargs='+', type=int, default=None)
 parser.add_argument('--saveprefix', type=str, default=None)
 parser.add_argument('--vowel_samples', nargs='+', type=int, default=None)
 parser.add_argument('--num_threads', type=int, default=4)
+parser.add_argument('--labels', action='store_true')
 parser.add_argument('--use-cuda', action='store_true')
 
 class WaveTorch(object):
@@ -76,7 +77,8 @@ class WaveTorch(object):
                 # axs[i].set_ylabel(r"Probe $\int \vert u_n \vert^2 dt$")
 
         # axs[-1].set_xlabel("Time")
-        wavetorch.viz.apply_sublabels(axs.ravel(), xy=[(5,-5)], size='medium', weight='bold', ha='left', va='top')
+        if args.labels:
+            wavetorch.viz.apply_sublabels(axs.ravel(), xy=[(5,-5)], size='medium', weight='bold', ha='left', va='top')
         plt.show()
 
     def stft(self, args):

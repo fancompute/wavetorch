@@ -28,6 +28,7 @@ parser.add_argument('--vmin', type=float, default=1e-3)
 parser.add_argument('--vmax', type=float, default=1.0)
 parser.add_argument('--fig', type=str, default=None)
 parser.add_argument('--title_off', action='store_true')
+parser.add_argument('--labels', action='store_true')
 parser.add_argument('--vowel_samples', nargs='+', type=int, default=None)
 
 if __name__ == '__main__':
@@ -136,9 +137,10 @@ if __name__ == '__main__':
             probe_series = field_dist[0, :, model.px, model.py]
             wavetorch.viz.plot_total_field(model, field_dist, yb, ax=ax_fields[yb.argmax().item()], cbar=True, cax=ax_fields[-1], vmin=args.vmin, vmax=args.vmax)
 
-    wavetorch.viz.apply_sublabels([ax_cm_train0, ax_cm_test0, ax_cm_train1, ax_cm_test1, ax_loss, ax_acc] + ax_fields[0:-1],
-                        xy=[(-35,0), (-35,0), (-35,0), (-35,0), (-25,0), (-40,0), (8,-6), (8,-6), (8,-6)],
-                        colors=['k', 'k', 'k', 'k', 'k', 'k', 'w', 'w', 'w'])
+    if args.labels:
+        wavetorch.viz.apply_sublabels([ax_cm_train0, ax_cm_test0, ax_cm_train1, ax_cm_test1, ax_loss, ax_acc] + ax_fields[0:-1],
+                            xy=[(-35,0), (-35,0), (-35,0), (-35,0), (-25,0), (-40,0), (8,-6), (8,-6), (8,-6)],
+                            colors=['k', 'k', 'k', 'k', 'k', 'k', 'w', 'w', 'w'])
 
     plt.show()
     if args.fig is not None:
