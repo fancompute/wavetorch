@@ -18,7 +18,10 @@ To use this package, simply clone and/or download the repository:
 ```
 git clone https://github.com/fancompute/wavetorch.git
 ```
-All interactions with this package can be carried out from the top level of the repository, as described below.
+All interactions with this package can be carried out from the top-level directory of the repository, as described below. It's also helpful to add the top-level of the repository to the `PYTHONPATH` environment variable. This can be achieved (on a Unix-like system) by executing the following command from the top-level directory of the repository:
+```
+export PYTHONPATH=$PYTHONPATH:$(pwd)
+```
 
 ## Propagating waves
 
@@ -28,7 +31,7 @@ A simple example of modeling a monochromatic excitation is provided in [study/pr
 
 ### Training on vowel recognition
 
-To train the model using the configuration specified by the file [study/example.yml](study/example.yml), issue the following command from the top-level of the repository:
+To train the model using the configuration specified by the file [study/example.yml](study/example.yml), issue the following command from the top-level directory of the repository:
 ```
 python ./study/vowel_train.py ./study/example.yml
 ```
