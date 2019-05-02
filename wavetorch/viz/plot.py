@@ -17,40 +17,6 @@ import torch
 
 bbox_white = dict(boxstyle="round,pad=0.3", fc="white", ec="none", alpha=0.75)
 
-def plot_stft_spectrum(y, n_fft=256, block=False, ax=None, sr=None):
-    """Plot the short time Fourier transform of a sequence
-    """
-    N_classes = probe_series.shape[0]
-    for j in range(0, N_classes):
-        i = yb.argmax().item()
-        ax = axs[i, j]
-        input_stft = np.abs(librosa.stft(xb.numpy().squeeze(), n_fft=n_fft))
-        output_stft = np.abs(librosa.stft(probe_series[:,j].numpy(), n_fft=n_fft))
-
-        librosa.display.specshow(
-            librosa.amplitude_to_db(output_stft,ref=np.max(input_stft)),
-            sr=sr,
-            vmax=0,
-            ax=ax,
-            vmin=-50,
-            y_axis='linear',
-            x_axis='time',
-            cmap=plt.cm.inferno
-        )
-        ax.set_ylim([0,sr/4])
-
-        if i == 0:
-            ax.set_title("probe %d" % (j+1), weight="bold")
-        if j == N_classes-1:
-            ax.text(1.05, 0.5, vowels[i], transform=ax.transAxes, ha="left", va="center", fontsize="large", rotation=-90, weight="bold")
-        
-        if j > 0:
-            ax.set_ylabel('')
-        if i < N_classes-1:
-            ax.set_xlabel('')
-        # if i == j:
-            # ax.text(0.5, 0.95, '%s at probe #%d' % (vowels[i], j+1), color="w", transform=ax.transAxes, ha="center", va="top", fontsize="large")
-
 
 def plot_total_field(model, yb, ylabel, block=False, ax=None, fig_width=4, cbar=True, cax=None, vmin=1e-3, vmax=1.0):
     """Plot the total (time-integrated) field over the computatonal domain for a given vowel sample 
