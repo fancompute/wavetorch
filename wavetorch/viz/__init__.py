@@ -1,6 +1,5 @@
 
-from .plot import plot_stft_spectrum, \
-                  plot_total_field, \
+from .plot import plot_total_field, \
                   plot_confusion_matrix, \
                   animate_fields, \
                   plot_structure, \
