@@ -10,7 +10,8 @@ This package is designed to perform vowel recognition, using the the dataset of 
 
 If you find this package useful in your research, please consider citing our paper:
 
- * T. W. Hughes, I. A. D. Williamson, M. Minkov, and S. Fan, "[Wave Physics as an Analog Recurrent Neural Network](https://arxiv.org/abs/1904.12831)" ArXiv:1904.12831 [physics.app-ph], 2019.
+ * T. W. Hughes, I. A. D. Williamson, M. Minkov, and S. Fan, “[Wave Physics as an Analog Recurrent Neural Network](https://arxiv.org/abs/1904.12831),” arXiv:1904.12831 [physics], Apr. 2019.
+
 
 ## Usage
 
