@@ -45,7 +45,7 @@ for i, vowel in enumerate(vowels):
                      X_ft_mean,
                      alpha=0.45, color=colors[i])
     ax.plot(librosa.core.fft_frequencies(sr=sr, n_fft=n_fft),
-                     X_ft_std, '--',
+                     X_ft_std, '-',
                      label=vowel + ' vowel class', color=colors[i])
 
 ax.set_xlabel("Frequency (Hz)")

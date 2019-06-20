@@ -18,6 +18,19 @@ from matplotlib.gridspec import GridSpec
 import pandas as pd
 
 mpl.rcParams['text.usetex'] = True
+mpl.rcParams['text.latex.preamble'] = [
+r"\usepackage{tgheros}",
+r"\usepackage{bm}", 
+r"\usepackage{sansmath}",
+r"\sansmath",
+r"\usepackage{siunitx}",
+r"\sisetup{detect-all}",
+r"\usepackage{amsmath}",
+r"\usepackage{amsfonts}",
+r"\usepackage{amssymb}",
+r"\usepackage{braket}",
+r"\renewcommand{\rmdefault}{\sfdefault}"
+]
 
 COL_TRAIN = "#1f77b4"
 COL_TEST  = "#2ca02c"
@@ -57,10 +70,10 @@ if __name__ == '__main__':
     gs_bot  = gs_left[2,:].subgridspec(1, 2)
 
     ax_cm_train0 = fig.add_subplot(gs_left[0,0])
-    ax_cm_test0  = fig.add_subplot(gs_left[0,1], sharex=ax_cm_train0, sharey=ax_cm_train0)
+    ax_cm_test0  = fig.add_subplot(gs_left[0,1])
 
-    ax_cm_train1 = fig.add_subplot(gs_left[1,0], sharex=ax_cm_train0, sharey=ax_cm_train0)
-    ax_cm_test1  = fig.add_subplot(gs_left[1,1], sharex=ax_cm_train0, sharey=ax_cm_train0)
+    ax_cm_train1 = fig.add_subplot(gs_left[1,0])
+    ax_cm_test1  = fig.add_subplot(gs_left[1,1])
 
     ax_loss = fig.add_subplot(gs_bot[0])
     ax_acc = fig.add_subplot(gs_bot[1])
@@ -135,6 +148,7 @@ if __name__ == '__main__':
         with torch.no_grad():
             field_dist = model(xb, probe_output=False)
             probe_series = field_dist[0, :, model.px, model.py]
+            print(yb.argmax().item())
             wavetorch.viz.plot_total_field(model, field_dist, yb, ax=ax_fields[yb.argmax().item()], cbar=True, cax=ax_fields[-1], vmin=args.vmin, vmax=args.vmax)
 
     if args.labels:
