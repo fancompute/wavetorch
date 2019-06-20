@@ -57,6 +57,7 @@ def plot_structure_evolution(model, model_states, epochs=[0, 1], quantity='c', f
     Ny = 1
 
     fig, axs = plt.subplots(Ny, Nx, constrained_layout=True, figsize=figsize)
+    axs = np.asarray(axs)
     axs = axs.ravel()
     for i, epoch in enumerate(epochs):
         model.load_state_dict(model_states[epoch])
