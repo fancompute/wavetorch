@@ -55,16 +55,20 @@ def train(model, optimizer, criterion, train_dl, test_dl,
         for num, (xb, yb) in enumerate(train_dl):
             def closure():
                 optimizer.zero_grad()
-                loss = criterion(model(xb), yb.argmax(dim=1))
+                u = model(xb)
+                ym = model.measure_probes(u, integrated=True, normalized=True)
+                loss = criterion(ym, yb.argmax(dim=1))
                 loss.backward()
                 return loss
 
             if epoch == 0: # Don't take a step and just characterize the starting structure
                 with torch.no_grad():
-                    loss = criterion(model(xb), yb.argmax(dim=1))
+                    u = model(xb)
+                    ym = model.measure_probes(u, integrated=True, normalized=True)
+                    loss = criterion(ym, yb.argmax(dim=1))
             else: # Take an optimization step
                 loss = optimizer.step(closure)
-                model.clip_to_design_region()
+                model.geometry.clip_to_design_region()
 
             loss_iter.append(loss.item())
 
@@ -74,7 +78,8 @@ def train(model, optimizer, criterion, train_dl, test_dl,
             list_yb_pred = []
             list_yb = []
             for num, (xb, yb) in enumerate(train_dl):
-                yb_pred = model(xb)
+                u = model(xb)
+                yb_pred = model.measure_probes(u, integrated=True, normalized=True)
                 list_yb_pred.append(yb_pred)
                 list_yb.append(yb)
                 if accuracy is not None:
@@ -91,7 +96,8 @@ def train(model, optimizer, criterion, train_dl, test_dl,
             cm_test = None
             if test_dl is not None:
                 for num, (xb, yb) in enumerate(test_dl):
-                    yb_pred = model(xb)
+                    u = model(xb)
+                    yb_pred = model.measure_probes(u, integrated=True, normalized=True)
                     list_yb_pred.append(yb_pred)
                     list_yb.append(yb)
                     loss_test_tmp.append( criterion(yb_pred, yb.argmax(dim=1)) )

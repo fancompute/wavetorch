@@ -58,7 +58,7 @@ if __name__ == '__main__':
         if cfg['training']['cross_validation']: print("Cross Validation Fold %2d/%2d" % (num+1, cfg['training']['N_folds']))
 
         if cfg['data']['window_size']:
-            x_train = torch.nn.utils.rnn.pad_sequence([wavetorch.core.window_data(X[i], cfg['data']['window_size']) for i in train_index], batch_first=True)
+            x_train = torch.nn.utils.rnn.pad_sequence([wavetorch.utils.window_data(X[i], cfg['data']['window_size']) for i in train_index], batch_first=True)
         else:
             x_train = torch.nn.utils.rnn.pad_sequence([X[i] for i in train_index], batch_first=True)
 
@@ -78,11 +78,11 @@ if __name__ == '__main__':
         test_dl  = DataLoader(test_ds, batch_size=cfg['training']['batch_size'])
 
         ### Define model
-        px, py = wavetorch.core.setup_probe_coords(
+        px, py = wavetorch.utils.setup_probe_coords(
                             N_classes, cfg['geom']['px'], cfg['geom']['py'], cfg['geom']['pd'], 
                             cfg['geom']['Nx'], cfg['geom']['Ny'], cfg['geom']['pml']['N']
                             )
-        src_x, src_y = wavetorch.core.setup_src_coords(
+        src_x, src_y = wavetorch.utils.setup_src_coords(
                             cfg['geom']['src_x'], cfg['geom']['src_y'], cfg['geom']['Nx'],
                             cfg['geom']['Ny'], cfg['geom']['pml']['N']
                             )
@@ -93,14 +93,15 @@ if __name__ == '__main__':
         else: # Let the design region be the enire non-PML area
             design_region = None
 
-        model = wavetorch.core.WaveCell(
-                    cfg['geom']['dt'], cfg['geom']['Nx'], cfg['geom']['Ny'], src_x, src_y, px, py,
-                    pml_N=cfg['geom']['pml']['N'], pml_p=cfg['geom']['pml']['p'], pml_max=cfg['geom']['pml']['max'], 
-                    c0=cfg['geom']['c0'], c1=cfg['geom']['c1'], eta=cfg['geom']['binarization']['eta'], beta=cfg['geom']['binarization']['beta'], 
-                    init=cfg['geom']['init'], design_region=design_region, h=cfg['geom']['h'],
-                    nl_b0=cfg['geom']['nonlinearity']['b0'], nl_uth=cfg['geom']['nonlinearity']['uth'],
-                    nl_c=cfg['geom']['nonlinearity']['cnl'] 
-                    )
+        geom = wavetorch.Geometry(cfg['geom']['Nx'], cfg['geom']['Ny'], h=cfg['geom']['h'], init=cfg['geom']['init'], c0=cfg['geom']['c0'], c1=cfg['geom']['c1'], design_region=design_region)
+        geom.add_boundary_absorber(sigma=cfg['geom']['pml']['max'], N=cfg['geom']['pml']['N'], p=cfg['geom']['pml']['p'])
+        geom.add_source(wavetorch.PointSource(geom, src_x, src_y))
+        for j in range(0, len(px)):
+            geom.add_probe(wavetorch.IntensityProbe(px[j], py[j], label='{}'.format(j)))
+
+        # Define the model
+        model = wavetorch.WaveCell(cfg['geom']['dt'], geom)
+
         model.to(args.dev)
 
         ### Train
@@ -109,7 +110,7 @@ if __name__ == '__main__':
         
         model.train()
 
-        history, history_model_state = wavetorch.core.train(
+        history, history_model_state = wavetorch.train(
                                             model,
                                             optimizer,
                                             criterion, 
@@ -122,10 +123,10 @@ if __name__ == '__main__':
                                             fold=num if cfg['training']['cross_validation'] else -1,
                                             name=args.name,
                                             savedir=args.savedir,
-                                            accuracy=wavetorch.core.accuracy_onehot,
+                                            accuracy=wavetorch.utils.accuracy_onehot,
                                             cfg=cfg)
         
-        wavetorch.core.save_model(model, args.name, args.savedir, history, history_model_state, cfg)
+        wavetorch.utils.save_model(model, args.name, args.savedir, history, history_model_state, cfg)
 
         if not cfg['training']['cross_validation']:
             break
