@@ -5,7 +5,7 @@ import numpy as np
 class WaveCell(torch.nn.Module):
     """The recurrent neural network cell that implements the scalar wave equation."""
 
-    def __init__(self, dt : float, geometry):
+    def __init__(self, dt : float, geometry, output_probe = False):
         """Initialize the wave equation recurrent neural network cell.
         """
 
@@ -13,6 +13,8 @@ class WaveCell(torch.nn.Module):
 
         self.dt = dt
         self.geometry = geometry
+
+        self.output_probe = output_probe
 
         self.register_parameter('rho', geometry.rho)
 
@@ -93,6 +95,9 @@ class WaveCell(torch.nn.Module):
 
         # combine into output field dist 
         y = torch.stack(y_all, dim=1)
+
+        if self.output_probe:
+            y = self.measure_probes(y, integrated=True, normalized=True)
 
         return y
 

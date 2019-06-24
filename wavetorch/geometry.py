@@ -11,7 +11,16 @@ class Geometry(object):
     """
     Defines the geometry to be used by one of the physics cells
     """
-    def __init__(self, Nx, Ny, h, c0=1.0, c1=0.9, design_region = None, init : str = 'half', eta : float = 0.5, beta: float = 100.0):
+    def __init__(self,
+                 Nx : int, 
+                 Ny : int, 
+                 h : float, 
+                 c0 : float = 1.0, 
+                 c1 : float = 0.9,
+                 design_region = None, 
+                 init : str = 'half', 
+                 eta : float = 0.5, 
+                 beta: float = 100.0):
 
         super(Geometry, self).__init__()
 
