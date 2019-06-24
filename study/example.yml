@@ -65,7 +65,7 @@ geom:
   dt: 1.0
 
   # Spatial grid step size
-  h: # No value means it is determined automatically from the courant stability condition
+  h: 1.4283556979968262
 
   # Wave speed background value (e.g. in PML and non-design region)
   c0: 1.0

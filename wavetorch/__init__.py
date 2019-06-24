@@ -9,4 +9,4 @@ from wavetorch.cell import WaveCell
 from wavetorch.train import train
 from wavetorch.geometry import Geometry
 from wavetorch.probe import Probe, IntensityProbe
-from wavetorch.source import Source, PointSource, LineSource
+from wavetorch.source import Source, LineSource

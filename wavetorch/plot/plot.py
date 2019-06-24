@@ -75,19 +75,19 @@ def _plot_probes(geom, ax, vowel_probe_labels=None, highlight_onehot=None, bg='l
     markers = []
     for probe in geom.probes:
         if highlight_onehot is None:
-            color = 'r'
+            color_probe = 'r'
+            color_source = 'k'
         else:
-            color = props.color_highlight if highlight_onehot[0,i].item() == 1 else props.color_dim[bg]
-        marker = probe.plot(ax, color=color)
+            color_probe = props.color_highlight if highlight_onehot[0,i].item() == 1 else props.color_dim[bg]
+            color_source = props.color_dim[bg]
+
+        marker = probe.plot(ax, color=color_probe)
         markers.append(marker)        
 
-    # if highlight_onehot is None:
-    #     marker, = ax.plot(model.src_x.numpy(), model.src_y.numpy(), "o", markeredgecolor='k', **point_properties)
-    # else:
-    #     marker, = ax.plot(model.src_x.numpy(), model.src_y.numpy(), "o", markeredgecolor=color_dim, **point_properties)
+    for source in geom.sources:
+        marker = source.plot(ax, color=color_source)
+        markers.append(marker)  
 
-    # if vowel_probe_labels is not None:
-    #     ax.annotate("source", rotation=90, xy=(model.src_x.numpy(), model.src_y.numpy()), xytext=(-5,0), textcoords="offset points", ha="right", va="center", fontsize="small", bbox=bbox_white, color=color_txt)
     return markers
 
 

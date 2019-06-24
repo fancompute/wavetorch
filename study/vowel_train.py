@@ -95,9 +95,9 @@ if __name__ == '__main__':
 
         geom = wavetorch.Geometry(cfg['geom']['Nx'], cfg['geom']['Ny'], h=cfg['geom']['h'], init=cfg['geom']['init'], c0=cfg['geom']['c0'], c1=cfg['geom']['c1'], design_region=design_region)
         geom.add_boundary_absorber(sigma=cfg['geom']['pml']['max'], N=cfg['geom']['pml']['N'], p=cfg['geom']['pml']['p'])
-        geom.add_source(wavetorch.PointSource(geom, src_x, src_y))
+        geom.add_source(wavetorch.Source(src_x, src_y))
         for j in range(0, len(px)):
-            geom.add_probe(wavetorch.IntensityProbe(px[j], py[j], label='{}'.format(j)))
+            geom.add_probe(wavetorch.IntensityProbe(px[j], py[j], label=cfg['data']['vowels'][j]))
 
         # Define the model
         model = wavetorch.WaveCell(cfg['geom']['dt'], geom)

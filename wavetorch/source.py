@@ -1,24 +1,23 @@
 import torch
 import skimage
 
-class Source(object):
-    def __init__(self, geometry, mask):
-        super(Source, self).__init__()
-        self.mask = mask
+import wavetorch.plot.props as props
 
-    def __call__(self, X):
-        # (batch_num, ) ---> (bath_num, dim1, dim2, ...)
-        return self.mask * X.unsqueeze(-1).unsqueeze(-1)
+class Source(object):
+    def __init__(self, x, y, label=None):
+        super(Source, self).__init__()
+        self.x = x
+        self.y = y
+        self.label = label
+
+    def __call__(self, Y, X):
+        Y[:, self.x, self.y] = Y[:, self.x, self.y] + X.expand_as(Y[:, self.x, self.y])
+
+    def plot(self, ax, color):
+        marker, = ax.plot(self.x, self.y, 'o', markeredgecolor=color, **props.point_properties)
+        return marker
 
 class LineSource(Source):
-    def __init__(self, geometry, r0, c0, r1, c1):
+    def __init__(self, r0, c0, r1, c1, label=None):
         x, y = skimage.draw.line(r0, c0, r1, c1)
-        self.mask = torch.zeros(geometry.rho.size())
-        self.mask[x, y] = 1
-
-class PointSource(Source):
-    def __init__(self, geometry, x, y):
-        self.x = x;
-        self.y = y;
-        self.mask = torch.zeros(geometry.rho.size())
-        self.mask[x, y] = 1
+        super(LineSource, self).__init__(x, y, label=label)

@@ -57,8 +57,9 @@ class WaveCell(torch.nn.Module):
                                + torch.mul(c.pow(2), self._laplacian(y1)))
                      )
 
+        # Inject all sources
         for source in self.geometry.sources:
-            y = y + source(x)
+            source(y, x)
 
         return y, y, y1
 
