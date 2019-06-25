@@ -140,7 +140,7 @@ class WaveCell(torch.nn.Module):
     def add_probe(self, probe):
         self.probes.append(probe)
 
-    def step(self, x, y1, y2):
+    def step(self, x, y1, y2, c, rho):
         """Take a step through time.
 
         Parameters
@@ -154,8 +154,6 @@ class WaveCell(torch.nn.Module):
         """
 
         dt  = self.dt
-        c   = self.c
-        rho = self.rho
         b   = self.b
 
         y = torch.mul((dt.pow(-2) + b * 0.5 * dt.pow(-1)).pow(-1),
@@ -192,9 +190,14 @@ class WaveCell(torch.nn.Module):
         y2 = torch.zeros(batch_size, self.Nx, self.Ny, device=device)
         y_all = []
 
+        # Since these will not change with time it's important we pull them
+        # outside of the time loop. This dramatically reduces the memory load
+        c   = self.c
+        rho = self.rho
+
         # loop through time
         for i, xi in enumerate(x.chunk(x.size(1), dim=1)):
-            y, y1, y2 = self.step(xi.squeeze(-1), y1, y2)
+            y, y1, y2 = self.step(xi.squeeze(-1), y1, y2, c, rho)
             y_all.append(y)
 
         # combine into output field dist 
