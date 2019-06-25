@@ -7,7 +7,7 @@ KERNEL_LPF = [[1/9, 1/9, 1/9],
               [1/9, 1/9, 1/9]]
 
 class WaveCell(torch.nn.Module):
-    """The recurrent neural network cell that implements the scalar wave equation."""
+    """The recurrent neural network cell that implements the scalar wave equation"""
 
     def __init__(self,
                  Nx : int, 
@@ -26,7 +26,7 @@ class WaveCell(torch.nn.Module):
                  init : str = 'half',
                  sources = [],
                  probes = []):
-        """Initialize the wave equation recurrent neural network cell.
+        """Initialize the wave equation recurrent neural network cell
         """
 
         super(WaveCell, self).__init__()
@@ -65,6 +65,7 @@ class WaveCell(torch.nn.Module):
             raise ValueError('The spatial discretization defined by the geometry `h = %f` and the temporal discretization defined by the model `dt = %f` do not satisfy the CFL stability criteria' % (self.h, self.dt))
 
     def _init_design_region(self, design_region, Nx, Ny):
+        """Initialize the design region"""
         if design_region is not None:
             # Use the specified design region
             assert design_region.shape == (Nx, Ny), "Design region mask dims must match spatial dims"
@@ -77,8 +78,7 @@ class WaveCell(torch.nn.Module):
         self.register_buffer('design_region', design_region)
 
     def _init_b(self, N, p, sigma):
-        """Initialize the distribution of the dampening parameter for the PML."""
-
+        """Initialize the distribution of the damping parameter for the PML"""
         Nx = self.Nx
         Ny = self.Ny
 
@@ -95,6 +95,7 @@ class WaveCell(torch.nn.Module):
         self.register_buffer('b', torch.sqrt( b_x**2 + b_y**2 ))
 
     def _init_rho(self, init, Nx, Ny):
+        """Initialize the raw density distribution (which gets trained)"""
         if init == 'rand':
             raw_rho = torch.round(torch.rand(Nx, Ny))
         elif init == 'half':
@@ -107,7 +108,7 @@ class WaveCell(torch.nn.Module):
         self.register_parameter('raw_rho', torch.nn.Parameter(raw_rho))
 
     def clip_to_design_region(self):
-        """Clip the density to its background value outside of the design region."""
+        """Clip the density to its background value outside of the design region"""
         with torch.no_grad():
             self.raw_rho[self.design_region==0] = 0.0
             self.raw_rho[self.b>0] = 0.0
@@ -122,6 +123,7 @@ class WaveCell(torch.nn.Module):
 
     @property
     def c(self):
+        """The wave speed distribution"""
         return self.c0 + (self.c1-self.c0)*self.rho
 
     def get_cmax(self):
@@ -129,6 +131,7 @@ class WaveCell(torch.nn.Module):
         return np.max([self.c0, self.c1])
 
     def _laplacian(self, y):
+        """Laplacian operator"""
         h = self.h
         device = "cuda" if next(self.parameters()).is_cuda else "cpu"
         operator = h**(-2) * torch.tensor([[[[0.0,  1.0, 0.0], [1.0, -4.0, 1.0], [0.0,  1.0, 0.0]]]], device=device)
@@ -141,7 +144,7 @@ class WaveCell(torch.nn.Module):
         self.probes.append(probe)
 
     def step(self, x, y1, y2, c, rho):
-        """Take a step through time.
+        """Take a step through time
 
         Parameters
         ----------
@@ -151,6 +154,10 @@ class WaveCell(torch.nn.Module):
             Scalar wave field one time step ago (part of the hidden state)
         y2 : 
             Scalar wave field two time steps ago (part of the hidden state)
+        c : 
+            Scalar wave speed distribution (this gets passed in to avoid projecting on each time step)
+        rho : 
+            Projected density (this gets passed in to avoid projecting on each time step)
         """
 
         dt  = self.dt
@@ -168,15 +175,12 @@ class WaveCell(torch.nn.Module):
         return y, y, y1
 
     def forward(self, x):
-        """Propagate forward in time for the length of the input.
+        """Propagate forward in time for the length of the input
 
         Parameters
         ----------
         x : 
             Input sequence(s), batched in first dimension
-        probe_output : bool
-            Defines whether the output is the probe vector or the entire spatial
-            distribution of the scalar wave field in time
         """
 
         # hacky way of figuring out if we're on the GPU from inside the model
@@ -209,6 +213,7 @@ class WaveCell(torch.nn.Module):
         return y
 
     def measure_probes(self, y, integrated = False, normalized = False):
+        """Applies the transformation from the field distribution into the probes"""
         p_out = []
         for probe in self.probes:
             p_out.append(probe(y, integrated=integrated))
