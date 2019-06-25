@@ -3,36 +3,34 @@ import numpy as np
 import skimage
 
 import wavetorch.plot.props as props
+from .utils import to_tensor
 
-class Probe(object):
-    def __init__(self, x, y, label=None):
+class Probe(torch.nn.Module):
+    def __init__(self, x, y):
         super(Probe, self).__init__()
-        self.x = x
-        self.y = y
-        self.label = label
 
-    def __call__(self, x):
+        self.register_buffer('x', to_tensor(x))
+        self.register_buffer('y', to_tensor(y))
+
+    def forward(self, x):
         return x[:, :, self.x, self.y]
 
     def plot(self, ax, color):
-        marker, = ax.plot(self.x, self.y, 'o', markeredgecolor=color, **props.point_properties)
-        ax.annotate(self.label, xy=(self.x, self.y), xytext=(5,0), textcoords='offset points', ha='left', va='center', fontsize='small', bbox=props.bbox_white, color=props.color_txt['light'])
+        marker, = ax.plot(self.x.numpy(), self.y.numpy(), 'o', markeredgecolor=color, **props.point_properties)
         return marker
 
 
 class IntensityProbe(Probe):
-    def __init__(self, x, y, label=None):
+    def __init__(self, x, y):
         x = np.atleast_1d(x)
         y = np.atleast_1d(y)
-        self.label = label
 
         if x.size != y.size:
             raise ValueError("Length of x and y must be equal")
 
-        self.x = x
-        self.y = y
+        super(IntensityProbe, self).__init__(x, y)
 
-    def __call__(self, x, integrated=False):
+    def forward(self, x, integrated=False):
         out = torch.abs(x[:, :, self.x, self.y]).pow(2)
         if out.dim() == 4:
             sum_dims = (2,3)

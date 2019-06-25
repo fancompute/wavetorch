@@ -11,6 +11,14 @@ import time
 import os
 import socket
 
+def to_tensor(x):
+    if type(x) is np.ndarray: 
+        x = torch.from_numpy(x)
+    else:
+        x = torch.tensor(x)
+
+    return x
+
 
 def setup_src_coords(src_x, src_y, Nx, Ny, Npml):
     if (src_x is not None) and (src_y is not None):

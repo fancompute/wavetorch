@@ -16,7 +16,7 @@ import skorch
 class ClipDesignRegion(skorch.callbacks.Callback):
     def on_batch_end(self, net, Xi=None, yi=None, training=None, **kwargs):
         if training:
-            net.module_.geometry.clip_to_design_region()
+            net.module_.clip_to_design_region()
 
 parser = argparse.ArgumentParser() 
 parser.add_argument('config', type=str, 
@@ -67,15 +67,14 @@ if cfg['geom']['use_design_region']: # Limit the design region
 else: # Let the design region be the enire non-PML area
     design_region = None
 
-geom = wavetorch.Geometry(cfg['geom']['Nx'], cfg['geom']['Ny'], h=cfg['geom']['h'], init=cfg['geom']['init'], c0=cfg['geom']['c0'], c1=cfg['geom']['c1'], design_region=design_region)
-geom.add_boundary_absorber(sigma=cfg['geom']['pml']['max'], N=cfg['geom']['pml']['N'], p=cfg['geom']['pml']['p'])
-geom.add_source(wavetorch.Source(src_x, src_y))
-for j in range(0, len(px)):
-    geom.add_probe(wavetorch.IntensityProbe(px[j], py[j], label=cfg['data']['vowels'][j]))
+probes  = [wavetorch.IntensityProbe(px[j], py[j]) for j in range(0,len(px))]
+sources = [wavetorch.Source(src_x, src_y)]
 
 ### Perform training
 net = skorch.NeuralNetClassifier(
     module=wavetorch.WaveCell,
+
+    # Training configuration
     max_epochs=cfg['training']['N_epochs'],
     batch_size=cfg['training']['batch_size'],
     lr=cfg['training']['lr'],
@@ -84,9 +83,23 @@ net = skorch.NeuralNetClassifier(
     criterion=torch.nn.CrossEntropyLoss,
     callbacks=[ClipDesignRegion],
     callbacks__print_log__keys_ignored=None,
+
+    # These al get passed as options to WaveCell
+    module__Nx=cfg['geom']['Nx'],
+    module__Ny=cfg['geom']['Ny'],
+    module__h=cfg['geom']['h'],
     module__dt=cfg['geom']['dt'],
-    module__geometry=geom,
-    module__output_probe=True)
+    module__init=cfg['geom']['init'], 
+    module__c0=cfg['geom']['c0'], 
+    module__c1=cfg['geom']['c1'], 
+    module__sigma=cfg['geom']['pml']['max'], 
+    module__N=cfg['geom']['pml']['N'], 
+    module__p=cfg['geom']['pml']['p'],
+    module__design_region=design_region,
+    module__output_probe=True,
+    module__probes=probes,
+    module__sources=sources
+    )
 
 X, Y, _ = wavetorch.data.load_all_vowels(cfg['data']['vowels'], gender=cfg['data']['gender'], sr=cfg['data']['sr'], normalize=True, max_samples=cfg['training']['max_samples'], random_state=cfg['seed'])
 X = torch.nn.utils.rnn.pad_sequence(X).numpy().transpose()
@@ -98,5 +111,16 @@ Y = torch.nn.utils.rnn.pad_sequence(Y).argmax(dim=0, keepdim=False).numpy().tran
 #     t_mid = int(x_train.shape[1]/2)
 #     t_half_window = int(cfg['data']['window_size']/2)
 #     x_train = x_train[:, (t_mid-t_half_window):(t_mid+t_half_window)]
+
+class CroppedDataset(torch.utils.data.dataset.Dataset):
+    def __init__(self, dataset, indices):
+        self.dataset = dataset
+        self.indices = indices
+
+    def __getitem__(self, idx):
+        return self.dataset[self.indices[idx]]
+
+    def __len__(self):
+        return len(self.indices)
 
 model = net.fit(X, Y)

@@ -71,9 +71,9 @@ def plot_structure_evolution(model, model_states, epochs=[0, 1], quantity='c', f
 
     plt.colorbar(h, ax=axs, shrink=0.5, label='Wave speed')
 
-def _plot_probes(geom, ax, vowel_probe_labels=None, highlight_onehot=None, bg='light'):
+def _plot_probes(model, ax, vowel_probe_labels=None, highlight_onehot=None, bg='light'):
     markers = []
-    for probe in geom.probes:
+    for probe in model.probes:
         if highlight_onehot is None:
             color_probe = 'r'
             color_source = 'k'
@@ -84,19 +84,19 @@ def _plot_probes(geom, ax, vowel_probe_labels=None, highlight_onehot=None, bg='l
         marker = probe.plot(ax, color=color_probe)
         markers.append(marker)        
 
-    for source in geom.sources:
+    for source in model.sources:
         marker = source.plot(ax, color=color_source)
         markers.append(marker)  
 
     return markers
 
 
-def structure(geom, ax=None, outline=False, outline_pml=True, vowel_probe_labels=None, highlight_onehot=None, bg='light', alpha=1.0):
+def structure(model, ax=None, outline=False, outline_pml=True, vowel_probe_labels=None, highlight_onehot=None, bg='light', alpha=1.0):
     """Plot the spatial distribution of the wave speed
     """
     lc = '#000000' if bg == 'light' else '#ffffff'
 
-    rho = geom.rho.detach().numpy().transpose()
+    rho = model.rho.detach().numpy().transpose()
 
     # Make axis if needed
     show = False
@@ -109,18 +109,18 @@ def structure(geom, ax=None, outline=False, outline_pml=True, vowel_probe_labels
         h = ax.contour(rho, levels=[0.5], colors=[lc], linewidths=[0.75], alpha=alpha)
         markers += h.collections
     else:
-        limits = np.array([geom.c0, geom.c1])
-        if geom.c0 < geom.c1:
+        limits = np.array([model.c0.item(), model.c1.item()])
+        if model.c0.item() < model.c1.item():
             cmap = plt.cm.Greens
         else:
             cmap = plt.cm.Greens_r
-        h = ax.imshow(geom.c.detach().numpy().transpose(), origin="bottom", rasterized=True, cmap=cmap, vmin=limits.min(), vmax=limits.max())
+        h = ax.imshow(model.c.detach().numpy().transpose(), origin="bottom", rasterized=True, cmap=cmap, vmin=limits.min(), vmax=limits.max())
     
     if outline_pml:
-        b_boundary = geom.boundary_absorber.b.numpy().transpose()
+        b_boundary = model.b.numpy().transpose()
         h2 = ax.contour(b_boundary>0, levels=[0], colors=[lc], linestyles=['dotted'], linewidths=[0.75], alpha=alpha)
 
-    markers += _plot_probes(geom, ax, vowel_probe_labels=vowel_probe_labels, highlight_onehot=highlight_onehot, bg=bg)
+    markers += _plot_probes(model, ax, vowel_probe_labels=vowel_probe_labels, highlight_onehot=highlight_onehot, bg=bg)
     markers += h2.collections
 
     ax.set_xticks([])
@@ -148,7 +148,7 @@ def plot_probe_integrals(model, fields_in, ylabel, x, block=False, ax=None):
     plt.show(block=block)
 
 
-def field_snapshot(geom, fields, times, ylabel, fig_width=6, block=False, axs=None, label=True, cbar=True, Ny=1):
+def field_snapshot(model, fields, times, ylabel, fig_width=6, block=False, axs=None, label=True, cbar=True, Ny=1):
     """Plot snapshots in time of the scalar wave field
     """
     field_slices = fields[0, times, :, :]
@@ -158,8 +158,8 @@ def field_snapshot(geom, fields, times, ylabel, fig_width=6, block=False, axs=No
         # Ny = int(np.ceil(np.sqrt(len(times))))
         Nx = int(len(times)/Ny)
 
-        Wx = geom.Nx
-        Wy = geom.Ny
+        Wx = model.Nx.item()
+        Wy = model.Ny.item()
 
         fig_height = fig_width * Ny*Wy/Nx/Wx
         fig, axs = plt.subplots(Ny, Nx, constrained_layout=True, figsize=(fig_width, fig_height))
