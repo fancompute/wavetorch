@@ -23,10 +23,10 @@ def to_tensor(x):
 def setup_src_coords(src_x, src_y, Nx, Ny, Npml):
     if (src_x is not None) and (src_y is not None):
         # Coordinate are specified
-        return src_x, src_y
+        return [wavetorch.Source(src_x, src_y)]
     else:
         # Center at left
-        return Npml+20, int(Ny/2)
+        return [wavetorch.Source(Npml+20, int(Ny/2))]
 
 
 def setup_probe_coords(N_classes, px, py, pd, Nx, Ny, Npml):
@@ -34,7 +34,7 @@ def setup_probe_coords(N_classes, px, py, pd, Nx, Ny, Npml):
         # All probe coordinate are specified
         assert len(px) == len(py), "Length of px and py must match"
 
-        return px, py
+        return [wavetorch.IntensityProbe(px[j], py[j]) for j in range(0,len(px))]
 
     if (py is None) and (pd is not None):
         # Center the probe array in y
@@ -49,7 +49,7 @@ def setup_probe_coords(N_classes, px, py, pd, Nx, Ny, Npml):
         else:
             x = [Nx-Npml-20 for i in range(N_classes)]
 
-        return x, y
+        return [wavetorch.IntensityProbe(x[j], y[j]) for j in range(0,len(x))]
 
     raise ValueError("px = {}, py = {}, pd = {} is an invalid probe configuration".format(pd))
 

@@ -53,22 +53,17 @@ if cfg['training']['prefix'] is not None:
 N_classes = len(cfg['data']['vowels'])
 
 ### Define the geometry
-px, py = wavetorch.utils.setup_probe_coords(
+probes = wavetorch.utils.setup_probe_coords(
                     N_classes, cfg['geom']['px'], cfg['geom']['py'], cfg['geom']['pd'], 
                     cfg['geom']['Nx'], cfg['geom']['Ny'], cfg['geom']['pml']['N']
                     )
-src_x, src_y = wavetorch.utils.setup_src_coords(
+source = wavetorch.utils.setup_src_coords(
                     cfg['geom']['src_x'], cfg['geom']['src_y'], cfg['geom']['Nx'],
                     cfg['geom']['Ny'], cfg['geom']['pml']['N']
                     )
-if cfg['geom']['use_design_region']: # Limit the design region
-    design_region = torch.zeros(cfg['geom']['Nx'], cfg['geom']['Ny'], dtype=torch.uint8)
-    design_region[src_x+5:np.min(px)-5] = 1 # For now, just hardcode this in
-else: # Let the design region be the enire non-PML area
-    design_region = None
 
-probes  = [wavetorch.IntensityProbe(px[j], py[j]) for j in range(0,len(px))]
-sources = [wavetorch.Source(src_x, src_y)]
+design_region = torch.zeros(cfg['geom']['Nx'], cfg['geom']['Ny'], dtype=torch.uint8)
+design_region[source[0].x.item()+5:probes[0].x.item()-5] = 1
 
 ### Perform training
 net = skorch.NeuralNetClassifier(
@@ -81,7 +76,11 @@ net = skorch.NeuralNetClassifier(
     train_split=skorch.dataset.CVSplit(cfg['training']['N_folds'], stratified=True, random_state=cfg['seed']),
     optimizer=torch.optim.Adam,
     criterion=torch.nn.CrossEntropyLoss,
-    callbacks=[ClipDesignRegion],
+    callbacks=[
+        ClipDesignRegion,
+        skorch.callbacks.EpochScoring('accuracy', lower_is_better=False, on_train=True, name='train_acc'),
+        skorch.callbacks.Checkpoint(f_params='tmp.pt', f_history='tmp_hist.pt')
+        ],
     callbacks__print_log__keys_ignored=None,
 
     # These al get passed as options to WaveCell
@@ -98,29 +97,28 @@ net = skorch.NeuralNetClassifier(
     module__design_region=design_region,
     module__output_probe=True,
     module__probes=probes,
-    module__sources=sources
+    module__sources=source
     )
 
 X, Y, _ = wavetorch.data.load_all_vowels(cfg['data']['vowels'], gender=cfg['data']['gender'], sr=cfg['data']['sr'], normalize=True, max_samples=cfg['training']['max_samples'], random_state=cfg['seed'])
 X = torch.nn.utils.rnn.pad_sequence(X).numpy().transpose()
 Y = torch.nn.utils.rnn.pad_sequence(Y).argmax(dim=0, keepdim=False).numpy().transpose()
 
-# TODO: Need to implement cropping of the training samples inside the data loader
+# TODO(ian): Need to implement cropping of the training samples inside the data loader
 # x_train, x_test, y_train, y_test = sklearn.model_selection.train_test_split(X, Y, test_size=0.25, random_state=42)
-# if cfg['data']['window_size']:
-#     t_mid = int(x_train.shape[1]/2)
-#     t_half_window = int(cfg['data']['window_size']/2)
-#     x_train = x_train[:, (t_mid-t_half_window):(t_mid+t_half_window)]
+if cfg['data']['window_size']:
+    t_mid = int(X.shape[1]/2)
+    t_half_window = int(cfg['data']['window_size']/2)
+    X = X[:, (t_mid-t_half_window):(t_mid+t_half_window)]
+# class CroppedDataset(torch.utils.data.dataset.Dataset):
+#     def __init__(self, dataset, indices):
+#         self.dataset = dataset
+#         self.indices = indices
 
-class CroppedDataset(torch.utils.data.dataset.Dataset):
-    def __init__(self, dataset, indices):
-        self.dataset = dataset
-        self.indices = indices
+#     def __getitem__(self, idx):
+#         return self.dataset[self.indices[idx]]
 
-    def __getitem__(self, idx):
-        return self.dataset[self.indices[idx]]
-
-    def __len__(self):
-        return len(self.indices)
+#     def __len__(self):
+#         return len(self.indices)
 
 model = net.fit(X, Y)
