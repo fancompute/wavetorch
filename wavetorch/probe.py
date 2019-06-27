@@ -12,7 +12,7 @@ class Probe(torch.nn.Module):
         self.register_buffer('x', to_tensor(x))
         self.register_buffer('y', to_tensor(y))
 
-    def forward(self, x):
+    def forward(self, x, integrated=False):
         return x[:, :, self.x, self.y]
 
     def plot(self, ax, color):
