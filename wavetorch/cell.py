@@ -6,24 +6,29 @@ KERNEL_LPF = [[1/9, 1/9, 1/9],
               [1/9, 1/9, 1/9],
               [1/9, 1/9, 1/9]]
 
-def _laplacian(y, h):
-    """Laplacian operator"""
-    operator = h**(-2) * torch.tensor([[[[0.0,  1.0, 0.0], [1.0, -4.0, 1.0], [0.0,  1.0, 0.0]]]])
-    return conv2d(y.unsqueeze(1), operator, padding=1).squeeze(1)
-
 def sat_damp(u, uth, b0):
     return b0 / (1 + torch.abs(u/uth).pow(2))
 
-class Step(torch.autograd.Function):
-    @staticmethod
-    def forward(ctx, b, c, y1, y2, dt, h):
-        ctx.save_for_backward(b, c, y1, y2, dt, h)
+def _laplacian(y, h):
+    """Laplacian operator"""
+    operator = h**(-2) * torch.tensor([[[[0.0,  1.0, 0.0], [1.0, -4.0, 1.0], [0.0,  1.0, 0.0]]]])
+    y = y.unsqueeze(1)
+    # y = pad(y,pad=(0,0,1,1), mode='circular')
+    # y = pad(y,pad=(1,1,0,0),mode='circular')
+    return conv2d(y, operator, padding=1).squeeze(1)
 
-        y = torch.mul((dt.pow(-2) + b * 0.5 * dt.pow(-1)).pow(-1),
-              (2/dt.pow(2)*y1 - torch.mul( (dt.pow(-2) - b * 0.5 * dt.pow(-1)), y2)
+def _time_step(b, c, y1, y2, dt, h):
+        y = torch.mul((dt.pow(-2) + b * dt.pow(-1)).pow(-1),
+              (2/dt.pow(2)*y1 - torch.mul( (dt.pow(-2) - b * dt.pow(-1)), y2)
                        + torch.mul(c.pow(2), _laplacian(y1, h)))
              )
         return y
+
+class TimeStep(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, b, c, y1, y2, dt, h):
+        ctx.save_for_backward(b, c, y1, y2, dt, h)
+        return _time_step(b, c, y1, y2, dt, h)
 
     @staticmethod
     def backward(ctx, grad_output):
@@ -32,17 +37,17 @@ class Step(torch.autograd.Function):
         grad_b = grad_c = grad_y1 = grad_y2 = grad_dt = grad_h = None
 
         if ctx.needs_input_grad[0]:
-            grad_b = - (dt * b + 1).pow(-2) * dt *  (c.pow(2) * dt.pow(2) * _laplacian(y1) + y1 - 2 * y2 ) * grad_output
+            grad_b = - (dt * b + 1).pow(-2) * dt * (c.pow(2) * dt.pow(2) * _laplacian(y1, h) + 2*y1 - 2 * y2 ) * grad_output
         if ctx.needs_input_grad[1]:
             grad_c = (b*dt + 1).pow(-1) * (2 * c * dt.pow(2) * _laplacian(y1, h) ) * grad_output
         if ctx.needs_input_grad[2]:
-            grad_y1 = (c.pow(2) * dt.pow(2) * _laplacian(grad_output, h) + grad_output) * (b*dt + 1).pow(-1)
+            # grad_y1 = ( dt.pow(2) * _laplacian(c.pow(2) *grad_output, h) + 2*grad_output) * (b*dt + 1).pow(-1)
+            c2_grad =  (b*dt + 1).pow(-1) * c.pow(2) * grad_output
+            grad_y1 = dt.pow(2) * _laplacian(c2_grad, h) + 2*grad_output * (b*dt + 1).pow(-1)
         if ctx.needs_input_grad[3]:
             grad_y2 = (b*dt -1) * (b*dt + 1).pow(-1) * grad_output
 
         return grad_b, grad_c, grad_y1, grad_y2, grad_dt, grad_h
-
-_apply_step = Step.apply
 
 class WaveCell(torch.nn.Module):
     """The recurrent neural network cell implementing the scalar wave equation"""
@@ -216,10 +221,8 @@ class WaveCell(torch.nn.Module):
         else:
             c = c_lin
 
-        y = torch.mul((dt.pow(-2) + b * 0.5 * dt.pow(-1)).pow(-1),
-                      (2/dt.pow(2)*y1 - torch.mul( (dt.pow(-2) - b * 0.5 * dt.pow(-1)), y2)
-                               + torch.mul(c.pow(2), _laplacian(y1, h)))
-                     )
+        y = TimeStep.apply(b, c, y1, y2, dt, h)
+        # y = _time_step(b, c, y1, y2, dt, h)
 
         # Inject all sources
         for source in self.sources:
