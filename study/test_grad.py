@@ -13,8 +13,8 @@ def _laplacian(y, h):
     return conv2d(y.unsqueeze(1), operator, padding=1).squeeze(1)
 
 def step(b, c, y1, y2, dt, h):
-        y = torch.mul((dt.pow(-2) + b * 0.5 * dt.pow(-1)).pow(-1),
-              (2/dt.pow(2)*y1 - torch.mul( (dt.pow(-2) - b * 0.5 * dt.pow(-1)), y2)
+        y = torch.mul((dt.pow(-2) + b * dt.pow(-1)).pow(-1),
+              (2/dt.pow(2)*y1 - torch.mul( (dt.pow(-2) - b * dt.pow(-1)), y2)
                        + torch.mul(c.pow(2), _laplacian(y1, h)))
              )
         return y
@@ -32,11 +32,11 @@ class HardcodedStep(torch.autograd.Function):
         grad_b = grad_c = grad_y1 = grad_y2 = grad_dt = grad_h = None
 
         if ctx.needs_input_grad[0]:
-            grad_b = - (dt * b + 1).pow(-2) * dt *  (c.pow(2) * dt.pow(2) * _laplacian(y1, h) + y1 - 2 * y2 ) * grad_output
+            grad_b = - (dt * b + 1).pow(-2) * dt * (c.pow(2) * dt.pow(2) * _laplacian(y1, h) + 2*y1 - 2 * y2 ) * grad_output
         if ctx.needs_input_grad[1]:
             grad_c = (b*dt + 1).pow(-1) * (2 * c * dt.pow(2) * _laplacian(y1, h) ) * grad_output
         if ctx.needs_input_grad[2]:
-            grad_y1 = (c.pow(2) * dt.pow(2) * _laplacian(grad_output, h) + grad_output) * (b*dt + 1).pow(-1)
+            grad_y1 = (c.pow(2) * dt.pow(2) * _laplacian(grad_output, h) + 2*grad_output) * (b*dt + 1).pow(-1)
         if ctx.needs_input_grad[3]:
             grad_y2 = (b*dt -1) * (b*dt + 1).pow(-1) * grad_output
 
