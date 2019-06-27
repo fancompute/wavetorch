@@ -10,30 +10,73 @@ import matplotlib.pyplot as plt
 # Define the geometry and model
 
 Nx = 120
-Ny = 80
+Ny = 60
 dt = 0.707
 h  = 1.0
 
 domain = torch.zeros(Nx, Ny)
-domain[40:84,20:99] = 1
+domain[40:84,20:40] = 1
 
 probe_list = [
-    wavetorch.IntensityProbe(90, 40) 
+    wavetorch.Probe(35, 30),
+    wavetorch.Probe(90, 30) 
 ]
 src_list = [
-    wavetorch.LineSource(25, 35, 25, 45)
+    wavetorch.Source(25, 30)
 ]
 
-model = wavetorch.WaveCell(Nx, Ny, h, dt, satdamp_b0=0.25, satdamp_uth=0.01, c0=1.0, c1=0.5, sigma=3.0, N=20, p=4.0, probes=probe_list, sources=src_list, init=domain)
+model = wavetorch.WaveCell(
+    Nx,
+    Ny, 
+    h, 
+    dt, 
+    satdamp_b0=0.1, 
+    satdamp_uth=0.0001, 
+    c0=1.0, 
+    c1=0.5, 
+    sigma=3.0, 
+    N=20, 
+    p=4.0, 
+    probes=probe_list, 
+    sources=src_list, 
+    init=domain)
 
 # Define the source
-t = np.arange(0, 500*dt, dt)
-omega1 = 2*np.pi*1/dt/15
-x = np.sin(omega1*t) * t / (1 + t)
-x = torch.tensor(x, dtype=torch.get_default_dtype()).unsqueeze(0)
+# t = np.arange(0, 500*dt, dt)
+# omega1 = 2*np.pi*1/dt/15
+# X = np.sin(omega1*t) * t / (1 + t)
+# X = torch.tensor(X, dtype=torch.get_default_dtype()).unsqueeze(0)
+
+x, _, _ = wavetorch.data.load_all_vowels(
+    ['ae', 'ei', 'iy'],
+    gender='men', 
+    sr=10000, 
+    normalize=True, 
+    max_samples=3)
+X = torch.nn.utils.rnn.pad_sequence(x, batch_first=True)
+X = X[0,700:2500].unsqueeze(0)
 
 with torch.no_grad():
-    u = model.forward(x)
+    u = model.forward(X)
 
-wavetorch.plot.field_snapshot(model, u, [50, 100, 150, 200, 250, 300, 350, 400, 450, 499], ylabel=None, label=True, cbar=True, Ny=2)
-# wavetorch.plot.structure(model)
+Nshots = 10
+Ntime  = X.shape[1]
+times = [i for i in range(int(Ntime/Nshots), Ntime, int(Ntime/Nshots))]
+wavetorch.plot.field_snapshot(
+    model, 
+    u, 
+    times, 
+    ylabel=None, 
+    label=True, 
+    cbar=True, 
+    Ny=3,
+    fig_width=10)
+
+out = model.measure_probes(u).squeeze(-1)
+
+plt.figure();
+plt.plot(out.squeeze().numpy())
+plt.xlabel('Time')
+plt.ylabel('Probe amplitude')
+
+plt.show()
