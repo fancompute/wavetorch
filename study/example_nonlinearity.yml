@@ -1,0 +1,103 @@
+# Random seed for pytorch and all shuffle functions
+seed: 10
+
+# Data type to use for tensors, either float32 or float64
+dtype: float64
+
+training:
+  # This prefix is applied to the filename when saving the model; if not specified a date/time is used
+  prefix: ex
+
+  # Number of training epochs
+  N_epochs: 5
+
+  # Optimizer learning rate
+  lr: 0.0004
+
+  # Batch size used over both training and testing datasets   
+  batch_size: 6
+
+  # Limit the maximum number of samples to this number 
+  # If unspecified then all samples available for the specified vowel classes and gender are used
+  max_samples: 12
+
+  # This number should be an integer and is used to determine the split between the training and testing datasets
+  # (1/N_folds) * (the total number of samples) is the size of the test dataset
+  # (1-1/N_folds) * (the total number of samples) is the size of the training dataset
+  # For example, a value of 3 would result in 2/3 of the set being used for training and 1/3 being used for testing
+  N_folds: 3
+
+  # If true, k-fold cross validation is performed where k = N_folds
+  cross_validation: false
+
+data:
+  # Sampling rate to use for vowel data
+  sr: 10000    
+
+  # During training, the input sequence will be cropped to this size. The window will be centered with respect to the original sequence
+  window_size: 3000
+
+  # Which gender to pull vowel data from. Can be one of women, men, or both. 
+  # If both, training and testing datasets distributed equally over the genders
+  gender: both
+
+  # Which vowel classes to train on.
+  # Can be any elements from the set: [ae, eh, ih, oo, ah, ei, iy, uh, aw, er, oa, uw].
+  vowels: 
+    - ei
+    - iy
+    - oa
+
+geom:
+  # Use the (currently hard coded) design region which sits between the src and probes with a 5 gride cell buffer
+  use_design_region: true
+
+  # Initialization of the design region, either 'rand', 'half', or 'blank'
+  init: half
+
+  # Number of grid cells in x-dimension of simulation domain
+  Nx: 150
+
+  # Number of grid cells in y-dimension of simulation domain
+  Ny: 100
+
+  # Time step (spatial step size is determined automatically)
+  dt: 1.0
+
+  # Spatial grid step size
+  h: 1.4283556979968262
+
+  # Wave speed background value (e.g. in PML and non-design region)
+  c0: 1.0
+
+  # Wave speed value to use with c0 during binarization
+  c1: 0.5
+
+  # Probe x-coordinates in grid cells
+  px: 
+
+  # Probe y-coordinates in grid cells
+  py: 
+
+  # Spacing, in number grid cells, between probe points
+  pd: 20
+
+  # Source x-coordinate in grid cells
+  src_x: 
+
+  # Source y-coordinate in grid cells
+  src_y:
+
+  pml:
+    N: 20    # PML thickness in number of grid cells
+    p: 4.0   # PML polynomial order
+    max: 3.0 # PML max dampening factor
+
+  nonlinearity:
+    cnl: 0.0  # Kerr-like nonlinear wavespeed term
+    b0: 0.1   # Saturable abs. strength
+    uth: 1.0  # Saturable abs. threshold
+
+  binarization:
+    beta: 100   # These parameterize the binarization projection function
+    eta: 0.5    # see the Angler supplementary info for now
