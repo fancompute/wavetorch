@@ -1,7 +1,7 @@
 seed:
 dtype: float32
 training:
-  prefix: nonlinear_speed
+  prefix: satdamp
   N_epochs: 30
   lr: 0.0004
   batch_size: 9
