@@ -78,29 +78,39 @@ if __name__ == '__main__':
         test_dl  = DataLoader(test_ds, batch_size=cfg['training']['batch_size'])
 
         ### Define model
-        px, py = wavetorch.utils.setup_probe_coords(
+        probes = wavetorch.utils.setup_probe_coords(
                             N_classes, cfg['geom']['px'], cfg['geom']['py'], cfg['geom']['pd'], 
                             cfg['geom']['Nx'], cfg['geom']['Ny'], cfg['geom']['pml']['N']
                             )
-        src_x, src_y = wavetorch.utils.setup_src_coords(
+        source = wavetorch.utils.setup_src_coords(
                             cfg['geom']['src_x'], cfg['geom']['src_y'], cfg['geom']['Nx'],
                             cfg['geom']['Ny'], cfg['geom']['pml']['N']
                             )
 
-        if cfg['geom']['use_design_region']: # Limit the design region
-            design_region = torch.zeros(cfg['geom']['Nx'], cfg['geom']['Ny'], dtype=torch.uint8)
-            design_region[src_x+5:np.min(px)-5] = 1 # For now, just hardcode this in
-        else: # Let the design region be the enire non-PML area
-            design_region = None
-
-        geom = wavetorch.Geometry(cfg['geom']['Nx'], cfg['geom']['Ny'], h=cfg['geom']['h'], init=cfg['geom']['init'], c0=cfg['geom']['c0'], c1=cfg['geom']['c1'], design_region=design_region)
-        geom.add_boundary_absorber(sigma=cfg['geom']['pml']['max'], N=cfg['geom']['pml']['N'], p=cfg['geom']['pml']['p'])
-        geom.add_source(wavetorch.Source(src_x, src_y))
-        for j in range(0, len(px)):
-            geom.add_probe(wavetorch.IntensityProbe(px[j], py[j], label=cfg['data']['vowels'][j]))
+        design_region = torch.zeros(cfg['geom']['Nx'], cfg['geom']['Ny'], dtype=torch.uint8)
+        design_region[source[0].x.item()+5:probes[0].x.item()-5] = 1
 
         # Define the model
-        model = wavetorch.WaveCell(cfg['geom']['dt'], geom)
+        model = wavetorch.WaveCell(
+            Nx=cfg['geom']['Nx'],
+            Ny=cfg['geom']['Ny'],
+            h=cfg['geom']['h'],
+            dt=cfg['geom']['dt'],
+            eta=cfg['geom']['binarization']['eta'],
+            beta=cfg['geom']['binarization']['beta'],
+            init=cfg['geom']['init'], 
+            c0=cfg['geom']['c0'], 
+            c1=cfg['geom']['c1'], 
+            sigma=cfg['geom']['pml']['max'], 
+            N=cfg['geom']['pml']['N'], 
+            p=cfg['geom']['pml']['p'],
+            satdamp_b0=cfg['geom']['nonlinearity']['b0'],
+            satdamp_uth=cfg['geom']['nonlinearity']['uth'],
+            c_nl=cfg['geom']['nonlinearity']['cnl'],
+            design_region=design_region,
+            output_probe=True,
+            probes=probes,
+            sources=source)
 
         model.to(args.dev)
 

@@ -12,6 +12,17 @@ import numpy as np
 import sklearn
 import skorch
 
+class CroppedDataset(torch.utils.data.dataset.Dataset):
+    def __init__(self, dataset, indices):
+        self.dataset = dataset
+        self.indices = indices
+
+    def __getitem__(self, idx):
+        return self.dataset[self.indices[idx]]
+
+    def __len__(self):
+        return len(self.indices)
+
 # TODO: move this into lib
 class ClipDesignRegion(skorch.callbacks.Callback):
     def on_batch_end(self, net, Xi=None, yi=None, training=None, **kwargs):
@@ -65,6 +76,9 @@ source = wavetorch.utils.setup_src_coords(
 design_region = torch.zeros(cfg['geom']['Nx'], cfg['geom']['Ny'], dtype=torch.uint8)
 design_region[source[0].x.item()+5:probes[0].x.item()-5] = 1
 
+def my_train_split(ds, y):
+    return ds, skorch.dataset.Dataset(corpus.valid[:200], y=None)
+
 ### Perform training
 net = skorch.NeuralNetClassifier(
     module=wavetorch.WaveCell,
@@ -73,15 +87,16 @@ net = skorch.NeuralNetClassifier(
     max_epochs=cfg['training']['N_epochs'],
     batch_size=cfg['training']['batch_size'],
     lr=cfg['training']['lr'],
-    train_split=skorch.dataset.CVSplit(cfg['training']['N_folds'], stratified=True, random_state=cfg['seed']),
+    # train_split=skorch.dataset.CVSplit(cfg['training']['N_folds'], stratified=True, random_state=cfg['seed']),
     optimizer=torch.optim.Adam,
     criterion=torch.nn.CrossEntropyLoss,
     callbacks=[
         ClipDesignRegion,
         skorch.callbacks.EpochScoring('accuracy', lower_is_better=False, on_train=True, name='train_acc'),
-        skorch.callbacks.Checkpoint(f_params='tmp.pt', f_history='tmp_hist.pt')
+        skorch.callbacks.Checkpoint(monitor=None, fn_prefix='1234_', dirname='test', f_params="params_{last_epoch[epoch]}.pt", f_optimizer='optimizer.pt', f_history='history.json')
         ],
     callbacks__print_log__keys_ignored=None,
+    train_split=None,
 
     # These al get passed as options to WaveCell
     module__Nx=cfg['geom']['Nx'],
@@ -110,15 +125,8 @@ if cfg['data']['window_size']:
     t_mid = int(X.shape[1]/2)
     t_half_window = int(cfg['data']['window_size']/2)
     X = X[:, (t_mid-t_half_window):(t_mid+t_half_window)]
-# class CroppedDataset(torch.utils.data.dataset.Dataset):
-#     def __init__(self, dataset, indices):
-#         self.dataset = dataset
-#         self.indices = indices
 
-#     def __getitem__(self, idx):
-#         return self.dataset[self.indices[idx]]
+from sklearn.model_selection import cross_validate, StratifiedKFold
+y_pred = cross_validate(net, X, Y, cv=StratifiedKFold(n_splits=3, shuffle=True, random_state=None))
 
-#     def __len__(self):
-#         return len(self.indices)
-
-model = net.fit(X, Y)
+# model = net.fit(X, Y)
