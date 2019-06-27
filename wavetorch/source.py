@@ -11,8 +11,8 @@ class Source(torch.nn.Module):
         self.register_buffer('x', to_tensor(x))
         self.register_buffer('y', to_tensor(y))
 
-    def forward(self, Y, X):
-        Y[:, self.x, self.y] = Y[:, self.x, self.y] + X.expand_as(Y[:, self.x, self.y])
+    def forward(self, Y, X, dt):
+        Y[:, self.x, self.y] = Y[:, self.x, self.y] + dt.pow(2) * X.expand_as(Y[:, self.x, self.y])
 
     def plot(self, ax, color):
         marker, = ax.plot(self.x.numpy(), self.y.numpy(), 'o', markeredgecolor=color, **props.point_properties)

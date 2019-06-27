@@ -6,6 +6,10 @@ KERNEL_LPF = [[1/9, 1/9, 1/9],
               [1/9, 1/9, 1/9],
               [1/9, 1/9, 1/9]]
 
+def _laplacian(y, h):
+    """Laplacian operator"""
+    operator = h**(-2) * torch.tensor([[[[0.0,  1.0, 0.0], [1.0, -4.0, 1.0], [0.0,  1.0, 0.0]]]])
+    return conv2d(y.unsqueeze(1), operator, padding=1).squeeze(1)
 class WaveCell(torch.nn.Module):
     """The recurrent neural network cell that implements the scalar wave equation"""
 
@@ -130,13 +134,6 @@ class WaveCell(torch.nn.Module):
         """Helper function for getting the maximum wave speed for calculating CFL"""
         return np.max([self.c0, self.c1])
 
-    def _laplacian(self, y):
-        """Laplacian operator"""
-        h = self.h
-        device = "cuda" if next(self.parameters()).is_cuda else "cpu"
-        operator = h**(-2) * torch.tensor([[[[0.0,  1.0, 0.0], [1.0, -4.0, 1.0], [0.0,  1.0, 0.0]]]], device=device)
-        return conv2d(y.unsqueeze(1), operator, padding=1).squeeze(1)
-
     def add_source(self, source):
         self.sources.append(source)
 
@@ -162,15 +159,17 @@ class WaveCell(torch.nn.Module):
 
         dt  = self.dt
         b   = self.b
+        h   = self.h
 
         y = torch.mul((dt.pow(-2) + b * 0.5 * dt.pow(-1)).pow(-1),
                       (2/dt.pow(2)*y1 - torch.mul( (dt.pow(-2) - b * 0.5 * dt.pow(-1)), y2)
-                               + torch.mul(c.pow(2), self._laplacian(y1)))
+                               + torch.mul(c.pow(2), _laplacian(y1, h)))
                      )
+        # y = _apply_step(b, c, y1, y2, dt, h)
 
         # Inject all sources
         for source in self.sources:
-            source(y, x)
+            source(y, x, dt)
 
         return y, y, y1
 
