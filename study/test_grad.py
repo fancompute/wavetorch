@@ -4,13 +4,16 @@
 import torch
 import wavetorch
 import numpy as np
-from torch.nn.functional import conv2d
+from torch.nn.functional import conv2d, pad
 
 
 def _laplacian(y, h):
     """Laplacian operator"""
     operator = h**(-2) * torch.tensor([[[[0.0,  1.0, 0.0], [1.0, -4.0, 1.0], [0.0,  1.0, 0.0]]]])
-    return conv2d(y.unsqueeze(1), operator, padding=1).squeeze(1)
+    y = y.unsqueeze(1)
+    # y = pad(y,pad=(0,0,1,1),mode='circular')
+    # y = pad(y,pad=(1,1,0,0),mode='circular')
+    return conv2d(y, operator, padding=1).squeeze(1)
 
 def step(b, c, y1, y2, dt, h):
         y = torch.mul((dt.pow(-2) + b * dt.pow(-1)).pow(-1),
@@ -36,7 +39,9 @@ class HardcodedStep(torch.autograd.Function):
         if ctx.needs_input_grad[1]:
             grad_c = (b*dt + 1).pow(-1) * (2 * c * dt.pow(2) * _laplacian(y1, h) ) * grad_output
         if ctx.needs_input_grad[2]:
-            grad_y1 = (c.pow(2) * dt.pow(2) * _laplacian(grad_output, h) + 2*grad_output) * (b*dt + 1).pow(-1)
+            # grad_y1 = ( dt.pow(2) * _laplacian(c.pow(2) *grad_output, h) + 2*grad_output) * (b*dt + 1).pow(-1)
+            c2_grad =  (b*dt + 1).pow(-1) * c.pow(2) * grad_output
+            grad_y1 = dt.pow(2) * _laplacian(c2_grad, h) + 2*grad_output * (b*dt + 1).pow(-1)
         if ctx.needs_input_grad[3]:
             grad_y2 = (b*dt -1) * (b*dt + 1).pow(-1) * grad_output
 
@@ -75,5 +80,5 @@ for param in params:
         param.grad.zero_() # Detach and zero for subsequent calculations
 
 # Compare
-diff = [(params_grad_hard[i]-params_grad_ad[i]).norm().item() for i in range(0,len(params_grad_hard))]
+diff = [(params_grad_hard[i]-params_grad_ad[i]).norm().item()/params_grad_ad[i].norm().item() for i in range(0,len(params_grad_hard))]
 print(diff)
