@@ -172,7 +172,7 @@ def field_snapshot(model, fields, times, ylabel, fig_width=6, block=False, axs=N
         field = field_slices[i, :, :].numpy().transpose()
         
         h = axs[i].imshow(field, cmap=plt.cm.RdBu, vmin=-field_max, vmax=+field_max, origin="bottom", rasterized=True)
-        # plot_structure(model, ax=axs[i], outline=True, outline_pml=True, highlight_onehot=ylabel, bg='light')
+        structure(model, ax=axs[i], outline=True, outline_pml=True, highlight_onehot=ylabel, bg='light')
 
         axs[i].set_xticks([])
         axs[i].set_yticks([])
