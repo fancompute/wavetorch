@@ -10,8 +10,42 @@ def _laplacian(y, h):
     """Laplacian operator"""
     operator = h**(-2) * torch.tensor([[[[0.0,  1.0, 0.0], [1.0, -4.0, 1.0], [0.0,  1.0, 0.0]]]])
     return conv2d(y.unsqueeze(1), operator, padding=1).squeeze(1)
+
+def sat_damp(u, uth, b0):
+    return b0 / (1 + torch.abs(u/uth).pow(2))
+
+class Step(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, b, c, y1, y2, dt, h):
+        ctx.save_for_backward(b, c, y1, y2, dt, h)
+
+        y = torch.mul((dt.pow(-2) + b * 0.5 * dt.pow(-1)).pow(-1),
+              (2/dt.pow(2)*y1 - torch.mul( (dt.pow(-2) - b * 0.5 * dt.pow(-1)), y2)
+                       + torch.mul(c.pow(2), _laplacian(y1, h)))
+             )
+        return y
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        b, c, y1, y2, dt, h = ctx.saved_tensors
+
+        grad_b = grad_c = grad_y1 = grad_y2 = grad_dt = grad_h = None
+
+        if ctx.needs_input_grad[0]:
+            grad_b = - (dt * b + 1).pow(-2) * dt *  (c.pow(2) * dt.pow(2) * _laplacian(y1) + y1 - 2 * y2 ) * grad_output
+        if ctx.needs_input_grad[1]:
+            grad_c = (b*dt + 1).pow(-1) * (2 * c * dt.pow(2) * _laplacian(y1, h) ) * grad_output
+        if ctx.needs_input_grad[2]:
+            grad_y1 = (c.pow(2) * dt.pow(2) * _laplacian(grad_output, h) + grad_output) * (b*dt + 1).pow(-1)
+        if ctx.needs_input_grad[3]:
+            grad_y2 = (b*dt -1) * (b*dt + 1).pow(-1) * grad_output
+
+        return grad_b, grad_c, grad_y1, grad_y2, grad_dt, grad_h
+
+_apply_step = Step.apply
+
 class WaveCell(torch.nn.Module):
-    """The recurrent neural network cell that implements the scalar wave equation"""
+    """The recurrent neural network cell implementing the scalar wave equation"""
 
     def __init__(self,
                  Nx : int, 
@@ -28,10 +62,11 @@ class WaveCell(torch.nn.Module):
                  p :float = 4.0,
                  design_region = None, 
                  init : str = 'half',
+                 satdamp_b0 : float = 0.0,
+                 satdamp_uth : float = 0.0,
+                 c_nl : float = 0.0,
                  sources = [],
                  probes = []):
-        """Initialize the wave equation recurrent neural network cell
-        """
 
         super(WaveCell, self).__init__()
 
@@ -43,6 +78,10 @@ class WaveCell(torch.nn.Module):
         self.register_buffer('c1', torch.tensor(c1))
         self.register_buffer('eta', torch.tensor(eta))
         self.register_buffer('beta', torch.tensor(beta))
+
+        self.register_buffer('satdamp_b0', torch.tensor(satdamp_b0))
+        self.register_buffer('satdamp_uth', torch.tensor(satdamp_uth))
+        self.register_buffer('c_nl', torch.tensor(c_nl))
 
         self.register_buffer('output_probe', torch.tensor(output_probe))
 
@@ -100,14 +139,21 @@ class WaveCell(torch.nn.Module):
 
     def _init_rho(self, init, Nx, Ny):
         """Initialize the raw density distribution (which gets trained)"""
-        if init == 'rand':
-            raw_rho = torch.round(torch.rand(Nx, Ny))
-        elif init == 'half':
-            raw_rho = torch.ones(Nx, Ny) * 0.5
-        elif init == 'blank':
-            raw_rho = torch.zeros(Nx, Ny)
+        if type(init) == str:
+            if init == 'rand':
+                raw_rho = torch.round(torch.rand(Nx, Ny))
+            elif init == 'half':
+                raw_rho = torch.ones(Nx, Ny) * 0.5
+            elif init == 'blank':
+                raw_rho = torch.zeros(Nx, Ny)
+            else:
+                raise ValueError('The geometry initialization defined by `init = %s` is invalid' % init)
+        elif type(init) == torch.Tensor:
+            raw_rho = init
+        elif type(init) == np.ndarray:
+            raw_rho = torch.from_numpy(init)
         else:
-            raise ValueError('The geometry initialization defined by `init = %s` is invalid' % init)
+            raise ValueError('The geometry initialization defined by `init` is invalid')
 
         self.register_parameter('raw_rho', torch.nn.Parameter(raw_rho))
 
@@ -140,7 +186,7 @@ class WaveCell(torch.nn.Module):
     def add_probe(self, probe):
         self.probes.append(probe)
 
-    def step(self, x, y1, y2, c, rho):
+    def step(self, x, y1, y2, c_lin, rho):
         """Take a step through time
 
         Parameters
@@ -158,14 +204,22 @@ class WaveCell(torch.nn.Module):
         """
 
         dt  = self.dt
-        b   = self.b
         h   = self.h
+
+        if self.satdamp_b0 > 0:
+            b = self.b + rho*sat_damp(y1, uth=self.satdamp_uth, b0=self.satdamp_b0)
+        else:
+            b = self.b
+
+        if self.c_nl != 0:
+            c = c_lin + rho * self.c_nl * y1.pow(2)
+        else:
+            c = c_lin
 
         y = torch.mul((dt.pow(-2) + b * 0.5 * dt.pow(-1)).pow(-1),
                       (2/dt.pow(2)*y1 - torch.mul( (dt.pow(-2) - b * 0.5 * dt.pow(-1)), y2)
                                + torch.mul(c.pow(2), _laplacian(y1, h)))
                      )
-        # y = _apply_step(b, c, y1, y2, dt, h)
 
         # Inject all sources
         for source in self.sources:

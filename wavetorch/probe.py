@@ -31,7 +31,7 @@ class IntensityProbe(Probe):
         super(IntensityProbe, self).__init__(x, y)
 
     def forward(self, x, integrated=False):
-        out = torch.abs(x[:, :, self.x, self.y]).pow(2)
+        out = x[:, :, self.x, self.y].pow(2)
         if out.dim() == 4:
             sum_dims = (2,3)
         elif out.dim() == 3:
