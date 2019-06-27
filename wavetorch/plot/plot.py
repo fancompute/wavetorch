@@ -15,7 +15,7 @@ from mpl_toolkits.axes_grid1.colorbar import colorbar
 
 import torch
 
-import wavetorch.plot.props as props
+from . import props
 
 def plot_total_field(model, yb, ylabel, block=False, ax=None, fig_width=4, cbar=True, cax=None, vmin=1e-3, vmax=1.0):
     """Plot the total (time-integrated) field over the computatonal domain for a given vowel sample 
