@@ -6,6 +6,11 @@ import wavetorch
 import numpy as np
 import skimage.draw as draw
 import matplotlib.pyplot as plt
+import librosa
+import argparse
+parser = argparse.ArgumentParser() 
+parser.add_argument('--fields', action='store_true')
+args = parser.parse_args()
 
 # Define the geometry and model
 
@@ -14,8 +19,10 @@ Ny = 60
 dt = 0.707
 h  = 1.0
 
+sr = 10000
+
 domain = torch.zeros(Nx, Ny)
-domain[40:84,20:40] = 1
+domain[45:79,20:40] = 1
 
 probe_list = [
     wavetorch.Probe(35, 30),
@@ -30,8 +37,9 @@ model = wavetorch.WaveCell(
     Ny, 
     h, 
     dt, 
-    satdamp_b0=0.1, 
-    satdamp_uth=0.0001, 
+    # c_nl=-7e2,
+    satdamp_b0=0.2, 
+    satdamp_uth=9e-5, 
     c0=1.0, 
     c1=0.5, 
     sigma=3.0, 
@@ -50,33 +58,63 @@ model = wavetorch.WaveCell(
 x, _, _ = wavetorch.data.load_all_vowels(
     ['ae', 'ei', 'iy'],
     gender='men', 
-    sr=10000, 
+    sr=sr, 
     normalize=True, 
     max_samples=3)
 X = torch.nn.utils.rnn.pad_sequence(x, batch_first=True)
-X = X[0,700:2500].unsqueeze(0)
+X = X[0,1000:3500].unsqueeze(0)
 
 with torch.no_grad():
     u = model.forward(X)
 
-Nshots = 10
-Ntime  = X.shape[1]
-times = [i for i in range(int(Ntime/Nshots), Ntime, int(Ntime/Nshots))]
-wavetorch.plot.field_snapshot(
-    model, 
-    u, 
-    times, 
-    ylabel=None, 
-    label=True, 
-    cbar=True, 
-    Ny=3,
-    fig_width=10)
+if args.fields:
+    Nshots = 10
+    Ntime  = X.shape[1]
+    times = [i for i in range(int(Ntime/Nshots), Ntime, int(Ntime/Nshots))]
+    wavetorch.plot.field_snapshot(
+        model, 
+        u, 
+        times, 
+        ylabel=None, 
+        label=True, 
+        cbar=True, 
+        Ny=3,
+        fig_width=10)
+
 
 out = model.measure_probes(u).squeeze(-1)
+out = out.squeeze().numpy()
 
-plt.figure();
-plt.plot(out.squeeze().numpy())
-plt.xlabel('Time')
-plt.ylabel('Probe amplitude')
+n_fft=1024
+out_ft = [np.abs(librosa.core.stft(out[:,i],n_fft=n_fft)) for i in range(0, out.shape[1])]
+out_ft_int = np.vstack([x.sum(axis=1) for x in out_ft])
 
-plt.show()
+fig, ax = plt.subplots(2,1,constrained_layout=True,figsize=(4,6))
+
+ax[0].plot(out)
+ax[0].set_xlabel('Time')
+ax[0].set_ylabel('Probe amplitude')
+
+for i in range(0, out_ft_int.shape[0]):
+    ax[1].fill_between(librosa.core.fft_frequencies(sr=sr, n_fft=n_fft),
+                     out_ft_int[i,:],
+                     alpha=0.45)
+ax[1].set_yscale('log')
+ax[1].set_xlabel('Frequency (Hz)')
+ax[1].set_ylabel('Energy')
+fig.align_labels()
+plt.show();
+
+# fig, axs = plt.subplots(len(out_ft),1, constrained_layout=True, figsize=(4,5))
+# for (i, ax) in enumerate(axs):
+#     librosa.display.specshow(
+#         librosa.amplitude_to_db(out_ft[i]),
+#         sr=sr,
+#         vmax=0,
+#         ax=ax,
+#         vmin=-60,
+#         y_axis='linear',
+#         x_axis='time',
+#         cmap=plt.cm.inferno
+#     )
+# plt.show()
