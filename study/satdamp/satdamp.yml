@@ -36,8 +36,8 @@ geom:
     max: 3.0
   nonlinearity:
     cnl: 0.0
-    b0: 0.0
-    uth: 0.0
+    b0: 0.2
+    uth: 9e-5
   binarization:
     beta: 100
     eta: 0.5
