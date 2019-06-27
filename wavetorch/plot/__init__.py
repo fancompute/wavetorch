@@ -1,3 +1,3 @@
 
-from wavetorch.plot.plot import field_snapshot, structure
+from .plot import field_snapshot, structure
 
