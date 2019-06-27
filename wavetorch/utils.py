@@ -59,8 +59,13 @@ def window_data(X, window_length):
     """
     return X[int(len(X)/2-window_length/2):int(len(X)/2+window_length/2)]
 
-def save_model(model, name, savedir='./study/', 
-               history=None, history_model_state=None, cfg=None, verbose=True):
+def save_model(model,
+               name, 
+               savedir='./study/', 
+               history=None, 
+               history_model_state=None, 
+               cfg=None, 
+               verbose=True):
     """Save the model state and history to a file
     """
     str_filename = name +  '.pt'
@@ -79,24 +84,38 @@ def save_model(model, name, savedir='./study/',
 def load_model(str_filename):
     """Load a previously saved model and its history from a file
     """
-    from .cell import WaveCell
+
     print("Loading model from %s" % str_filename)
+
     data = torch.load(str_filename)
+
     try:
-        wavetorch.core.set_dtype(data["cfg"]['dtype'])
+        set_dtype(data['cfg']['dtype'])
     except:
         pass
-    model_state = data['model_state']
-    model = WaveCell(model_state['dt'].numpy(),
-                     model_state['Nx'].numpy(), 
-                     model_state['Ny'].numpy(), 
-                     model_state['src_x'].numpy(), 
-                     model_state['src_y'].numpy(), 
-                     model_state['px'].numpy(), 
-                     model_state['py'].numpy())
-    model.load_state_dict(model_state)
+
+    model = wavetorch.WaveCell(Nx=data['model_state']['Nx'].item(),
+                               Ny=data['model_state']['Ny'].item(),
+                               dt=data['model_state']['dt'].item(), 
+                               h =data['model_state']['h'].item())
+
+    loaded_dict = {k: data['model_state'][k] for k in data['model_state'] if 'probes' not in k and 'sources' not in k}
+    model.load_state_dict(loaded_dict)
+
+    px = [data['model_state'][k].item() for k in data['model_state'] if 'probes' in k and 'x' in k]
+    py = [data['model_state'][k].item() for k in data['model_state'] if 'probes' in k and 'y' in k]
+    sx = [data['model_state'][k].item() for k in data['model_state'] if 'sources' in k and 'x' in k]
+    sy = [data['model_state'][k].item() for k in data['model_state'] if 'sources' in k and 'y' in k]
+
+    for (x, y) in zip(px, py):
+        model.add_probe(wavetorch.IntensityProbe(x,y))
+
+    for (x, y) in zip(sx, sy):
+        model.add_source(wavetorch.Source(x,y))
+    
     model.eval()
-    return model, data["history"], data["history_model_state"], data["cfg"]
+
+    return model, data['history'], data['history_model_state'], data['cfg']
 
 
 def accuracy_onehot(y_pred, y_label):
