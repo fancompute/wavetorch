@@ -10,6 +10,7 @@ import wavetorch
 import time
 import os
 import socket
+import copy
 
 def to_tensor(x):
     if type(x) is np.ndarray: 
@@ -81,7 +82,7 @@ def save_model(model,
     torch.save(data, str_savepath)
 
 
-def load_model(str_filename):
+def load_model(str_filename, which_iteration=-1):
     """Load a previously saved model and its history from a file
     """
 
@@ -95,21 +96,23 @@ def load_model(str_filename):
     except:
         pass
 
+    model_state = copy.deepcopy(data['history_model_state'][which_iteration])
+
     # Setup a blank model
-    model = wavetorch.WaveCell(Nx=data['model_state']['Nx'].item(),
-                               Ny=data['model_state']['Ny'].item(),
-                               dt=data['model_state']['dt'].item(), 
-                               h =data['model_state']['h'].item())
+    model = wavetorch.WaveCell(Nx=model_state['Nx'].item(),
+                               Ny=model_state['Ny'].item(),
+                               dt=model_state['dt'].item(), 
+                               h =model_state['h'].item())
 
     # Load in everything other than the probes and sources (because pytorch is too stupid to know how to handle ModuleLists)
-    loaded_dict = {k: data['model_state'][k] for k in data['model_state'] if 'probes' not in k and 'sources' not in k}
+    loaded_dict = {k: model_state[k] for k in model_state if 'probes' not in k and 'sources' not in k}
     model.load_state_dict(loaded_dict)
 
     # Parse out the probe and source coords
-    px = [data['model_state'][k].item() for k in data['model_state'] if 'probes' in k and 'x' in k]
-    py = [data['model_state'][k].item() for k in data['model_state'] if 'probes' in k and 'y' in k]
-    sx = [data['model_state'][k].item() for k in data['model_state'] if 'sources' in k and 'x' in k]
-    sy = [data['model_state'][k].item() for k in data['model_state'] if 'sources' in k and 'y' in k]
+    px = [model_state[k].item() for k in model_state if 'probes' in k and 'x' in k]
+    py = [model_state[k].item() for k in model_state if 'probes' in k and 'y' in k]
+    sx = [model_state[k].item() for k in model_state if 'sources' in k and 'x' in k]
+    sy = [model_state[k].item() for k in model_state if 'sources' in k and 'y' in k]
 
     # Manually add the probes and sources
     for (x, y) in zip(px, py):
