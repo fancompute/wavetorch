@@ -17,14 +17,14 @@ import torch
 
 from . import props
 
-def plot_total_field(model, yb, ylabel, block=False, ax=None, fig_width=4, cbar=True, cax=None, vmin=1e-3, vmax=1.0):
+def total_field(model, yb, ylabel, block=False, ax=None, fig_width=4, cbar=True, cax=None, vmin=1e-3, vmax=1.0):
     """Plot the total (time-integrated) field over the computatonal domain for a given vowel sample 
     """
     with torch.no_grad():
         y_tot = torch.abs(yb).pow(2).sum(dim=1)
 
         if ax is None:
-            fig, ax= plt.subplots(1, 1, constrained_layout=True, figsize=(1.1*fig_width,model.Ny/model.Nx*fig_width))
+            fig, ax= plt.subplots(1, 1, constrained_layout=True, figsize=(1.1*fig_width,model.Ny.item()/model.Nx.item()*fig_width))
 
         Z = y_tot[0,:,:].numpy().transpose()
         Z = Z / Z.max()
@@ -37,10 +37,10 @@ def plot_total_field(model, yb, ylabel, block=False, ax=None, fig_width=4, cbar=
                 extend='both'
             else:
                 extend='min'
-            plt.colorbar(h, cax=cax, orientation='horizontal', label=r"$\sum_t{ \left\vert u_t{\left(x,y\right)} \right\vert^2 }$")
+            plt.colorbar(h, cax=cax, orientation='horizontal', label=r"$\sum_t{ { u_t{\left(x,y\right)} }^2 }$")
             # cax.set_title(r"$\sum_n \vert u_n \vert^2$")
 
-        plot_structure(model, ax=ax, outline=True, outline_pml=True, vowel_probe_labels=None, highlight_onehot=ylabel, bg='dark', alpha=0.5)
+        structure(model, ax=ax, outline=True, outline_pml=True, vowel_probe_labels=None, highlight_onehot=ylabel, bg='dark', alpha=0.5)
 
         ax.set_xticks([])
         ax.set_yticks([])
@@ -49,7 +49,7 @@ def plot_total_field(model, yb, ylabel, block=False, ax=None, fig_width=4, cbar=
             plt.show(block=block)
 
 
-def plot_structure_evolution(model, model_states, epochs=[0, 1], quantity='c', figsize=(5.6,1.5)):
+def structure_evolution(model, model_states, epochs=[0, 1], quantity='c', figsize=(5.6,1.5)):
     """Plot the spatial distribution of material for the given epochs
     """
     Nx = int(len(epochs))
@@ -73,7 +73,7 @@ def plot_structure_evolution(model, model_states, epochs=[0, 1], quantity='c', f
 
 def _plot_probes(model, ax, vowel_probe_labels=None, highlight_onehot=None, bg='light'):
     markers = []
-    for probe in model.probes:
+    for i, probe in enumerate(model.probes):
         if highlight_onehot is None:
             color_probe = 'r'
             color_source = 'k'
@@ -91,7 +91,15 @@ def _plot_probes(model, ax, vowel_probe_labels=None, highlight_onehot=None, bg='
     return markers
 
 
-def structure(model, ax=None, outline=False, outline_pml=True, vowel_probe_labels=None, highlight_onehot=None, bg='light', alpha=1.0):
+def structure(model,
+              ax=None, 
+              outline=False, 
+              outline_pml=True, 
+              vowel_probe_labels=None, 
+              highlight_onehot=None, 
+              bg='light', 
+              alpha=1.0,
+              cbar=False):
     """Plot the spatial distribution of the wave speed
     """
     lc = '#000000' if bg == 'light' else '#ffffff'
@@ -116,6 +124,9 @@ def structure(model, ax=None, outline=False, outline_pml=True, vowel_probe_label
             cmap = plt.cm.Greens_r
         h = ax.imshow(model.c.detach().numpy().transpose(), origin="bottom", rasterized=True, cmap=cmap, vmin=limits.min(), vmax=limits.max())
     
+    if cbar:
+        plt.colorbar(h, ax=ax, label='Wave speed')
+
     if outline_pml:
         b_boundary = model.b.numpy().transpose()
         h2 = ax.contour(b_boundary>0, levels=[0], colors=[lc], linestyles=['dotted'], linewidths=[0.75], alpha=alpha)
@@ -131,7 +142,7 @@ def structure(model, ax=None, outline=False, outline_pml=True, vowel_probe_label
 
     return h, markers
 
-def plot_probe_integrals(model, fields_in, ylabel, x, block=False, ax=None):
+def probe_integrals(model, fields_in, ylabel, x, block=False, ax=None):
     """Plot the time integrated probe signals
     """
     probe_fields = fields_in[0, :, model.px, model.py].numpy()
@@ -218,7 +229,7 @@ def animate_fields(model, fields, ylabel, batch=0, block=True, filename=None, in
     plt.show(block=block)
 
 
-def plot_confusion_matrix(cm, ax=None, figsize=(4,4), title=None, normalize=False, labels="auto"):
+def confusion_matrix(cm, ax=None, figsize=(4,4), title=None, normalize=False, labels="auto"):
     N_classes = cm.shape[0]
 
     if normalize:

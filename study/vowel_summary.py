@@ -17,20 +17,12 @@ from matplotlib.gridspec import GridSpec
 
 import pandas as pd
 
-mpl.rcParams['text.usetex'] = True
-mpl.rcParams['text.latex.preamble'] = [
-r"\usepackage{tgheros}",
-r"\usepackage{bm}", 
-r"\usepackage{sansmath}",
-r"\sansmath",
-r"\usepackage{siunitx}",
-r"\sisetup{detect-all}",
-r"\usepackage{amsmath}",
-r"\usepackage{amsfonts}",
-r"\usepackage{amssymb}",
-r"\usepackage{braket}",
-r"\renewcommand{\rmdefault}{\sfdefault}"
-]
+try:
+    from helpers.plot import mpl_set_latex
+    mpl_set_latex()
+except ImportError:
+    import warnings
+    warnings.warn('The helpers package is unavailable', ImportWarning)
 
 COL_TRAIN = "#1f77b4"
 COL_TEST  = "#2ca02c"
@@ -47,7 +39,7 @@ parser.add_argument('--vowel_samples', nargs='+', type=int, default=None)
 if __name__ == '__main__':
     args = parser.parse_args()
 
-    model, history, history_state, cfg = wavetorch.core.load_model(args.filename)
+    model, history, history_state, cfg = wavetorch.utils.load_model(args.filename)
 
     try:
         if cfg['seed'] is not None:
@@ -108,9 +100,9 @@ if __name__ == '__main__':
     ax_acc.set_ylabel('Accuracy')
     
     ax_acc.yaxis.set_major_locator(mpl.ticker.MultipleLocator(base=10))
-    ax_acc.set_ylim([20,100])
+    # ax_acc.set_ylim([20,100])
     ax_loss.yaxis.set_major_locator(mpl.ticker.MultipleLocator(base=0.1))
-    ax_loss.set_ylim([0.7,1.2])
+    # ax_loss.set_ylim([0.7,1.2])
 
     ax_acc.yaxis.set_major_formatter(mpl.ticker.FormatStrFormatter('%.0f\%%'))
 
@@ -121,40 +113,46 @@ if __name__ == '__main__':
     ax_acc.annotate('%.1f\%%' % (history_mean['acc_train'].tail(1).item()*100),
                 xy=(epochs[-1], history_mean['acc_train'].tail(1).item()*100), xycoords='data',
                 xytext=(-1, 5), textcoords='offset points', ha='left', va='center', fontsize='small',
-                color=COL_TRAIN, bbox=wavetorch.viz.bbox_white)
+                color=COL_TRAIN, bbox=wavetorch.plot.props.bbox_white)
     ax_acc.annotate('%.1f\%%' % (history_mean['acc_test'].tail(1).item()*100),
                 xy=(epochs[-1], history_mean['acc_test'].tail(1).item()*100), xycoords='data',
                 xytext=(-1, -5), textcoords='offset points', ha='left', va='center', fontsize='small',
-                color=COL_TEST, bbox=wavetorch.viz.bbox_white)
+                color=COL_TEST, bbox=wavetorch.plot.props.bbox_white)
     print('Accuracy (train): %.1f%% +/- %.1f%%' % (history_mean['acc_train'].tail(1).item()*100, history_std['acc_train'].tail(1).item()*100))
     print('Accuracy  (test): %.1f%% +/- %.1f%%' % (history_mean['acc_test'].tail(1).item()*100, history_std['acc_test'].tail(1).item()*100))
 
     cm_train = history.groupby('epoch')['cm_train'].apply(np.mean).head(1).item()
     cm_test = history.groupby('epoch')['cm_test'].apply(np.mean).head(1).item()
-    wavetorch.viz.plot_confusion_matrix(cm_train, title="Training dataset", normalize=True, ax=ax_cm_train0, labels=vowels)
-    wavetorch.viz.plot_confusion_matrix(cm_test, title="Testing dataset", normalize=True, ax=ax_cm_test0, labels=vowels)
+    wavetorch.plot.confusion_matrix(cm_train, title="Training dataset", normalize=True, ax=ax_cm_train0, labels=vowels)
+    wavetorch.plot.confusion_matrix(cm_test, title="Testing dataset", normalize=True, ax=ax_cm_test0, labels=vowels)
 
     cm_train = history.groupby('epoch')['cm_train'].apply(np.mean).tail(1).item()
     cm_test = history.groupby('epoch')['cm_test'].apply(np.mean).tail(1).item()
-    wavetorch.viz.plot_confusion_matrix(cm_train, title="Training dataset", normalize=True, ax=ax_cm_train1, labels=vowels)
-    wavetorch.viz.plot_confusion_matrix(cm_test, title="Testing dataset", normalize=True, ax=ax_cm_test1, labels=vowels)
+    wavetorch.plot.confusion_matrix(cm_train, title="Training dataset", normalize=True, ax=ax_cm_train1, labels=vowels)
+    wavetorch.plot.confusion_matrix(cm_test, title="Testing dataset", normalize=True, ax=ax_cm_test1, labels=vowels)
 
     X, Y, F = wavetorch.data.load_all_vowels(vowels, gender='both', sr=sr, random_state=0)
 
     model.load_state_dict(history_state[cfg['training']['N_epochs']])
-
+    model.output_probe = torch.tensor(0, dtype=torch.uint8)
     for i in range(N_classes):
         xb, yb = wavetorch.data.select_vowel_sample(X, Y, F, i, ind=args.vowel_samples[i] if args.vowel_samples is not None else None)
         with torch.no_grad():
-            field_dist = model(xb, probe_output=False)
-            probe_series = field_dist[0, :, model.px, model.py]
+            field_dist = model(xb)
             print(yb.argmax().item())
-            wavetorch.viz.plot_total_field(model, field_dist, yb, ax=ax_fields[yb.argmax().item()], cbar=True, cax=ax_fields[-1], vmin=args.vmin, vmax=args.vmax)
+            wavetorch.plot.total_field(model, field_dist, yb, ax=ax_fields[yb.argmax().item()], cbar=True, cax=ax_fields[-1], vmin=args.vmin, vmax=args.vmax)
 
     if args.labels:
-        wavetorch.viz.apply_sublabels([ax_cm_train0, ax_cm_test0, ax_cm_train1, ax_cm_test1, ax_loss, ax_acc] + ax_fields[0:-1],
-                            xy=[(-35,0), (-35,0), (-35,0), (-35,0), (-25,0), (-40,0), (8,-6), (8,-6), (8,-6)],
-                            colors=['k', 'k', 'k', 'k', 'k', 'k', 'w', 'w', 'w'])
+        try:
+            from helpers.plot import apply_panel_labels
+            apply_panel_labels([ax_cm_train0, ax_cm_test0, ax_cm_train1, ax_cm_test1, ax_loss, ax_acc] + ax_fields[0:-1],
+                                xy=[(-35,0), (-35,0), (-35,0), (-35,0), (-25,0), (-40,0), (8,-6), (8,-6), (8,-6)],
+                                color=['k', 'k', 'k', 'k', 'k', 'k', 'w', 'w', 'w'],
+                                case='upper')
+        except ImportError:
+            import warnings
+            warnings.warn('The helpers package is unavailable', ImportWarning)
+    
 
     plt.show()
     if args.fig is not None:
