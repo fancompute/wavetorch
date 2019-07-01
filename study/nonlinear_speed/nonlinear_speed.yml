@@ -35,7 +35,7 @@ geom:
     p: 4.0
     max: 3.0
   nonlinearity:
-    cnl: -500
+    cnl: -30
     b0: 0.0
     uth: 0.0
   binarization:
