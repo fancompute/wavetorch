@@ -3,7 +3,7 @@
 #SBATCH --output="./study/nonlinear_speed/%A.log"
 #SBATCH -p normal
 #SBATCH --cpus-per-task=8
-#SBATCH --time=24:00:00
+#SBATCH --time=36:00:00
 #SBATCH --mem-per-cpu=4500mb
 
 export MKL_NUM_THREADS=$SLURM_CPUS_PER_TASK
