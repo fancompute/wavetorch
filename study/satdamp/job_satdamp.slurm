@@ -3,8 +3,8 @@
 #SBATCH --output="./study/satdamp/%A.log"
 #SBATCH -p normal
 #SBATCH --cpus-per-task=8
-#SBATCH --time=24:00:00
-#SBATCH --mem-per-cpu=4500mb
+#SBATCH --time=36:00:00
+#SBATCH --mem-per-cpu=6000mb
 
 export MKL_NUM_THREADS=$SLURM_CPUS_PER_TASK
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK

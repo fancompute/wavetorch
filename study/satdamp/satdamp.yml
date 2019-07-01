@@ -4,7 +4,7 @@ training:
   prefix: satdamp
   N_epochs: 30
   lr: 0.0004
-  batch_size: 9
+  batch_size: 21
   max_samples: 
   N_folds: 5
   cross_validation: true
@@ -36,8 +36,8 @@ geom:
     max: 3.0
   nonlinearity:
     cnl: 0.0
-    b0: 0.2
-    uth: 9e-5
+    b0: 0.1
+    uth: 0.00018
   binarization:
     beta: 100
     eta: 0.5

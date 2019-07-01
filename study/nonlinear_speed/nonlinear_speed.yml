@@ -4,7 +4,7 @@ training:
   prefix: nonlinear_speed
   N_epochs: 30
   lr: 0.0004
-  batch_size: 9
+  batch_size: 21
   max_samples: 
   N_folds: 5
   cross_validation: true
