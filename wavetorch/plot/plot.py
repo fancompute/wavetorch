@@ -60,7 +60,7 @@ def structure_evolution(model, model_states, epochs=[0, 1], quantity='c', figsiz
     axs = axs.ravel()
     for i, epoch in enumerate(epochs):
         model.load_state_dict(model_states[epoch])
-        h, _ = plot_structure(model, ax=axs[i], outline=False, outline_pml=True, vowel_probe_labels=None, highlight_onehot=None, bg='light', alpha=1.0)
+        h, _ = structure(model, ax=axs[i], outline=False, outline_pml=True, vowel_probe_labels=None, highlight_onehot=None, bg='light', alpha=1.0)
         axs[i].set_title('Epoch %d' % epoch)
 
     for j in range(i+1,len(axs)):
@@ -69,7 +69,7 @@ def structure_evolution(model, model_states, epochs=[0, 1], quantity='c', figsiz
         axs[j].axis('image')
         axs[j].axis('off')
 
-    plt.colorbar(h, ax=axs, shrink=0.5, label='Wave speed')
+    plt.colorbar(h, ax=axs, shrink=0.5, label='Wave speed', ticks=np.array([model.c0.item(), model.c1.item()]))
 
 def _plot_probes(model, ax, vowel_probe_labels=None, highlight_onehot=None, bg='light'):
     markers = []
@@ -124,8 +124,8 @@ def structure(model,
             cmap = plt.cm.Greens_r
         h = ax.imshow(model.c.detach().numpy().transpose(), origin="bottom", rasterized=True, cmap=cmap, vmin=limits.min(), vmax=limits.max())
     
-    if cbar:
-        plt.colorbar(h, ax=ax, label='Wave speed')
+    if cbar and not outline:
+        plt.colorbar(h, ax=ax, label='Wave speed', ticks=limits)
 
     if outline_pml:
         b_boundary = model.b.numpy().transpose()
