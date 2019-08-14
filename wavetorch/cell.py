@@ -73,7 +73,7 @@ class WaveCell(torch.nn.Module):
                  sources = [],
                  probes = []):
 
-        super(WaveCell, self).__init__()
+        super().__init__()
 
         self.register_buffer('Nx', torch.tensor(Nx))
         self.register_buffer('Ny', torch.tensor(Ny))
@@ -279,3 +279,9 @@ class WaveCell(torch.nn.Module):
             p_out = p_out / torch.sum(p_out, dim=1, keepdim=True)
 
         return p_out
+
+
+class WaveCell_Holes(WaveCell):
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
