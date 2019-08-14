@@ -6,8 +6,13 @@ import wavetorch
 from torch.utils.data import TensorDataset, DataLoader
 
 import argparse
-import yaml
 import time
+
+from yaml import load, dump
+try:
+    from yaml import CLoader as Loader, CDumper as Dumper
+except ImportError:
+    from yaml import Loader, Dumper
 
 import numpy as np
 from sklearn.model_selection import StratifiedKFold
@@ -34,10 +39,9 @@ if __name__ == '__main__':
 
     torch.set_num_threads(args.num_threads)
 
-    print("Using configuration from %s: " % args.config)
+    print("Configuration: %s" % args.config)
     with open(args.config, 'r') as ymlfile:
-         cfg = yaml.load(ymlfile)
-         print(yaml.dump(cfg, default_flow_style=False))
+         cfg = load(ymlfile, Loader=Loader)
 
     if cfg['seed'] is not None:
         torch.manual_seed(cfg['seed'])
