@@ -90,7 +90,7 @@ def load_all_vowels(str_classes, gender='both', sr=None, normalize=True, dir='da
         Y = [torch.tensor(y, dtype=torch.get_default_dtype()) for y in y_m]
         F = F_m
 
-    print("dataset: selected %d vowel samples" % len(X))
+    print("Dataset: %d vowel samples" % len(X))
 
     return X, Y, F
 
