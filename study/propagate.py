@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import librosa
 import argparse
 parser = argparse.ArgumentParser() 
-parser.add_argument('--fields', action='store_true')
+parser.add_argument('--fields', '-fields', '-f', action='store_true')
 args = parser.parse_args()
 
 # Define the geometry and model
