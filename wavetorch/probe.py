@@ -7,7 +7,7 @@ from .utils import to_tensor
 
 class Probe(torch.nn.Module):
     def __init__(self, x, y):
-        super(Probe, self).__init__()
+        super().__init__()
 
         self.register_buffer('x', to_tensor(x))
         self.register_buffer('y', to_tensor(y))
@@ -28,7 +28,7 @@ class IntensityProbe(Probe):
         if x.size != y.size:
             raise ValueError("Length of x and y must be equal")
 
-        super(IntensityProbe, self).__init__(x, y)
+        super().__init__(x, y)
 
     def forward(self, x, integrated=False):
         out = x[:, :, self.x, self.y].pow(2)

@@ -99,7 +99,8 @@ def load_model(str_filename, which_iteration=-1):
     model_state = copy.deepcopy(data['history_model_state'][which_iteration])
 
     # Setup a blank model
-    model = wavetorch.WaveCell(Nx=model_state['Nx'].item(),
+    model = wavetorch.WaveCell(init='half',
+                               Nx=model_state['Nx'].item(),
                                Ny=model_state['Ny'].item(),
                                dt=model_state['dt'].item(), 
                                h =model_state['h'].item())

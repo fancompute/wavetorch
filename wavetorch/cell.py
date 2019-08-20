@@ -49,7 +49,8 @@ class TimeStep(torch.autograd.Function):
 
         return grad_b, grad_c, grad_y1, grad_y2, grad_dt, grad_h
 
-class WaveCell(torch.nn.Module):
+
+class WaveCellBase(torch.nn.Module):
     """The recurrent neural network cell implementing the scalar wave equation"""
 
     def __init__(self,
@@ -65,8 +66,7 @@ class WaveCell(torch.nn.Module):
                  N : int = 20,
                  sigma : float = 11,
                  p :float = 4.0,
-                 design_region = None, 
-                 init : str = 'half',
+                 design_region = None,
                  satdamp_b0 : float = 0.0,
                  satdamp_uth : float = 0.0,
                  c_nl : float = 0.0,
@@ -102,7 +102,6 @@ class WaveCell(torch.nn.Module):
             self.probes.append(probe)
 
         self._init_design_region(design_region, Nx, Ny)
-        self._init_rho(init, Nx, Ny)
         self._init_b(N, p, sigma)
 
         self.clip_to_design_region()
@@ -142,38 +141,18 @@ class WaveCell(torch.nn.Module):
 
         self.register_buffer('b', torch.sqrt( b_x**2 + b_y**2 ))
 
-    def _init_rho(self, init, Nx, Ny):
-        """Initialize the raw density distribution (which gets trained)"""
-        if type(init) == str:
-            if init == 'rand':
-                raw_rho = torch.round(torch.rand(Nx, Ny))
-            elif init == 'half':
-                raw_rho = torch.ones(Nx, Ny) * 0.5
-            elif init == 'blank':
-                raw_rho = torch.zeros(Nx, Ny)
-            else:
-                raise ValueError('The geometry initialization defined by `init = %s` is invalid' % init)
-        elif type(init) == torch.Tensor:
-            raw_rho = init
-        elif type(init) == np.ndarray:
-            raw_rho = torch.from_numpy(init)
-        else:
-            raise ValueError('The geometry initialization defined by `init` is invalid')
-
-        self.register_parameter('raw_rho', torch.nn.Parameter(raw_rho))
-
     def clip_to_design_region(self):
         """Clip the density to its background value outside of the design region"""
         with torch.no_grad():
-            self.raw_rho[self.design_region==0] = 0.0
-            self.raw_rho[self.b>0] = 0.0
+            self._rho[self.design_region==0] = 0.0
+            self._rho[self.b>0] = 0.0
 
     @property
     def rho(self):
         """Perform the projection of the density, rho"""
         eta = self.eta
         beta = self.beta
-        LPF_rho = conv2d(self.raw_rho.unsqueeze(0).unsqueeze(0), torch.tensor([[KERNEL_LPF]]), padding=1).squeeze()
+        LPF_rho = conv2d(self._rho.unsqueeze(0).unsqueeze(0), torch.tensor([[KERNEL_LPF]]), padding=1).squeeze()
         return (torch.tanh(beta*eta) + torch.tanh(beta*(LPF_rho-eta))) / (torch.tanh(beta*eta) + torch.tanh(beta*(1-eta)))
 
     @property
@@ -281,7 +260,65 @@ class WaveCell(torch.nn.Module):
         return p_out
 
 
-class WaveCell_Holes(WaveCell):
-    def __init__(self, *args, **kwargs):
+class WaveCell(WaveCellBase):
 
-        super().__init__(*args, **kwargs)
+    def __init__(self, init : str,  Nx : int, Ny : int, h : float, dt : float, **kwargs):
+
+        self._init_rho(init, Nx, Ny)
+
+        super().__init__(Nx, Ny, h, dt, **kwargs)
+
+    def _init_rho(self, init, Nx, Ny):
+        """Initialize the raw density distribution (which gets trained)"""
+        if type(init) == str:
+            if init == 'rand':
+                _rho = torch.round(torch.rand(Nx, Ny))
+            elif init == 'half':
+                _rho = torch.ones(Nx, Ny) * 0.5
+            elif init == 'blank':
+                _rho = torch.zeros(Nx, Ny)
+            else:
+                raise ValueError('The geometry initialization defined by `init = %s` is invalid' % init)
+        elif type(init) == torch.Tensor:
+            _rho = init
+        elif type(init) == np.ndarray:
+            _rho = torch.from_numpy(init)
+        else:
+            raise ValueError('The geometry initialization defined by `init` is invalid')
+
+        self.register_parameter('_rho', torch.nn.Parameter(_rho))
+
+
+class WaveCellHoles(WaveCellBase):
+
+    def __init__(self, r, x, y, Nx : int, Ny : int, h : float, dt : float, **kwargs):
+        super().__init__(Nx, Ny, h, dt, **kwargs)
+
+
+
+# xv = torch.linspace(0.0, 10.0, 99)
+# yv = torch.linspace(0.0, 10.0, 99)
+# x, y = torch.meshgrid(xv, yv)
+
+# r0 = torch.tensor([1.0], requires_grad=True)
+# x0 = torch.tensor([2.0], requires_grad=True)
+# y0 = torch.tensor([2.0], requires_grad=True)
+
+# def gen(r0, x0, y0):
+#     rho = torch.zeros(x.shape)
+
+#     for i, (ri, xi, yi) in enumerate(zip(r0, x0, y0)):
+#         r = torch.sqrt((x-xi).pow(2) + (y-yi).pow(2))
+#         rho = rho + torch.exp(-r/ri)
+
+#     return rho
+
+# def proj(rho, eta=torch.tensor(0.5), beta=torch.tensor(200)):
+#     return (torch.tanh(beta*eta) + torch.tanh(beta*(rho-eta))) / (torch.tanh(beta*eta) + torch.tanh(beta*(1-eta)))
+
+# rho = gen(r0, x0, y0)
+# fig, ax = plt.subplots(2,1, constrained_layout=True)
+# ax[0].pcolormesh(x.numpy(), y.numpy(), rho.detach().numpy())
+# ax[1].pcolormesh(x.numpy(), y.numpy(), proj(rho).detach().numpy())
+# ax[0].axis('image')
+# ax[1].axis('image')

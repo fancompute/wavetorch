@@ -6,7 +6,7 @@ from .utils import to_tensor
 
 class Source(torch.nn.Module):
     def __init__(self, x, y):
-        super(Source, self).__init__()
+        super().__init__()
 
         self.register_buffer('x', to_tensor(x))
         self.register_buffer('y', to_tensor(y))
@@ -21,4 +21,4 @@ class Source(torch.nn.Module):
 class LineSource(Source):
     def __init__(self, r0, c0, r1, c1):
         x, y = skimage.draw.line(r0, c0, r1, c1)
-        super(LineSource, self).__init__(x, y)
+        super().__init__(x, y)
