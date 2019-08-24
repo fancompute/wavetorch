@@ -1,4 +1,7 @@
 """Perform vowel recognition training.
+
+This script is a **work-in-progress** of trying to get training to work with skorch / scikit-learn
+
 """
 
 import torch
