@@ -76,13 +76,13 @@ def _plot_probes(model, ax, vowel_probe_labels=None, highlight_onehot=None, bg='
     for i, probe in enumerate(model.probes):
         if highlight_onehot is None:
             color_probe = 'r'
-            color_source = 'k'
         else:
             color_probe = props.color_highlight if highlight_onehot[0,i].item() == 1 else props.color_dim[bg]
-            color_source = props.color_dim[bg]
 
         marker = probe.plot(ax, color=color_probe)
         markers.append(marker)        
+
+    color_source = 'k' if highlight_onehot is None else props.color_dim[bg]
 
     for source in model.sources:
         marker = source.plot(ax, color=color_source)
