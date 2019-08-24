@@ -210,10 +210,10 @@ def animate_fields(model, fields, ylabel, batch=0, block=True, filename=None, in
     fig, ax = plt.subplots(1, 1, constrained_layout=True, figsize=(fig_width, fig_width*model.Ny/model.Nx))
     im = ax.imshow(np.zeros((model.Ny, model.Nx)), cmap=plt.cm.RdBu, animated=True, vmin=-field_max, vmax=+field_max, origin="bottom")
 
-    _, markers = plot_structure(model, ax=ax, outline=True, outline_pml=True, highlight_onehot=ylabel, bg='light')
+    _, markers = structure(model, ax=ax, outline=True, outline_pml=True, highlight_onehot=ylabel, bg='light')
     markers = tuple(markers)
 
-    title = ax.text(0.03, 0.03, "", transform=ax.transAxes, ha="left", va="bottom", bbox=bbox_white)
+    title = ax.text(0.03, 0.03, "", transform=ax.transAxes, ha="left", va="bottom", bbox=props.bbox_white)
 
     def animate(i):
         title.set_text("Time step n = %d" % i)

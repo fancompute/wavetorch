@@ -52,7 +52,7 @@ class WaveTorch(object):
         getattr(self, args.command)(args)
 
     def fields(self, args):
-        model, history, history_state, cfg = wavetorch.core.load_model(args.filename)
+        model, history, history_state, cfg = wavetorch.utils.load_model(args.filename)
 
         print("Configuration for model in %s is:" % args.filename)
         print(yaml.dump(cfg, default_flow_style=False))
@@ -70,15 +70,16 @@ class WaveTorch(object):
         for i in range(N_classes):
             xb, yb = wavetorch.data.select_vowel_sample(X, Y, F, i, ind=args.vowel_samples[i] if args.vowel_samples is not None else None)
             with torch.no_grad():
-                fields = model(xb, probe_output=False)
-                wavetorch.viz.plot_probe_integrals(model, fields, yb, xb, ax=axs2)
-                wavetorch.viz.plot_field_snapshot(model, fields, args.times, yb, fig_width=6, block=False, axs=axs[i,:])
+                model.output_probe = torch.tensor(False)
+                fields = model(xb)
+                wavetorch.plot.probe_integrals(model, fields, yb, xb, ax=axs2)
+                wavetorch.plot.field_snapshot(model, fields, args.times, yb, fig_width=6, block=False, axs=axs[i,:])
                 axs[i,0].text(-0.05, 0.5, vowels[i] + ' vowel', transform=axs[i,0].transAxes, ha="right", va="center")
                 # axs[i].set_ylabel(r"Probe $\int \vert u_n \vert^2 dt$")
 
         # axs[-1].set_xlabel("Time")
         if args.labels:
-            wavetorch.viz.apply_sublabels(axs.ravel(), xy=[(5,-5)], size='medium', weight='bold', ha='left', va='top')
+            wavetorch.plot.apply_sublabels(axs.ravel(), xy=[(5,-5)], size='medium', weight='bold', ha='left', va='top')
         plt.show()
 
     def stft(self, args):
@@ -103,7 +104,8 @@ class WaveTorch(object):
                 ax = axs[j, 0]
                 ax.set_facecolor('black')
 
-                field_dist = model(xb, probe_output=False)
+                model.output_probe = torch.tensor(False)
+                field_dist = model(xb)
                 probe_series = field_dist[0, :, model.px, model.py]
 
                 input_stft = np.abs(librosa.stft(xb.numpy().squeeze(), n_fft=256))
@@ -153,7 +155,7 @@ class WaveTorch(object):
         plt.show()
 
     def animate(self, args):
-        model, history, history_state, cfg = wavetorch.core.load_model(args.filename)
+        model, history, history_state, cfg = wavetorch.utils.load_model(args.filename)
 
         print("Configuration for model in %s is:" % args.filename)
         print(yaml.dump(cfg, default_flow_style=False))
@@ -166,8 +168,9 @@ class WaveTorch(object):
             xb, yb = wavetorch.data.select_vowel_sample(X, Y, F, i, ind=args.vowel_samples[i] if args.vowel_samples is not None else None)
             with torch.no_grad():
                 this_savename = None if args.saveprefix is None else args.saveprefix + str(i) + '.mp4'
-                field_dist = model(xb, probe_output=False)
-                wavetorch.viz.animate_fields(model, field_dist, yb, filename=this_savename, interval=1)
+                model.output_probe = torch.tensor(False)
+                field_dist = model(xb)
+                wavetorch.plot.animate_fields(model, field_dist, yb, filename=this_savename, interval=1)
 
 if __name__ == '__main__':
     WaveTorch()
