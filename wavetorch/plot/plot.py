@@ -145,18 +145,19 @@ def structure(model,
 def probe_integrals(model, fields_in, ylabel, x, block=False, ax=None):
     """Plot the time integrated probe signals
     """
-    probe_fields = fields_in[0, :, model.px, model.py].numpy()
+    # probe_fields = fields_in[0, :, model.px, model.py].numpy()
 
-    I = np.cumsum(np.abs(probe_fields)**2, axis=0)
+    # I = np.cumsum(np.abs(probe_fields)**2, axis=0)
 
-    if ax is None:
-        fig, axs = plt.subplots(3, 2, constrained_layout=True, figsize=(3.7, 2))
+    # if ax is None:
+    #     fig, axs = plt.subplots(3, 2, constrained_layout=True, figsize=(3.7, 2))
 
-    for j in range(I.shape[1]):
-        ax[j,1].plot(I[:,j], "-" if ylabel[0,j].item() == 1 else "--")
+    # for j in range(I.shape[1]):
+    #     ax[j,1].plot(I[:,j], "-" if ylabel[0,j].item() == 1 else "--")
 
-    ax[ylabel[0,:].argmax().item(),0].plot(x.squeeze().numpy(), linewidth=0.75)
-    plt.show(block=block)
+    # ax[ylabel[0,:].argmax().item(),0].plot(x.squeeze().numpy(), linewidth=0.75)
+    # plt.show(block=block)
+    pass
 
 
 def field_snapshot(model, fields, times, ylabel, fig_width=6, block=False, axs=None, label=True, cbar=True, Ny=1):
