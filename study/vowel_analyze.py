@@ -82,77 +82,77 @@ class WaveTorch(object):
             wavetorch.plot.apply_sublabels(axs.ravel(), xy=[(5,-5)], size='medium', weight='bold', ha='left', va='top')
         plt.show()
 
-    def stft(self, args):
-        model, history, history_state, cfg = wavetorch.core.load_model(args.filename)
+    # def stft(self, args):
+    #     model, history, history_state, cfg = wavetorch.utils.load_model(args.filename)
 
-        print("Configuration for model in %s is:" % args.filename)
-        print(yaml.dump(cfg, default_flow_style=False))
+    #     print("Configuration for model in %s is:" % args.filename)
+    #     print(yaml.dump(cfg, default_flow_style=False))
 
-        sr = cfg['data']['sr']
-        gender = cfg['data']['gender']
-        vowels = cfg['data']['vowels']
-        N_classes = len(vowels)
+    #     sr = cfg['data']['sr']
+    #     gender = cfg['data']['gender']
+    #     vowels = cfg['data']['vowels']
+    #     N_classes = len(vowels)
 
-        X, Y, F = wavetorch.data.load_all_vowels(vowels, gender='both', sr=sr, normalize=True, random_state=0)
+    #     X, Y, F = wavetorch.data.load_all_vowels(vowels, gender='both', sr=sr, normalize=True, random_state=0)
 
-        fig, axs = plt.subplots(N_classes, N_classes+1, constrained_layout=True, figsize=(4.5*(N_classes+1)/N_classes,4.5), sharex=True, sharey=True)
+    #     fig, axs = plt.subplots(N_classes, N_classes+1, constrained_layout=True, figsize=(4.5*(N_classes+1)/N_classes,4.5), sharex=True, sharey=True)
 
-        for i in range(N_classes):
-            xb, yb = wavetorch.data.select_vowel_sample(X, Y, F, i, ind=args.vowel_samples[i] if args.vowel_samples is not None else None)
-            with torch.no_grad():
-                j = yb.argmax().item()
-                ax = axs[j, 0]
-                ax.set_facecolor('black')
+    #     for i in range(N_classes):
+    #         xb, yb = wavetorch.data.select_vowel_sample(X, Y, F, i, ind=args.vowel_samples[i] if args.vowel_samples is not None else None)
+    #         with torch.no_grad():
+    #             j = yb.argmax().item()
+    #             ax = axs[j, 0]
+    #             ax.set_facecolor('black')
 
-                model.output_probe = torch.tensor(False)
-                field_dist = model(xb)
-                probe_series = field_dist[0, :, model.px, model.py]
+    #             model.output_probe = torch.tensor(True)
+    #             field_dist = model(xb)
+    #             probe_series = field_dist
 
-                input_stft = np.abs(librosa.stft(xb.numpy().squeeze(), n_fft=256))
+    #             input_stft = np.abs(librosa.stft(xb.numpy().squeeze(), n_fft=256))
 
-                librosa.display.specshow(
-                    librosa.amplitude_to_db(input_stft,ref=np.max(input_stft)),
-                    sr=sr,
-                    vmax=0,
-                    ax=ax,
-                    vmin=-50,
-                    y_axis='linear',
-                    x_axis='time',
-                    cmap=plt.cm.inferno
-                )
-                ax.set_ylim([0,sr/2])
-                if j == 0:
-                    ax.set_title("Input signal")
+    #             librosa.display.specshow(
+    #                 librosa.amplitude_to_db(input_stft,ref=np.max(input_stft)),
+    #                 sr=sr,
+    #                 vmax=0,
+    #                 ax=ax,
+    #                 vmin=-50,
+    #                 y_axis='linear',
+    #                 x_axis='time',
+    #                 cmap=plt.cm.inferno
+    #             )
+    #             ax.set_ylim([0,sr/2])
+    #             if j == 0:
+    #                 ax.set_title("Input signal")
 
-                for k in range(1, probe_series.shape[1]+1):
-                    ax = axs[j, k]
+    #             for k in range(1, probe_series.shape[1]+1):
+    #                 ax = axs[j, k]
                     
-                    output_stft = np.abs(librosa.stft(probe_series[:,k-1].numpy(), n_fft=256))
+    #                 output_stft = np.abs(librosa.stft(probe_series[:,k-1].numpy(), n_fft=256))
 
-                    librosa.display.specshow(
-                        librosa.amplitude_to_db(output_stft,ref=np.max(input_stft)),
-                        sr=sr,
-                        vmax=0,
-                        ax=ax,
-                        vmin=-50,
-                        y_axis='linear',
-                        x_axis='time',
-                        cmap=plt.cm.inferno
-                    )
-                    ax.set_ylim([0,sr/2])
+    #                 librosa.display.specshow(
+    #                     librosa.amplitude_to_db(output_stft,ref=np.max(input_stft)),
+    #                     sr=sr,
+    #                     vmax=0,
+    #                     ax=ax,
+    #                     vmin=-50,
+    #                     y_axis='linear',
+    #                     x_axis='time',
+    #                     cmap=plt.cm.inferno
+    #                 )
+    #                 ax.set_ylim([0,sr/2])
 
-                    if j == 0:
-                        ax.set_title("Output probe %d" % (k))
-                    if k == 1:
-                        ax.text(-0.3, 0.5, vowels[j] + ' vowel', transform=ax.transAxes, ha="right", va="center")
+    #                 if j == 0:
+    #                     ax.set_title("Output probe %d" % (k))
+    #                 if k == 1:
+    #                     ax.text(-0.3, 0.5, vowels[j] + ' vowel', transform=ax.transAxes, ha="right", va="center")
                     
-                    if k > 0:
-                        ax.set_ylabel('')
-                    if j < N_classes-1:
-                        ax.set_xlabel('')
-                    # if j == k:
-                        # ax.text(0.5, 0.95, '%s at probe #%d' % (vowels[j], k+1), color="w", transform=ax.transAxes, ha="center", va="top", fontsize="large")
-        plt.show()
+    #                 if k > 0:
+    #                     ax.set_ylabel('')
+    #                 if j < N_classes-1:
+    #                     ax.set_xlabel('')
+    #                 # if j == k:
+    #                     # ax.text(0.5, 0.95, '%s at probe #%d' % (vowels[j], k+1), color="w", transform=ax.transAxes, ha="center", va="top", fontsize="large")
+    #     plt.show()
 
     def animate(self, args):
         model, history, history_state, cfg = wavetorch.utils.load_model(args.filename)
