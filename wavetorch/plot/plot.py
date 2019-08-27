@@ -160,7 +160,7 @@ def probe_integrals(model, fields_in, ylabel, x, block=False, ax=None):
     pass
 
 
-def field_snapshot(model, fields, times, ylabel, fig_width=6, block=False, axs=None, label=True, cbar=True, Ny=1):
+def field_snapshot(model, fields, times, ylabel, fig_width=6, block=False, axs=None, label=True, cbar=True, Ny=1, sat=1.0):
     """Plot snapshots in time of the scalar wave field
     """
     field_slices = fields[0, times, :, :]
@@ -176,6 +176,7 @@ def field_snapshot(model, fields, times, ylabel, fig_width=6, block=False, axs=N
         fig_height = fig_width * Ny*Wy/Nx/Wx
         fig, axs = plt.subplots(Ny, Nx, constrained_layout=True, figsize=(fig_width, fig_height))
 
+    axs = np.atleast_1d(axs)
     axs = axs.ravel()
 
     field_max = field_slices.max().item()
@@ -183,7 +184,7 @@ def field_snapshot(model, fields, times, ylabel, fig_width=6, block=False, axs=N
     for i, time in enumerate(times):
         field = field_slices[i, :, :].numpy().transpose()
         
-        h = axs[i].imshow(field, cmap=plt.cm.RdBu, vmin=-field_max, vmax=+field_max, origin="bottom", rasterized=True)
+        h = axs[i].imshow(field, cmap=plt.cm.RdBu, vmin=-sat * field_max, vmax=+sat * field_max, origin="bottom", rasterized=True)
         structure(model, ax=axs[i], outline=True, outline_pml=True, highlight_onehot=ylabel, bg='light')
 
         axs[i].set_xticks([])
@@ -202,6 +203,8 @@ def field_snapshot(model, fields, times, ylabel, fig_width=6, block=False, axs=N
         axs[j].axis('off')
 
     plt.show(block=block)
+
+    return axs
 
 
 def animate_fields(model, fields, ylabel, batch=0, block=True, filename=None, interval=30, window_length=None, fig_width=3.5):
