@@ -289,36 +289,3 @@ class WaveCell(WaveCellBase):
         self.register_parameter('_rho', torch.nn.Parameter(_rho))
 
 
-class WaveCellHoles(WaveCellBase):
-
-    def __init__(self, r, x, y, Nx : int, Ny : int, h : float, dt : float, **kwargs):
-        super().__init__(Nx, Ny, h, dt, **kwargs)
-
-
-
-# xv = torch.linspace(0.0, 10.0, 99)
-# yv = torch.linspace(0.0, 10.0, 99)
-# x, y = torch.meshgrid(xv, yv)
-
-# r0 = torch.tensor([1.0], requires_grad=True)
-# x0 = torch.tensor([2.0], requires_grad=True)
-# y0 = torch.tensor([2.0], requires_grad=True)
-
-# def gen(r0, x0, y0):
-#     rho = torch.zeros(x.shape)
-
-#     for i, (ri, xi, yi) in enumerate(zip(r0, x0, y0)):
-#         r = torch.sqrt((x-xi).pow(2) + (y-yi).pow(2))
-#         rho = rho + torch.exp(-r/ri)
-
-#     return rho
-
-# def proj(rho, eta=torch.tensor(0.5), beta=torch.tensor(200)):
-#     return (torch.tanh(beta*eta) + torch.tanh(beta*(rho-eta))) / (torch.tanh(beta*eta) + torch.tanh(beta*(1-eta)))
-
-# rho = gen(r0, x0, y0)
-# fig, ax = plt.subplots(2,1, constrained_layout=True)
-# ax[0].pcolormesh(x.numpy(), y.numpy(), rho.detach().numpy())
-# ax[1].pcolormesh(x.numpy(), y.numpy(), proj(rho).detach().numpy())
-# ax[0].axis('image')
-# ax[1].axis('image')
