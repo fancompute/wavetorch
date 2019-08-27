@@ -76,13 +76,13 @@ def _plot_probes(model, ax, vowel_probe_labels=None, highlight_onehot=None, bg='
     for i, probe in enumerate(model.probes):
         if highlight_onehot is None:
             color_probe = 'r'
-            color_source = 'k'
         else:
             color_probe = props.color_highlight if highlight_onehot[0,i].item() == 1 else props.color_dim[bg]
-            color_source = props.color_dim[bg]
 
         marker = probe.plot(ax, color=color_probe)
         markers.append(marker)        
+
+    color_source = 'k' if highlight_onehot is None else props.color_dim[bg]
 
     for source in model.sources:
         marker = source.plot(ax, color=color_source)
@@ -145,21 +145,22 @@ def structure(model,
 def probe_integrals(model, fields_in, ylabel, x, block=False, ax=None):
     """Plot the time integrated probe signals
     """
-    probe_fields = fields_in[0, :, model.px, model.py].numpy()
+    # probe_fields = fields_in[0, :, model.px, model.py].numpy()
 
-    I = np.cumsum(np.abs(probe_fields)**2, axis=0)
+    # I = np.cumsum(np.abs(probe_fields)**2, axis=0)
 
-    if ax is None:
-        fig, axs = plt.subplots(3, 2, constrained_layout=True, figsize=(3.7, 2))
+    # if ax is None:
+    #     fig, axs = plt.subplots(3, 2, constrained_layout=True, figsize=(3.7, 2))
 
-    for j in range(I.shape[1]):
-        ax[j,1].plot(I[:,j], "-" if ylabel[0,j].item() == 1 else "--")
+    # for j in range(I.shape[1]):
+    #     ax[j,1].plot(I[:,j], "-" if ylabel[0,j].item() == 1 else "--")
 
-    ax[ylabel[0,:].argmax().item(),0].plot(x.squeeze().numpy(), linewidth=0.75)
-    plt.show(block=block)
+    # ax[ylabel[0,:].argmax().item(),0].plot(x.squeeze().numpy(), linewidth=0.75)
+    # plt.show(block=block)
+    pass
 
 
-def field_snapshot(model, fields, times, ylabel, fig_width=6, block=False, axs=None, label=True, cbar=True, Ny=1):
+def field_snapshot(model, fields, times, ylabel, fig_width=6, block=False, axs=None, label=True, cbar=True, Ny=1, sat=1.0):
     """Plot snapshots in time of the scalar wave field
     """
     field_slices = fields[0, times, :, :]
@@ -175,6 +176,7 @@ def field_snapshot(model, fields, times, ylabel, fig_width=6, block=False, axs=N
         fig_height = fig_width * Ny*Wy/Nx/Wx
         fig, axs = plt.subplots(Ny, Nx, constrained_layout=True, figsize=(fig_width, fig_height))
 
+    axs = np.atleast_1d(axs)
     axs = axs.ravel()
 
     field_max = field_slices.max().item()
@@ -182,7 +184,7 @@ def field_snapshot(model, fields, times, ylabel, fig_width=6, block=False, axs=N
     for i, time in enumerate(times):
         field = field_slices[i, :, :].numpy().transpose()
         
-        h = axs[i].imshow(field, cmap=plt.cm.RdBu, vmin=-field_max, vmax=+field_max, origin="bottom", rasterized=True)
+        h = axs[i].imshow(field, cmap=plt.cm.RdBu, vmin=-sat * field_max, vmax=+sat * field_max, origin="bottom", rasterized=True)
         structure(model, ax=axs[i], outline=True, outline_pml=True, highlight_onehot=ylabel, bg='light')
 
         axs[i].set_xticks([])
@@ -202,6 +204,8 @@ def field_snapshot(model, fields, times, ylabel, fig_width=6, block=False, axs=N
 
     plt.show(block=block)
 
+    return axs
+
 
 def animate_fields(model, fields, ylabel, batch=0, block=True, filename=None, interval=30, window_length=None, fig_width=3.5):
 
@@ -210,10 +214,10 @@ def animate_fields(model, fields, ylabel, batch=0, block=True, filename=None, in
     fig, ax = plt.subplots(1, 1, constrained_layout=True, figsize=(fig_width, fig_width*model.Ny/model.Nx))
     im = ax.imshow(np.zeros((model.Ny, model.Nx)), cmap=plt.cm.RdBu, animated=True, vmin=-field_max, vmax=+field_max, origin="bottom")
 
-    _, markers = plot_structure(model, ax=ax, outline=True, outline_pml=True, highlight_onehot=ylabel, bg='light')
+    _, markers = structure(model, ax=ax, outline=True, outline_pml=True, highlight_onehot=ylabel, bg='light')
     markers = tuple(markers)
 
-    title = ax.text(0.03, 0.03, "", transform=ax.transAxes, ha="left", va="bottom", bbox=bbox_white)
+    title = ax.text(0.03, 0.03, "", transform=ax.transAxes, ha="left", va="bottom", bbox=props.bbox_white)
 
     def animate(i):
         title.set_text("Time step n = %d" % i)
