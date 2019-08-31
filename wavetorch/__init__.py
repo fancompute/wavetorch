@@ -1,11 +1,9 @@
 
 name='wavetorch'
 
-import wavetorch.data
-import wavetorch.plot
-import wavetorch.utils
+from . import data, plot, utils
 
-from wavetorch.cell import WaveCell
-from wavetorch.train import train
-from wavetorch.probe import Probe, IntensityProbe
-from wavetorch.source import Source, LineSource
+from .cell import WaveCell
+from .train import train
+from .probe import Probe, IntensityProbe
+from .source import Source, LineSource
