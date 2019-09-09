@@ -1,19 +1,15 @@
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib as mpl
+import copy
+import os
 
+import numpy as np
+import torch
 from sklearn.metrics import confusion_matrix
 
-import torch
 import wavetorch
 
-import time
-import os
-import socket
-import copy
 
 def to_tensor(x):
-    if type(x) is np.ndarray: 
+    if type(x) is np.ndarray:
         x = torch.from_numpy(x)
     else:
         x = torch.tensor(x)
