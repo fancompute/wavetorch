@@ -23,7 +23,7 @@ def setup_src_coords(src_x, src_y, Nx, Ny, Npml):
         return [wavetorch.Source(src_x, src_y)]
     else:
         # Center at left
-        return [wavetorch.Source(Npml+20, int(Ny/2))]
+        return [wavetorch.Source(Npml + 20, int(Ny / 2))]
 
 
 def setup_probe_coords(N_classes, px, py, pd, Nx, Ny, Npml):
@@ -31,22 +31,22 @@ def setup_probe_coords(N_classes, px, py, pd, Nx, Ny, Npml):
         # All probe coordinate are specified
         assert len(px) == len(py), "Length of px and py must match"
 
-        return [wavetorch.IntensityProbe(px[j], py[j]) for j in range(0,len(px))]
+        return [wavetorch.IntensityProbe(px[j], py[j]) for j in range(0, len(px))]
 
     if (py is None) and (pd is not None):
         # Center the probe array in y
-        span = (N_classes-1)*pd
-        y0 = int((Ny-span)/2)
+        span = (N_classes - 1) * pd
+        y0 = int((Ny - span) / 2)
         assert y0 > Npml, "Bottom element of array is inside the PML"
-        y = [y0 + i*pd for i in range(N_classes)]
+        y = [y0 + i * pd for i in range(N_classes)]
 
         if px is not None:
             assert len(px) == 1, "If py is not specified then px must be of length 1"
             x = [px[0] for i in range(N_classes)]
         else:
-            x = [Nx-Npml-20 for i in range(N_classes)]
+            x = [Nx - Npml - 20 for i in range(N_classes)]
 
-        return [wavetorch.IntensityProbe(x[j], y[j]) for j in range(0,len(x))]
+        return [wavetorch.IntensityProbe(x[j], y[j]) for j in range(0, len(x))]
 
     raise ValueError("px = {}, py = {}, pd = {} is an invalid probe configuration".format(pd))
 
@@ -54,18 +54,19 @@ def setup_probe_coords(N_classes, px, py, pd, Nx, Ny, Npml):
 def window_data(X, window_length):
     """Window the sample, X, to a length of window_length centered at the middle of the original sample
     """
-    return X[int(len(X)/2-window_length/2):int(len(X)/2+window_length/2)]
+    return X[int(len(X) / 2 - window_length / 2):int(len(X) / 2 + window_length / 2)]
+
 
 def save_model(model,
-               name, 
-               savedir='./study/', 
-               history=None, 
-               history_model_state=None, 
-               cfg=None, 
+               name,
+               savedir='./study/',
+               history=None,
+               history_model_state=None,
+               cfg=None,
                verbose=True):
     """Save the model state and history to a file
     """
-    str_filename = name +  '.pt'
+    str_filename = name + '.pt'
     if not os.path.exists(savedir):
         os.makedirs(savedir)
     str_savepath = savedir + str_filename
@@ -98,8 +99,8 @@ def load_model(str_filename, which_iteration=-1):
     model = wavetorch.WaveCell(init='half',
                                Nx=model_state['Nx'].item(),
                                Ny=model_state['Ny'].item(),
-                               dt=model_state['dt'].item(), 
-                               h =model_state['h'].item())
+                               dt=model_state['dt'].item(),
+                               h=model_state['h'].item())
 
     # Load in everything other than the probes and sources (because pytorch is too stupid to know how to handle ModuleLists)
     loaded_dict = {k: model_state[k] for k in model_state if 'probes' not in k and 'sources' not in k}
@@ -113,11 +114,11 @@ def load_model(str_filename, which_iteration=-1):
 
     # Manually add the probes and sources
     for (x, y) in zip(px, py):
-        model.add_probe(wavetorch.IntensityProbe(x,y))
+        model.add_probe(wavetorch.IntensityProbe(x, y))
 
     for (x, y) in zip(sx, sy):
-        model.add_source(wavetorch.Source(x,y))
-    
+        model.add_source(wavetorch.Source(x, y))
+
     # Put into eval mode (doesn't really matter for us but whatever)
     model.eval()
 
@@ -148,6 +149,7 @@ def calc_cm(model, dataloader, verbose=True):
         y_truth = torch.cat(list_yb, dim=0)
 
     return confusion_matrix(y_truth.argmax(dim=1).numpy(), y_pred.argmax(dim=1).numpy())
+
 
 def set_dtype(dtype=None):
     if dtype == 'float32' or dtype is None:

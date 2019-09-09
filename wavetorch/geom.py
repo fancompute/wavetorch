@@ -1,106 +1,138 @@
 import torch
 from torch.nn.functional import conv2d
 import numpy as np
+from typing import Tuple
 
-KERNEL_LPF = [[1/9, 1/9, 1/9],
-              [1/9, 1/9, 1/9],
-              [1/9, 1/9, 1/9]]
+KERNEL_LPF = [[1 / 9, 1 / 9, 1 / 9],
+              [1 / 9, 1 / 9, 1 / 9],
+              [1 / 9, 1 / 9, 1 / 9]]
 
-class Geometry(object):
-    """
-    Defines the geometry to be used by one of the physics cells
-    """
-    def __init__(self,
-                 Nx : int, 
-                 Ny : int, 
-                 h : float, 
-                 c0 : float = 1.0, 
-                 c1 : float = 0.9,
-                 design_region = None, 
-                 init : str = 'half', 
-                 eta : float = 0.5, 
-                 beta: float = 100.0):
 
-        super(Geometry, self).__init__()
+class WaveGeometry(object):
+    def __init__(self, domain_shape: Tuple, h: float, c0: float, c1: float, abs_N: int = 20, abs_sig: float = 11,
+                 abs_p: float = 4.0):
+        super().__init__()
 
-        self.h    = h
-        self.Nx   = Nx 
-        self.Ny   = Ny
-        self.eta  = eta
+        assert len(domain_shape) == 2, "len(shape) must be equal to 2; Only 2D domains are supported"
+
+        self.domain_shape = domain_shape
+        self.h = h
+        self.c0 = c0
+        self.c1 = c1
+
+        self._init_b(abs_N, abs_sig, abs_p)
+
+    def __repr__(self):
+        return "Geometry {}, {}".format(self.domain_shape, self.h)
+
+    @property
+    def c(self):
+        raise NotImplementedError
+
+    @property
+    def b(self):
+        return self._b
+
+    @property
+    def cmax(self):
+        """Helper function for getting the maximum wave speed for calculating CFL"""
+        return np.max([self.c0, self.c1])
+
+    def parameters(self):
+        raise NotImplementedError
+
+    def constrain_to_design_region(self):
+        pass
+
+    def _init_b(self, abs_N: int, abs_sig: float, abs_p: float):
+        """Initialize the distribution of the damping parameter for the PML"""
+
+        Nx, Ny = self.domain_shape
+
+        assert Nx > 2 * abs_N + 1, "The domain isn't large enough in the x-direction to fit absorbing layer. Nx = {} and N = {}".format(
+            Nx, abs_N)
+        assert Ny > 2 * abs_N + 1, "The domain isn't large enough in the y-direction to fit absorbing layer. Ny = {} and N = {}".format(
+            Ny, abs_N)
+
+        self.abs_N = abs_N
+        self.abs_p = abs_p
+        self.abs_sig = abs_sig
+
+        b_vals = abs_sig * torch.linspace(0.0, 1.0, abs_N + 1) ** abs_p
+
+        b_x = torch.zeros(Nx, Ny)
+        b_y = torch.zeros(Nx, Ny)
+
+        if abs_N > 0:
+            b_x[0:N + 1, :] = torch.flip(b_vals, [0]).repeat(Ny, 1).transpose(0, 1)
+            b_x[(Nx - N - 1):Nx, :] = b_vals.repeat(Ny, 1).transpose(0, 1)
+
+            b_y[:, 0:N + 1] = torch.flip(b_vals, [0]).repeat(Nx, 1)
+            b_y[:, (Ny - N - 1):Ny] = b_vals.repeat(Nx, 1)
+
+        self._b = torch.sqrt(b_x ** 2 + b_y ** 2)
+
+
+class HoleyWaveGeometry(WaveGeometry):
+    def __init__(self, domain_shape: Tuple, h: float, c0: float, c1: float, abs_N: int = 20, abs_sig: float = 11,
+                 abs_p: float = 4.0):
+        super().__init__(domain_shape, h, c0, c1, abs_N, abs_sig, abs_p)
+
+
+class ProjectedWaveGeometry(WaveGeometry):
+    def __init__(self, domain_shape: Tuple, h: float, c0: float, c1: float, abs_N: int = 20, abs_sig: float = 11,
+                 abs_p: float = 4.0, eta: float = 0.5, beta: float = 100.0, design_region=None):
+
+        super().__init__(domain_shape, h, c0, c1, abs_N, abs_sig, abs_p)
+
+        self.eta = eta
         self.beta = beta
-        self.c0   = c0
-        self.c1   = c1
 
-        self.sources = []
-        self.probes = []
-
-        self.boundary_absorber = None
-
-        self._init_design_region(design_region, Nx, Ny)
-        self._init_rho(init, Nx, Ny)
+        self._init_design_region(design_region, domain_shape)
+        self._init_rho(init, domain_shape)
         self.clip_to_design_region()
 
-    def _init_design_region(self, design_region, Nx, Ny):
+    def _init_design_region(self, design_region, domain_shape):
         if design_region is not None:
             # Use the specified design region
-            assert design_region.shape == (Nx, Ny), "Design region mask dims must match spatial dims"
+            assert design_region.shape == domain_shape, "The design region shape must match domain shape; design_region.shape = {} domain_shape = {}".format(
+                design_region.shape, domain_shape)
             if type(design_region) is np.ndarray:
                 design_region = torch.from_numpy(design_region)
-            self.design_region = design_region
+            self.design_region = design_region.type(torch.uint8)
         else:
             # Just use the whole domain as the design region
-            self.design_region = torch.ones(Nx, Ny)
+            self.design_region = torch.ones(domain_shape).type(torch.uint8)
 
-    def _init_rho(self, init, Nx, Ny):
+    def _init_rho(self, init, domain_shape):
         if init == 'rand':
-            self.rho = torch.nn.Parameter( torch.round(torch.rand(Nx, Ny)) )
+            self.rho = torch.nn.Parameter(torch.round(torch.rand(domain_shape)))
         elif init == 'half':
-            self.rho = torch.nn.Parameter( torch.ones(Nx, Ny) * 0.5 )
+            self.rho = torch.nn.Parameter(torch.ones(domain_shape) * 0.5)
         elif init == 'blank':
-            self.rho = torch.nn.Parameter( torch.zeros(Nx, Ny) )
+            self.rho = torch.nn.Parameter(torch.zeros(domain_shape))
         else:
             raise ValueError('The geometry initialization defined by `init = %s` is invalid' % init)
 
-    def clip_to_design_region(self):
+    def constrain_to_design_region(self):
         """Clip the wave speed to its background value outside of the design region."""
         with torch.no_grad():
-            self.rho[self.design_region==0] = 0.0
+            self.rho[self.design_region == 0] = 0.0
             if self.boundary_absorber is not None:
-                self.rho[self.boundary_absorber.b>0] = 0.0
+                self.rho[self.boundary_absorber.b > 0] = 0.0
 
     def _project_rho(self):
         """Perform the projection of the density, rho"""
         eta = self.eta
         beta = self.beta
-        LPF_rho = torch.nn.functional.conv2d(self.rho.unsqueeze(0).unsqueeze(0), torch.tensor([[KERNEL_LPF]]), padding=1).squeeze()
-        return (np.tanh(beta*eta) + torch.tanh(beta*(LPF_rho-eta))) / (np.tanh(beta*eta) + np.tanh(beta*(1-eta)))
+        LPF_rho = torch.nn.functional.conv2d(self.rho.unsqueeze(0).unsqueeze(0), torch.tensor([[KERNEL_LPF]]),
+                                             padding=1).squeeze()
+        return (np.tanh(beta * eta) + torch.tanh(beta * (LPF_rho - eta))) / (
+                np.tanh(beta * eta) + np.tanh(beta * (1 - eta)))
 
     @property
     def c(self):
-        return self.c0 + (self.c1-self.c0)*self._project_rho()
-
-    def get_cmax(self):
-        """Helper function for getting the maximum wave speed for calculating CFL"""
-        return np.max([self.c0, self.c1])
-
-    def __repr__(self):
-        return "Geometry\n   Nx={}, Ny={}, h={}".format(self.Nx, self.Ny, self.h)
-
-    def add_boundary_absorber(self, N=20, p=3.0, sigma=11.1):
-        self.boundary_absorber = BoundaryAbsorber(self.Nx, self.Ny, N, p, sigma)
-
-    def add_source(self, source):
-        self.sources.append(source)
-
-    def add_probe(self, probe):
-        self.probes.append(probe)
-
-class WaveCellHoles(WaveCellBase):
-
-    def __init__(self, r, x, y, Nx : int, Ny : int, h : float, dt : float, **kwargs):
-        super().__init__(Nx, Ny, h, dt, **kwargs)
-
-
+        return self.c0 + (self.c1 - self.c0) * self._project_rho()
 
 # xv = torch.linspace(0.0, 10.0, 99)
 # yv = torch.linspace(0.0, 10.0, 99)
