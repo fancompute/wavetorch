@@ -108,26 +108,26 @@ if __name__ == '__main__':
 
     ax_loss.legend(fontsize='small')
 
-    # ax_acc.annotate("%.1f%% training set accuracy" % (history_mean['acc_train'].tail(1).item()*100), xy=(0.1,0.1), xytext=(0,10), textcoords="offset points",  xycoords="axes fraction", ha="left", va="bottom", color=COL_TRAIN)
-    # ax_acc.annotate("%.1f%% testing set accuracy" % (history_mean['acc_test'].tail(1).item()*100), xy=(0.1,0.1), xycoords="axes fraction", ha="left", va="bottom", color=COL_TEST)
-    ax_acc.annotate('%.1f\%%' % (history_mean['acc_train'].tail(1).item()*100),
-                xy=(epochs[-1], history_mean['acc_train'].tail(1).item()*100), xycoords='data',
+    # ax_acc.annotate("%.1f%% training set accuracy" % (history_mean['acc_train'].tail(1).iloc[0]*100), xy=(0.1,0.1), xytext=(0,10), textcoords="offset points",  xycoords="axes fraction", ha="left", va="bottom", color=COL_TRAIN)
+    # ax_acc.annotate("%.1f%% testing set accuracy" % (history_mean['acc_test'].tail(1).iloc[0]*100), xy=(0.1,0.1), xycoords="axes fraction", ha="left", va="bottom", color=COL_TEST)
+    ax_acc.annotate('%.1f\%%' % (history_mean['acc_train'].tail(1).iloc[0]*100),
+                xy=(epochs[-1], history_mean['acc_train'].tail(1).iloc[0]*100), xycoords='data',
                 xytext=(-1, 5), textcoords='offset points', ha='left', va='center', fontsize='small',
                 color=COL_TRAIN, bbox=wavetorch.plot.props.bbox_white)
-    ax_acc.annotate('%.1f\%%' % (history_mean['acc_test'].tail(1).item()*100),
-                xy=(epochs[-1], history_mean['acc_test'].tail(1).item()*100), xycoords='data',
+    ax_acc.annotate('%.1f\%%' % (history_mean['acc_test'].tail(1).iloc[0]*100),
+                xy=(epochs[-1], history_mean['acc_test'].tail(1).iloc[0]*100), xycoords='data',
                 xytext=(-1, -5), textcoords='offset points', ha='left', va='center', fontsize='small',
                 color=COL_TEST, bbox=wavetorch.plot.props.bbox_white)
-    print('Accuracy (train): %.1f%% +/- %.1f%%' % (history_mean['acc_train'].tail(1).item()*100, history_std['acc_train'].tail(1).item()*100))
-    print('Accuracy  (test): %.1f%% +/- %.1f%%' % (history_mean['acc_test'].tail(1).item()*100, history_std['acc_test'].tail(1).item()*100))
+    print('Accuracy (train): %.1f%% +/- %.1f%%' % (history_mean['acc_train'].tail(1).iloc[0]*100, history_std['acc_train'].tail(1).iloc[0]*100))
+    print('Accuracy  (test): %.1f%% +/- %.1f%%' % (history_mean['acc_test'].tail(1).iloc[0]*100, history_std['acc_test'].tail(1).iloc[0]*100))
 
-    cm_train = history.groupby('epoch')['cm_train'].apply(np.mean).head(1).item()
-    cm_test = history.groupby('epoch')['cm_test'].apply(np.mean).head(1).item()
+    cm_train = history.groupby('epoch')['cm_train'].apply(np.mean).head(1).iloc[0]
+    cm_test = history.groupby('epoch')['cm_test'].apply(np.mean).head(1).iloc[0]
     wavetorch.plot.confusion_matrix(cm_train, title="Training dataset", normalize=True, ax=ax_cm_train0, labels=vowels)
     wavetorch.plot.confusion_matrix(cm_test, title="Testing dataset", normalize=True, ax=ax_cm_test0, labels=vowels)
 
-    cm_train = history.groupby('epoch')['cm_train'].apply(np.mean).tail(1).item()
-    cm_test = history.groupby('epoch')['cm_test'].apply(np.mean).tail(1).item()
+    cm_train = history.groupby('epoch')['cm_train'].apply(np.mean).tail(1).iloc[0]
+    cm_test = history.groupby('epoch')['cm_test'].apply(np.mean).tail(1).iloc[0]
     wavetorch.plot.confusion_matrix(cm_train, title="Training dataset", normalize=True, ax=ax_cm_train1, labels=vowels)
     wavetorch.plot.confusion_matrix(cm_test, title="Testing dataset", normalize=True, ax=ax_cm_test1, labels=vowels)
 
@@ -139,7 +139,6 @@ if __name__ == '__main__':
         xb, yb = wavetorch.data.select_vowel_sample(X, Y, F, i, ind=args.vowel_samples[i] if args.vowel_samples is not None else None)
         with torch.no_grad():
             field_dist = model(xb)
-            print(yb.argmax().item())
             wavetorch.plot.total_field(model, field_dist, yb, ax=ax_fields[yb.argmax().item()], cbar=True, cax=ax_fields[-1], vmin=args.vmin, vmax=args.vmax)
 
     if args.labels:
