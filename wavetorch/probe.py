@@ -1,6 +1,5 @@
 import torch
 import numpy as np
-import skimage
 
 import wavetorch.plot.props as props
 from .utils import to_tensor

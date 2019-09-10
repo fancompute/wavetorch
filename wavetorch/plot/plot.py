@@ -6,15 +6,8 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import matplotlib as mpl
 import seaborn as sns
-import librosa
-import librosa.display
 
-from string import ascii_lowercase, ascii_uppercase
-from numpy import in1d
-
-from matplotlib import rcParams
 from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
-from mpl_toolkits.axes_grid1.colorbar import colorbar
 
 import torch
 
