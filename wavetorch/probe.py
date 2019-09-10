@@ -1,5 +1,6 @@
 import torch
 
+
 from .utils import to_tensor
 
 class WaveProbe(torch.nn.Module):
