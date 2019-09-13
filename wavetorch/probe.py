@@ -1,7 +1,7 @@
 import torch
 
-
 from .utils import to_tensor
+
 
 class WaveProbe(torch.nn.Module):
     def __init__(self, x, y):
@@ -10,9 +10,17 @@ class WaveProbe(torch.nn.Module):
         self.register_buffer('x', to_tensor(x))
         self.register_buffer('y', to_tensor(y))
 
-    def forward(self, x, integrated=False):
-        return x[:, :, self.x, self.y]
+    def forward(self, x):
+        return x[:, self.x, self.y]
 
-    # def plot(self, ax, color):
-    #     marker, = ax.plot(self.x.numpy(), self.y.numpy(), 'o', markeredgecolor=color, **props.point_properties)
-    #     return marker
+    def plot(self, ax, color='k'):
+        marker, = ax.plot(self.x.numpy(), self.y.numpy(), 'o', color=color)
+        return marker
+
+
+class WaveIntensityProbe(WaveProbe):
+    def __init__(self, x, y):
+        super().__init__(x, y)
+
+    def forward(self, x):
+        return super().forward(x).pow(2)

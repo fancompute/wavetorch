@@ -1,7 +1,5 @@
 import torch
-import skimage
 
-import wavetorch.plot.props as props
 from .utils import to_tensor
 
 class WaveSource(torch.nn.Module):
@@ -14,8 +12,8 @@ class WaveSource(torch.nn.Module):
     def forward(self, Y, X, dt=1.0):
         Y[:, self.x, self.y] = Y[:, self.x, self.y] + dt**2 * X.expand_as(Y[:, self.x, self.y])
 
-    def plot(self, ax, color):
-        marker, = ax.plot(self.x.numpy(), self.y.numpy(), 'o', markeredgecolor=color, **props.point_properties)
+    def plot(self, ax, color='r'):
+        marker, = ax.plot(self.x.numpy(), self.y.numpy(), 'o', color=color)
         return marker
 
 # class LineWaveSource(WaveSource):

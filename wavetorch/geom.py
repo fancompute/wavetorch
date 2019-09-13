@@ -2,6 +2,7 @@ import torch
 from torch.nn.functional import conv2d
 import numpy as np
 from typing import Tuple
+from .utils import to_tensor
 
 KERNEL_LPF = [[1 / 9, 1 / 9, 1 / 9],
               [1 / 9, 1 / 9, 1 / 9],
@@ -13,12 +14,16 @@ class WaveGeometry(object):
                  abs_p: float = 4.0):
         super().__init__()
 
-        assert len(domain_shape) == 2, "len(shape) must be equal to 2; Only 2D domains are supported"
+        assert len(domain_shape) == 2, "len(domain_shape) must be equal to 2: only two-dimensional (2D) domains are supported"
 
         self.domain_shape = domain_shape
         self.h = h
         self.c0 = c0
         self.c1 = c1
+
+        self.abs_N = abs_N
+        self.abs_sig = abs_sig
+        self.abs_p = abs_p
 
         self._init_b(abs_N, abs_sig, abs_p)
 
@@ -64,24 +69,29 @@ class WaveGeometry(object):
         b_y = torch.zeros(Nx, Ny)
 
         if abs_N > 0:
-            b_x[0:N + 1, :] = torch.flip(b_vals, [0]).repeat(Ny, 1).transpose(0, 1)
-            b_x[(Nx - N - 1):Nx, :] = b_vals.repeat(Ny, 1).transpose(0, 1)
+            b_x[0:abs_N + 1, :] = torch.flip(b_vals, [0]).repeat(Ny, 1).transpose(0, 1)
+            b_x[(Nx - abs_N - 1):Nx, :] = b_vals.repeat(Ny, 1).transpose(0, 1)
 
-            b_y[:, 0:N + 1] = torch.flip(b_vals, [0]).repeat(Nx, 1)
-            b_y[:, (Ny - N - 1):Ny] = b_vals.repeat(Nx, 1)
+            b_y[:, 0:abs_N + 1] = torch.flip(b_vals, [0]).repeat(Nx, 1)
+            b_y[:, (Ny - abs_N - 1):Ny] = b_vals.repeat(Nx, 1)
 
         self._b = torch.sqrt(b_x ** 2 + b_y ** 2)
 
 
-class HoleyWaveGeometry(WaveGeometry):
+class WaveGeometryHoley(WaveGeometry):
     def __init__(self, domain_shape: Tuple, h: float, c0: float, c1: float, abs_N: int = 20, abs_sig: float = 11,
                  abs_p: float = 4.0):
         super().__init__(domain_shape, h, c0, c1, abs_N, abs_sig, abs_p)
 
+    def parameters(self):
+        yield self.r
+        yield self.x
+        yield self.y
 
-class ProjectedWaveGeometry(WaveGeometry):
+
+class WaveGeometryFreeForm(WaveGeometry):
     def __init__(self, domain_shape: Tuple, h: float, c0: float, c1: float, abs_N: int = 20, abs_sig: float = 11,
-                 abs_p: float = 4.0, eta: float = 0.5, beta: float = 100.0, design_region=None):
+                 abs_p: float = 4.0, eta: float = 0.5, beta: float = 100.0, design_region=None, domain='half'):
 
         super().__init__(domain_shape, h, c0, c1, abs_N, abs_sig, abs_p)
 
@@ -89,8 +99,8 @@ class ProjectedWaveGeometry(WaveGeometry):
         self.beta = beta
 
         self._init_design_region(design_region, domain_shape)
-        self._init_rho(init, domain_shape)
-        self.clip_to_design_region()
+        self._init_rho(domain, domain_shape)
+        self.constrain_to_design_region()
 
     def _init_design_region(self, design_region, domain_shape):
         if design_region is not None:
@@ -104,22 +114,27 @@ class ProjectedWaveGeometry(WaveGeometry):
             # Just use the whole domain as the design region
             self.design_region = torch.ones(domain_shape).type(torch.uint8)
 
-    def _init_rho(self, init, domain_shape):
-        if init == 'rand':
-            self.rho = torch.nn.Parameter(torch.round(torch.rand(domain_shape)))
-        elif init == 'half':
-            self.rho = torch.nn.Parameter(torch.ones(domain_shape) * 0.5)
-        elif init == 'blank':
-            self.rho = torch.nn.Parameter(torch.zeros(domain_shape))
+    def _init_rho(self, domain, domain_shape):
+        if isinstance(domain, torch.Tensor) | isinstance(domain, np.ndarray):
+            assert domain.shape == domain_shape
+            self.rho = torch.nn.Parameter(to_tensor(domain))
+        elif isinstance(domain, str):
+            if domain == 'rand':
+                self.rho = torch.nn.Parameter(torch.round(torch.rand(domain_shape)))
+            elif domain == 'half':
+                self.rho = torch.nn.Parameter(torch.ones(domain_shape) * 0.5)
+            elif domain == 'blank':
+                self.rho = torch.nn.Parameter(torch.zeros(domain_shape))
+            else:
+                raise ValueError('The domain initialization defined by `domain = %s` is invalid' % init)
         else:
-            raise ValueError('The geometry initialization defined by `init = %s` is invalid' % init)
+            raise ValueError('The domain initialization is invalid')
 
     def constrain_to_design_region(self):
         """Clip the wave speed to its background value outside of the design region."""
         with torch.no_grad():
             self.rho[self.design_region == 0] = 0.0
-            if self.boundary_absorber is not None:
-                self.rho[self.boundary_absorber.b > 0] = 0.0
+            self.rho[self.b > 0] = 0.0
 
     def _project_rho(self):
         """Perform the projection of the density, rho"""
@@ -133,6 +148,9 @@ class ProjectedWaveGeometry(WaveGeometry):
     @property
     def c(self):
         return self.c0 + (self.c1 - self.c0) * self._project_rho()
+
+    def parameters(self):
+        yield self.rho
 
 # xv = torch.linspace(0.0, 10.0, 99)
 # yv = torch.linspace(0.0, 10.0, 99)

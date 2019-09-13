@@ -1,11 +1,12 @@
 
 name='wavetorch'
 
-from . import data, plot, utils, geom
+from . import rnn, cell, geom, source, probe, data, plot, utils
 
 from .cell import WaveCell
-from .geom import WaveGeometry, HoleyWaveGeometry, ProjectedWaveGeometry
-from .probe import WaveProbe
+from .rnn import WaveRNN
+from .geom import WaveGeometryHoley, WaveGeometryFreeForm
+from .probe import WaveProbe, WaveIntensityProbe
 from .source import WaveSource
 
 from .train import train
