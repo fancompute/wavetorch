@@ -7,8 +7,8 @@ class WaveProbe(torch.nn.Module):
     def __init__(self, x, y):
         super().__init__()
 
-        self.register_buffer('x', to_tensor(x))
-        self.register_buffer('y', to_tensor(y))
+        self.register_buffer('x', to_tensor(x, dtype=torch.int64))
+        self.register_buffer('y', to_tensor(y, dtype=torch.int64))
 
     def forward(self, x):
         return x[:, self.x, self.y]

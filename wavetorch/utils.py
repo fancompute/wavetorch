@@ -8,11 +8,11 @@ from sklearn.metrics import confusion_matrix
 import wavetorch
 
 
-def to_tensor(x):
+def to_tensor(x, dtype=torch.get_default_dtype()):
     if type(x) is np.ndarray:
-        x = torch.from_numpy(x)
+        x = torch.from_numpy(x, dtype=dtype)
     else:
-        x = torch.tensor(x)
+        x = torch.tensor(x, dtype=dtype)
 
     return x
 
