@@ -51,7 +51,7 @@ else:
     X = torch.tensor(X, dtype=torch.get_default_dtype()).unsqueeze(0)
 
 with torch.no_grad():
-    u = model.forward(X, output_fields=args.fields)
+    u = model.forward(X, output_fields=args.show_fields)
 
 if args.show_fields:
     Nshots = 10

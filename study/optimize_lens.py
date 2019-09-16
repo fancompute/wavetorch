@@ -92,4 +92,4 @@ wavetorch.plot.field_snapshot(
     Ny=2,
     fig_width=7)
 
-wavetorch.plot.plot_structure(model)
+wavetorch.plot.geometry(model)
