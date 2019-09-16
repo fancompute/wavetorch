@@ -23,12 +23,14 @@ def _time_step(b, c, y1, y2, dt, h):
 class TimeStep(torch.autograd.Function):
     @staticmethod
     def forward(ctx, b, c, y1, y2, dt, h):
-        ctx.save_for_backward(b, c, y1, y2, dt, h)
+        ctx.save_for_backward(b, c, y1, y2, torch.tensor(dt), torch.tensor(h))
         return _time_step(b, c, y1, y2, dt, h)
 
     @staticmethod
     def backward(ctx, grad_output):
-        b, c, y1, y2, dt, h = ctx.saved_tensors
+        b, c, y1, y2, _dt, _h = ctx.saved_tensors
+        dt = _dt.item()
+        h = _h.item()
 
         grad_b = grad_c = grad_y1 = grad_y2 = grad_dt = grad_h = None
 
