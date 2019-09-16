@@ -2,6 +2,7 @@ import torch
 import numpy as np
 
 from .operators import _laplacian
+from .utils import to_tensor
 
 KERNEL_LPF = [[1 / 9, 1 / 9, 1 / 9],
               [1 / 9, 1 / 9, 1 / 9],
@@ -23,14 +24,12 @@ def _time_step(b, c, y1, y2, dt, h):
 class TimeStep(torch.autograd.Function):
     @staticmethod
     def forward(ctx, b, c, y1, y2, dt, h):
-        ctx.save_for_backward(b, c, y1, y2, torch.tensor(dt), torch.tensor(h))
+        ctx.save_for_backward(b, c, y1, y2, dt, h)
         return _time_step(b, c, y1, y2, dt, h)
 
     @staticmethod
     def backward(ctx, grad_output):
-        b, c, y1, y2, _dt, _h = ctx.saved_tensors
-        dt = _dt.item()
-        h = _h.item()
+        b, c, y1, y2, dt, h = ctx.saved_tensors
 
         grad_b = grad_c = grad_y1 = grad_y2 = grad_dt = grad_h = None
 
@@ -62,11 +61,11 @@ class WaveCell(torch.nn.Module):
         super().__init__()
 
         # Set values
-        self.dt =dt
+        self.register_buffer("dt", to_tensor(dt))
         self.geom = geometry
-        self.satdamp_b0 = satdamp_b0
-        self.satdamp_uth = satdamp_uth
-        self.c_nl = c_nl
+        self.register_buffer("satdamp_b0", to_tensor(satdamp_b0))
+        self.register_buffer("satdamp_uth", to_tensor(satdamp_uth))
+        self.register_buffer("c_nl", to_tensor(c_nl))
 
         # Validate inputs
         cmax = self.geom.cmax

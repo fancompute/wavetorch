@@ -25,7 +25,7 @@ domain = torch.zeros(domain_shape)
 rr, cc = skimage.draw.circle( int(domain_shape[0]/2) , int(domain_shape[1]/2), 30)
 domain[rr, cc] = 1
 
-geom  = wavetorch.WaveGeometryFreeForm(domain_shape, h, c0=1.0, c1=0.5, domain=domain)
+geom  = wavetorch.WaveGeometryFreeForm(domain_shape, h, c0=1.0, c1=0.5, rho=domain)
 cell  = wavetorch.WaveCell(dt, geom)
 src   = wavetorch.WaveSource(25, 50)
 probe = [wavetorch.WaveIntensityProbe(175, 75),
@@ -106,3 +106,10 @@ if args.show_spectrum:
 #         cmap=plt.cm.inferno
 #     )
 # plt.show()
+
+torch.save(model.state_dict(), './tmp.pt')
+new_cell  = wavetorch.WaveCell(1.0, None)
+new_src   = wavetorch.WaveSource(0, 0)
+newprobe = [wavetorch.WaveIntensityProbe(0, 0)]
+
+model = wavetorch.WaveRNN(new_cell, new_src, new_probe)

@@ -22,7 +22,7 @@ domain = torch.zeros(domain_shape)
 rr, cc = skimage.draw.circle( int(domain_shape[0]/2) , int(domain_shape[1]/2), 40)
 domain[rr, cc] = 0.5
 
-geom  = wavetorch.WaveGeometryFreeForm(domain_shape, h, c0=1.0, c1=0.5, domain=domain, design_region=None)
+geom  = wavetorch.WaveGeometryFreeForm(domain_shape, h, c0=1.0, c1=0.5, rho=domain, design_region=None)
 cell  = wavetorch.WaveCell(dt, geom)
 src   = wavetorch.WaveSource(25, 75)
 probe = [wavetorch.WaveIntensityProbe(120, 120),
@@ -56,7 +56,7 @@ beta_schedule       = torch.tensor([100, 400, 800, 1000, 1500, 2000])
 beta_schedule_epoch = torch.tensor([-1,  10,  20,  30,  40, 50])
 
 loss_iter = []
-for i in range(0, 60):
+for i in range(0, 5):
     # model.cell.geom.beta = beta_schedule[beta_schedule_epoch<i][-1]
 
     def closure():

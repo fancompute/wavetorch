@@ -2,12 +2,17 @@ import torch
 
 
 class WaveRNN(torch.nn.Module):
-    def __init__(self, cell, source, probes=[]):
+    def __init__(self, cell, sources, probes=[]):
 
         super().__init__()
 
         self.cell = cell
-        self.source = source
+
+        if type(sources) is list:
+            self.sources = torch.nn.ModuleList(sources)
+        else:
+            self.sources = torch.nn.ModuleList([sources])
+
         if type(probes) is list:
             self.probes = torch.nn.ModuleList(probes)
         else:
@@ -48,11 +53,12 @@ class WaveRNN(torch.nn.Module):
             # Propagate the fields
             h1, h2 = self.cell(h1, h2, c, rho)
 
-            # Inject source
-            self.source(h1, xi.squeeze(-1))
+            # Inject source(s)
+            for source in self.sources:
+                source(h1, xi.squeeze(-1))
 
             if len(self.probes) > 0 and not output_fields:
-                # Measure probes
+                # Measure probe(s)
                 probe_values = []
                 for probe in self.probes:
                     probe_values.append(probe(h1))

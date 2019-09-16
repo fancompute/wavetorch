@@ -101,6 +101,14 @@ def _plot_probes(probes, ax, vowel_probe_labels=None, highlight_onehot=None, bg=
 
     return markers
 
+def _plot_sources(sources, ax, bg='light'):
+    markers = []
+    for i, source in enumerate(sources):
+        marker = source.plot(ax, color=color_dim[bg])
+        markers.append(marker)
+
+    return markers
+
 from .geom import WaveGeometry
 from .rnn import WaveRNN
 
@@ -124,7 +132,7 @@ def geometry(input,
     elif isinstance(input, WaveRNN):
         geom = input.cell.geom
         probes = input.probes
-        source = input.source
+        sources = input.sources
     else:
         raise ValueError("Invalid input for plot.geometry(); should be either a WaveGeometry or a WaveCell")
 
@@ -157,8 +165,8 @@ def geometry(input,
         markers += _plot_probes(probes, ax, vowel_probe_labels=vowel_probe_labels, highlight_onehot=highlight_onehot, bg=bg)
         markers += h2.collections
 
-    if source is not None:
-        source.plot(ax)
+    if sources is not None:
+        markers += _plot_sources(sources, ax, bg=bg)
 
     ax.set_xticks([])
     ax.set_yticks([])

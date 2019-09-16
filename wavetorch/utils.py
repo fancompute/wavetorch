@@ -7,14 +7,13 @@ from sklearn.metrics import confusion_matrix
 
 import wavetorch
 
+from . import WaveRNN, WaveSource, WaveProbe
 
 def to_tensor(x, dtype=torch.get_default_dtype()):
     if type(x) is np.ndarray:
-        x = torch.from_numpy(x, dtype=dtype)
+        return torch.from_numpy(x, dtype=dtype)
     else:
-        x = torch.tensor(x, dtype=dtype)
-
-    return x
+        return torch.tensor(x, dtype=dtype)
 
 
 def setup_src_coords(src_x, src_y, Nx, Ny, Npml):
@@ -61,7 +60,7 @@ def save_model(model,
                name,
                savedir='./study/',
                history=None,
-               history_model_state=None,
+               history_geom_state=None,
                cfg=None,
                verbose=True):
     """Save the model state and history to a file
@@ -70,10 +69,13 @@ def save_model(model,
     if not os.path.exists(savedir):
         os.makedirs(savedir)
     str_savepath = savedir + str_filename
+
     data = {"model_state": model.state_dict(),
+            "geom_state": model.state_dict(),
             "history": history,
-            "history_model_state": history_model_state,
+            "history_geom_state": history_geom_state,
             "cfg": cfg}
+
     if verbose:
         print("Saving model to %s" % str_savepath)
     torch.save(data, str_savepath)
@@ -93,7 +95,13 @@ def load_model(str_filename, which_iteration=-1):
     except:
         pass
 
+    key_prefix = 'cell.'
+
     model_state = copy.deepcopy(data['history_model_state'][which_iteration])
+
+    geom_keys = [model_state[k].item() for k in model_state if 'geom' in k]
+
+    geom_state = state_reconstruction_args
 
     # Setup a blank model
     model = wavetorch.WaveCell(init='half',
@@ -113,12 +121,18 @@ def load_model(str_filename, which_iteration=-1):
     sy = [model_state[k].item() for k in model_state if 'sources' in k and 'y' in k]
 
     # Manually add the probes and sources
+    probes = []
     for (x, y) in zip(px, py):
-        model.add_probe(wavetorch.IntensityProbe(x, y))
+        probes.append(WaveProbe(x, y))
 
+    sources = []
     for (x, y) in zip(sx, sy):
-        model.add_source(wavetorch.Source(x, y))
+        sources.append(WaveSource(x, y))
 
+
+    geom  = wavetorch.WaveGeometryFreeForm(**state_reconstruction_args())
+    cell  = wavetorch.WaveCell(dt, geom)
+    model = WaveRNN(cell, sources, probes)
     # Put into eval mode (doesn't really matter for us but whatever)
     model.eval()
 
