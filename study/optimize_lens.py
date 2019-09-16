@@ -1,59 +1,73 @@
-"""Optimize a toy lens
+"""Optimize a toy lens model
 """
-
 import torch
 import wavetorch
 import numpy as np
-import skimage.draw as draw
+import skimage
 import matplotlib.pyplot as plt
+import librosa
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('--use_vowel', action='store_true')
+args = parser.parse_args()
 
-# Define the geometry and model
+domain_shape = (151, 151)
 
-Nx = 100
-Ny = 100
-dt = 1e-4
-h  = 5e-2
+dt = 0.707
+h  = 1.0
 
-design_region = np.zeros((Nx, Ny), dtype=np.uint8)
-design_region[30:70, 21:79] = 1
+sr = 10000
 
-probe_list = [
-    wavetorch.IntensityProbe(75, 25),
-    wavetorch.IntensityProbe(75, 50),
-    wavetorch.IntensityProbe(75, 75) ]
-src_list = [
-    wavetorch.LineSource(25, 40, 25, 60)]
+domain = torch.zeros(domain_shape)
+rr, cc = skimage.draw.circle( int(domain_shape[0]/2) , int(domain_shape[1]/2), 40)
+domain[rr, cc] = 0.5
 
-model = wavetorch.WaveCell(Nx, Ny, h, dt, c0=331, c1=150, design_region=design_region, sigma=1e4, N=20, p=4.0, probes=probe_list, sources=src_list)
+geom  = wavetorch.WaveGeometryFreeForm(domain_shape, h, c0=1.0, c1=0.5, domain=domain, design_region=None)
+cell  = wavetorch.WaveCell(dt, geom)
+src   = wavetorch.WaveSource(25, 75)
+probe = [wavetorch.WaveIntensityProbe(120, 120),
+         wavetorch.WaveIntensityProbe(125, 75),
+         wavetorch.WaveIntensityProbe(120, 25)]
+
+model = wavetorch.WaveRNN(cell, src, probe)
 
 # Define the source
-t = np.arange(0, 500*dt, dt)
-omega1 = 2*np.pi*1/dt/15
-x = np.sin(omega1*t) * t / (1 + t)
-x = torch.tensor(x, dtype=torch.get_default_dtype()).unsqueeze(0)
+if args.use_vowel:
+    x, _, _ = wavetorch.data.load_all_vowels(
+        ['ae', 'ei', 'iy'],
+        gender='men', 
+        sr=sr, 
+        normalize=True, 
+        max_samples=3)
+    X = torch.nn.utils.rnn.pad_sequence(x, batch_first=True)
+    X = X[0,1000:3500].unsqueeze(0)
+else:
+    t = np.arange(0, 500*dt, dt)
+    omega1 = 2*np.pi*1/dt/15
+    X = np.sin(omega1*t) * t / (1 + t)
+    X = torch.tensor(X, dtype=torch.get_default_dtype()).unsqueeze(0)
 
 ###
 
 optimizer = torch.optim.Adam(model.parameters(), lr=1.5e-3)
 criterion = torch.nn.CrossEntropyLoss()
 
-beta_schedule       = torch.tensor([100, 200, 400, 600, 800, 1000])
+beta_schedule       = torch.tensor([100, 400, 800, 1000, 1500, 2000])
 beta_schedule_epoch = torch.tensor([-1,  10,  20,  30,  40, 50])
 
 loss_iter = []
 for i in range(0, 60):
-    model.beta = beta_schedule[beta_schedule_epoch<i][-1]
+    # model.cell.geom.beta = beta_schedule[beta_schedule_epoch<i][-1]
 
     def closure():
         optimizer.zero_grad()
-        u = model.forward(x)
-        y = model.measure_probes(u, integrated=True, normalized=True)
-        loss = criterion(y, torch.tensor([2]))
+        u = model(X).sum(dim=1)
+        loss = criterion(u, torch.tensor([2]))
         loss.backward()
         return loss
 
     loss = optimizer.step(closure)
-    model.clip_to_design_region()
+    model.cell.geom.constrain_to_design_region()
     print("Epoch: {} -- Loss: {}".format(i, loss))
     loss_iter.append(loss.item())
 
@@ -63,7 +77,19 @@ plt.xlabel("Epoch")
 plt.ylabel("Cross entropy loss")
 
 with torch.no_grad():
-    u = model.forward(x)
+    u = model(X, output_fields=True)
 
-wavetorch.plot.field_snapshot(model, u, [25, 50, 75, 100, 125, 150, 175, 199], ylabel=None, label=True, cbar=True, Ny=2)
-wavetorch.plot.structure(model)
+Nshots = 6
+Ntime  = X.shape[1]
+times = [i for i in range(int(Ntime/Nshots), Ntime, int(Ntime/Nshots))]
+wavetorch.plot.field_snapshot(
+    model,
+    u, 
+    times, 
+    ylabel=None, 
+    label=True, 
+    cbar=True, 
+    Ny=2,
+    fig_width=7)
+
+wavetorch.plot.plot_structure(model)
