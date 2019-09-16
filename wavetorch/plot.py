@@ -54,7 +54,7 @@ def total_field(model, yb, ylabel, block=False, ax=None, fig_width=4, cbar=True,
             plt.colorbar(h, cax=cax, orientation='horizontal', label=r"$\sum_t{ { u_t{\left(x,y\right)} }^2 }$")
             # cax.set_title(r"$\sum_n \vert u_n \vert^2$")
 
-        structure(model, ax=ax, outline=True, outline_pml=True, vowel_probe_labels=None, highlight_onehot=ylabel,
+        geometry(model, ax=ax, outline=True, outline_pml=True, vowel_probe_labels=None, highlight_onehot=ylabel,
                   bg='dark', alpha=0.5)
 
         ax.set_xticks([])
@@ -75,7 +75,7 @@ def structure_evolution(model, model_states, epochs=[0, 1], quantity='c', figsiz
     axs = axs.ravel()
     for i, epoch in enumerate(epochs):
         model.load_state_dict(model_states[epoch])
-        h, _ = structure(model, ax=axs[i], outline=False, outline_pml=True, vowel_probe_labels=None,
+        h, _ = geometry(model, ax=axs[i], outline=False, outline_pml=True, vowel_probe_labels=None,
                          highlight_onehot=None, bg='light', alpha=1.0)
         axs[i].set_title('Epoch %d' % epoch)
 
@@ -104,15 +104,15 @@ def _plot_probes(probes, ax, vowel_probe_labels=None, highlight_onehot=None, bg=
 from .geom import WaveGeometry
 from .rnn import WaveRNN
 
-def plot_structure(input,
-                   ax=None,
-                   outline=False,
-                   outline_pml=True,
-                   vowel_probe_labels=None,
-                   highlight_onehot=None,
-                   bg='light',
-                   alpha=1.0,
-                   cbar=False):
+def geometry(input,
+             ax=None,
+             outline=False,
+             outline_pml=True,
+             vowel_probe_labels=None,
+             highlight_onehot=None,
+             bg='light',
+             alpha=1.0,
+             cbar=False):
     """Plot the spatial distribution of the wave speed
     """
     lc = '#000000' if bg == 'light' else '#ffffff'
@@ -126,7 +126,7 @@ def plot_structure(input,
         probes = input.probes
         source = input.source
     else:
-        raise ValueError("Invalid input for plot_structure(); should be either a WaveGeometry or a WaveCell")
+        raise ValueError("Invalid input for plot.geometry(); should be either a WaveGeometry or a WaveCell")
 
     rho = geom.rho.detach().numpy().transpose()
 
@@ -187,21 +187,15 @@ def probe_integrals(model, fields_in, ylabel, x, block=False, ax=None):
     pass
 
 
-def field_snapshot(geom, fields, times, ylabel, fig_width=6, block=False, axs=None, label=True, cbar=True, Ny=1,
+def field_snapshot(model, fields, times, ylabel, fig_width=6, block=False, axs=None, label=True, cbar=True, Ny=1,
                    sat=1.0):
     """Plot snapshots in time of the scalar wave field
     """
     field_slices = fields[0, times, :, :]
 
     if axs is None:
-        # Nx = int(np.ceil(np.sqrt(len(times))))
-        # Ny = int(np.ceil(np.sqrt(len(times))))
         Nx = int(len(times) / Ny)
-
-        (Wx, Wy) = geom.domain_shape
-
-        fig_height = fig_width * Ny * Wy / Nx / Wx
-        fig, axs = plt.subplots(Ny, Nx, constrained_layout=True, figsize=(fig_width, fig_height))
+        fig, axs = plt.subplots(Ny, Nx, constrained_layout=True)
 
     axs = np.atleast_1d(axs)
     axs = axs.ravel()
@@ -213,7 +207,7 @@ def field_snapshot(geom, fields, times, ylabel, fig_width=6, block=False, axs=No
 
         h = axs[i].imshow(field, cmap=plt.cm.RdBu, vmin=-sat * field_max, vmax=+sat * field_max, origin="bottom",
                           rasterized=True)
-        plot_structure(geom, ax=axs[i], outline=True, outline_pml=True, highlight_onehot=ylabel, bg='light')
+        geometry(model, ax=axs[i], outline=True, outline_pml=True, highlight_onehot=ylabel, bg='light')
 
         axs[i].set_xticks([])
         axs[i].set_yticks([])
@@ -244,7 +238,7 @@ def animate_fields(model, fields, ylabel, batch=0, block=True, filename=None, in
     im = ax.imshow(np.zeros((model.Ny, model.Nx)), cmap=plt.cm.RdBu, animated=True, vmin=-field_max, vmax=+field_max,
                    origin="bottom")
 
-    _, markers = structure(model, ax=ax, outline=True, outline_pml=True, highlight_onehot=ylabel, bg='light')
+    _, markers = geometry(model, ax=ax, outline=True, outline_pml=True, highlight_onehot=ylabel, bg='light')
     markers = tuple(markers)
 
     title = ax.text(0.03, 0.03, "", transform=ax.transAxes, ha="left", va="bottom", bbox=bbox_white)
