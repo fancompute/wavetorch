@@ -30,8 +30,7 @@ class WaveRNN(torch.nn.Module):
         """
 
         # Hacky way of figuring out if we're on the GPU from inside the model
-        # device = "cuda" if next(self.parameters()).is_cuda else "cpu"
-        device = "cpu"
+        device = "cuda" if next(self.parameters()).is_cuda else "cpu"
 
         # First dim is batch
         batch_size = x.shape[0]
@@ -71,8 +70,3 @@ class WaveRNN(torch.nn.Module):
         y = torch.stack(y_all, dim=1)
 
         return y
-
-    # TODO(ian): need to figure out why I need to specify this - shouldnt pytorch just handle this automatically when I subclass nn.Module?
-    def parameters(self, recursive=True):
-        for param in self.cell.parameters():
-            yield param
