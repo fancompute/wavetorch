@@ -17,6 +17,8 @@ except ImportError:
 import numpy as np
 from sklearn.model_selection import StratifiedKFold
 
+from vowel_helpers import setup_src_coords, setup_probe_coords
+
 parser = argparse.ArgumentParser() 
 parser.add_argument('config', type=str, 
                     help='Configuration file for geometry, training, and data preparation')
@@ -82,11 +84,11 @@ if __name__ == '__main__':
         test_dl  = DataLoader(test_ds, batch_size=cfg['training']['batch_size'])
 
         ### Define model
-        probes = wavetorch.utils.setup_probe_coords(
+        probes = setup_probe_coords(
                             N_classes, cfg['geom']['px'], cfg['geom']['py'], cfg['geom']['pd'], 
                             cfg['geom']['Nx'], cfg['geom']['Ny'], cfg['geom']['pml']['N']
                             )
-        source = wavetorch.utils.setup_src_coords(
+        source = setup_src_coords(
                             cfg['geom']['src_x'], cfg['geom']['src_y'], cfg['geom']['Nx'],
                             cfg['geom']['Ny'], cfg['geom']['pml']['N']
                             )
@@ -94,28 +96,25 @@ if __name__ == '__main__':
         design_region = torch.zeros(cfg['geom']['Nx'], cfg['geom']['Ny'], dtype=torch.uint8)
         design_region[source[0].x.item()+5:probes[0].x.item()-5] = 1
 
-        # Define the model
-        model = wavetorch.WaveCell(
-            Nx=cfg['geom']['Nx'],
-            Ny=cfg['geom']['Ny'],
-            h=cfg['geom']['h'],
-            dt=cfg['geom']['dt'],
+        geom  = wavetorch.WaveGeometryFreeForm((cfg['geom']['Nx'], cfg['geom']['Ny']), cfg['geom']['h'],             
+            c0=cfg['geom']['c0'], 
+            c1=cfg['geom']['c1'],
             eta=cfg['geom']['binarization']['eta'],
             beta=cfg['geom']['binarization']['beta'],
-            init=cfg['geom']['init'], 
-            c0=cfg['geom']['c0'], 
-            c1=cfg['geom']['c1'], 
-            sigma=cfg['geom']['pml']['max'], 
-            N=cfg['geom']['pml']['N'], 
-            p=cfg['geom']['pml']['p'],
+            abs_sig=cfg['geom']['pml']['max'], 
+            abs_N=cfg['geom']['pml']['N'], 
+            abs_p=cfg['geom']['pml']['p'],
+            rho=cfg['geom']['init'],
+            design_region=design_region
+        )
+
+        cell  = wavetorch.WaveCell(cfg['geom']['dt'], geom,
             satdamp_b0=cfg['geom']['nonlinearity']['b0'],
             satdamp_uth=cfg['geom']['nonlinearity']['uth'],
-            c_nl=cfg['geom']['nonlinearity']['cnl'],
-            design_region=design_region,
-            output_probe=True,
-            probes=probes,
-            sources=source)
+            c_nl=cfg['geom']['nonlinearity']['cnl']
+        )
 
+        model = wavetorch.WaveRNN(cell, source, probes)
         model.to(args.dev)
 
         ### Train
@@ -140,7 +139,7 @@ if __name__ == '__main__':
                                             accuracy=wavetorch.utils.accuracy_onehot,
                                             cfg=cfg)
         
-        wavetorch.utils.save_model(model, args.name, args.savedir, history, history_model_state, cfg)
+        wavetorch.io.save_model(model, args.name, args.savedir, history, history_model_state, cfg)
 
         if not cfg['training']['cross_validation']:
             break
