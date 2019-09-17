@@ -56,18 +56,18 @@ def train(model, optimizer, criterion, train_dl, test_dl,
         for num, (xb, yb) in enumerate(train_dl):
             def closure():
                 optimizer.zero_grad()
-                yb_pred = model(xb)
+                yb_pred = model(xb).sum(dim=1)
                 loss = criterion(yb_pred, yb.argmax(dim=1))
                 loss.backward()
                 return loss
 
             if epoch == 0: # Don't take a step and just characterize the starting structure
                 with torch.no_grad():
-                    yb_pred = model(xb)
+                    yb_pred = model(xb).sum(dim=1)
                     loss = criterion(yb_pred, yb.argmax(dim=1))
             else: # Take an optimization step
                 loss = optimizer.step(closure)
-                model.clip_to_design_region()
+                model.cell.geom.constrain_to_design_region()
 
             loss_iter.append(loss.item())
 
@@ -77,7 +77,7 @@ def train(model, optimizer, criterion, train_dl, test_dl,
             list_yb_pred = []
             list_yb = []
             for num, (xb, yb) in enumerate(train_dl):
-                yb_pred = model(xb)
+                yb_pred = model(xb).sum(dim=1)
                 list_yb_pred.append(yb_pred)
                 list_yb.append(yb)
                 if accuracy is not None:
@@ -94,7 +94,7 @@ def train(model, optimizer, criterion, train_dl, test_dl,
             cm_test = None
             if test_dl is not None:
                 for num, (xb, yb) in enumerate(test_dl):
-                    yb_pred = model(xb)
+                    yb_pred = model(xb).sum(dim=1)
                     list_yb_pred.append(yb_pred)
                     list_yb.append(yb)
                     loss_test_tmp.append( criterion(yb_pred, yb.argmax(dim=1)) )
@@ -119,7 +119,7 @@ def train(model, optimizer, criterion, train_dl, test_dl,
                                   'cm_test': cm_test},
                                   ignore_index=True)
 
-        history_model_state.append( copy.deepcopy(model.state_dict()) )
+        history_model_state.append( copy.deepcopy(model.cell.geom.state_reconstruction_args()) )
 
         if name is not None:
             save_model(model, name, savedir, history, history_model_state, cfg, verbose=False)
