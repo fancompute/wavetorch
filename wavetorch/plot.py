@@ -12,6 +12,10 @@ from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 
 import torch
 
+from .io import new_geometry
+from .geom import WaveGeometry
+from .rnn import WaveRNN
+
 point_properties = {'markerfacecolor': 'none',
                     'markeredgewidth': 1.0,
                     'ms': 3}
@@ -64,30 +68,6 @@ def total_field(model, yb, ylabel, block=False, ax=None, fig_width=4, cbar=True,
             plt.show(block=block)
 
 
-def structure_evolution(model, model_states, epochs=[0, 1], quantity='c', figsize=(5.6, 1.5)):
-    """Plot the spatial distribution of material for the given epochs
-    """
-    Nx = int(len(epochs))
-    Ny = 1
-
-    fig, axs = plt.subplots(Ny, Nx, constrained_layout=True, figsize=figsize)
-    axs = np.asarray(axs)
-    axs = axs.ravel()
-    for i, epoch in enumerate(epochs):
-        model.load_state_dict(model_states[epoch])
-        h, _ = geometry(model, ax=axs[i], outline=False, outline_pml=True, vowel_probe_labels=None,
-                         highlight_onehot=None, bg='light', alpha=1.0)
-        axs[i].set_title('Epoch %d' % epoch)
-
-    for j in range(i + 1, len(axs)):
-        axs[j].set_xticks([])
-        axs[j].set_yticks([])
-        axs[j].axis('image')
-        axs[j].axis('off')
-
-    plt.colorbar(h, ax=axs, shrink=0.5, label='Wave speed', ticks=np.array([model.c0.item(), model.c1.item()]))
-
-
 def _plot_probes(probes, ax, vowel_probe_labels=None, highlight_onehot=None, bg='light'):
     markers = []
     for i, probe in enumerate(probes):
@@ -108,9 +88,6 @@ def _plot_sources(sources, ax, bg='light'):
         markers.append(marker)
 
     return markers
-
-from .geom import WaveGeometry
-from .rnn import WaveRNN
 
 def geometry(input,
              ax=None,
@@ -176,6 +153,31 @@ def geometry(input,
 
     return h, markers
 
+
+
+def geometry_evolution(model, model_geom_class_str, history_geom_state, quantity='c', figsize=(5.6, 1.5)):
+    """Plot the spatial distribution of material for the given epochs
+    """
+    Nx = int(len(history_geom_state))
+    Ny = 1
+
+    fig, axs = plt.subplots(Ny, Nx, constrained_layout=True, figsize=figsize)
+    axs = np.asarray(axs)
+    axs = axs.ravel()
+    for i, state in enumerate(history_geom_state):
+        new_geom = new_geometry(model_geom_class_str, state)
+        model.cell.geom = new_geom
+        h, _ = geometry(model, ax=axs[i], outline=False, outline_pml=True, vowel_probe_labels=None,
+                         highlight_onehot=None, bg='light', alpha=1.0)
+        axs[i].set_title('Epoch %d' % i)
+
+    for j in range(i + 1, len(axs)):
+        axs[j].set_xticks([])
+        axs[j].set_yticks([])
+        axs[j].axis('image')
+        axs[j].axis('off')
+
+    plt.colorbar(h, ax=axs, shrink=0.5, label='Wave speed', ticks=np.array([model.c0.item(), model.c1.item()]))
 
 def probe_integrals(model, fields_in, ylabel, x, block=False, ax=None):
     """Plot the time integrated probe signals

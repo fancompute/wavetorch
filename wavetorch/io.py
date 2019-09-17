@@ -41,6 +41,12 @@ def save_model(model,
     torch.save(data, str_savepath)
 
 
+def new_geometry(class_str, state):
+    WaveGeometryClass = getattr(geom, class_str)
+    geom_state = copy.deepcopy(state)
+    return WaveGeometryClass(**geom_state)
+
+
 def load_model(str_filename, which_iteration=-1):
     """Load a previously saved model and its history from a file
     """
@@ -56,9 +62,7 @@ def load_model(str_filename, which_iteration=-1):
         pass
 
     # Reconstruct Geometry
-    WaveGeometryClass = getattr(geom, data['model_geom_class_str'])
-    geom_state = copy.deepcopy(data['history_geom_state'][which_iteration])
-    new_geom = WaveGeometryClass(**geom_state)
+    new_geom = new_geometry(data['model_geom_class_str'], data['history_geom_state'][which_iteration])
 
     # Get model state to recreate probes and sources
     model_state = copy.deepcopy(data['model_state'])
