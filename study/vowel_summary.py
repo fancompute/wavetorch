@@ -106,13 +106,13 @@ if __name__ == '__main__':
     # ax_acc.annotate("%.1f%% training set accuracy" % (history_mean['acc_train'].tail(1).iloc[0]*100), xy=(0.1,0.1), xytext=(0,10), textcoords="offset points",  xycoords="axes fraction", ha="left", va="bottom", color=COL_TRAIN)
     # ax_acc.annotate("%.1f%% testing set accuracy" % (history_mean['acc_test'].tail(1).iloc[0]*100), xy=(0.1,0.1), xycoords="axes fraction", ha="left", va="bottom", color=COL_TEST)
     ax_acc.annotate('%.1f\%%' % (history_mean['acc_train'].tail(1).iloc[0]*100),
-                xy=(epochs[-1], history_mean['acc_train'].tail(1).iloc[0]*100), xycoords='data',
-                xytext=(-1, 5), textcoords='offset points', ha='left', va='center', fontsize='small',
-                color=COL_TRAIN, bbox=wavetorch.plot.props.bbox_white)
+                    xy=(epochs[-1], history_mean['acc_train'].tail(1).iloc[0]*100), xycoords='data',
+                    xytext=(-1, 5), textcoords='offset points', ha='left', va='center', fontsize='small',
+                    color=COL_TRAIN, bbox=wavetorch.props.bbox_white)
     ax_acc.annotate('%.1f\%%' % (history_mean['acc_test'].tail(1).iloc[0]*100),
-                xy=(epochs[-1], history_mean['acc_test'].tail(1).iloc[0]*100), xycoords='data',
-                xytext=(-1, -5), textcoords='offset points', ha='left', va='center', fontsize='small',
-                color=COL_TEST, bbox=wavetorch.plot.props.bbox_white)
+                    xy=(epochs[-1], history_mean['acc_test'].tail(1).iloc[0]*100), xycoords='data',
+                    xytext=(-1, -5), textcoords='offset points', ha='left', va='center', fontsize='small',
+                    color=COL_TEST, bbox=wavetorch.props.bbox_white)
     print('Accuracy (train): %.1f%% +/- %.1f%%' % (history_mean['acc_train'].tail(1).iloc[0]*100, history_std['acc_train'].tail(1).iloc[0]*100))
     print('Accuracy  (test): %.1f%% +/- %.1f%%' % (history_mean['acc_test'].tail(1).iloc[0]*100, history_std['acc_test'].tail(1).iloc[0]*100))
 
