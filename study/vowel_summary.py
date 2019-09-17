@@ -34,7 +34,7 @@ parser.add_argument('--vowel_samples', nargs='+', type=int, default=None)
 if __name__ == '__main__':
     args = parser.parse_args()
 
-    model, history, history_state, cfg = wavetorch.utils.load_model(args.filename)
+    model, history, history_state, cfg = wavetorch.io.load_model(args.filename)
 
     try:
         if cfg['seed'] is not None:
@@ -108,11 +108,11 @@ if __name__ == '__main__':
     ax_acc.annotate('%.1f\%%' % (history_mean['acc_train'].tail(1).iloc[0]*100),
                     xy=(epochs[-1], history_mean['acc_train'].tail(1).iloc[0]*100), xycoords='data',
                     xytext=(-1, 5), textcoords='offset points', ha='left', va='center', fontsize='small',
-                    color=COL_TRAIN, bbox=wavetorch.props.bbox_white)
+                    color=COL_TRAIN, bbox=wavetorch.plot.bbox_white)
     ax_acc.annotate('%.1f\%%' % (history_mean['acc_test'].tail(1).iloc[0]*100),
                     xy=(epochs[-1], history_mean['acc_test'].tail(1).iloc[0]*100), xycoords='data',
                     xytext=(-1, -5), textcoords='offset points', ha='left', va='center', fontsize='small',
-                    color=COL_TEST, bbox=wavetorch.props.bbox_white)
+                    color=COL_TEST, bbox=wavetorch.plot.bbox_white)
     print('Accuracy (train): %.1f%% +/- %.1f%%' % (history_mean['acc_train'].tail(1).iloc[0]*100, history_std['acc_train'].tail(1).iloc[0]*100))
     print('Accuracy  (test): %.1f%% +/- %.1f%%' % (history_mean['acc_test'].tail(1).iloc[0]*100, history_std['acc_test'].tail(1).iloc[0]*100))
 
@@ -128,12 +128,11 @@ if __name__ == '__main__':
 
     X, Y, F = wavetorch.data.load_all_vowels(vowels, gender='both', sr=sr, random_state=0)
 
-    model.load_state_dict(history_state[cfg['training']['N_epochs']])
-    model.output_probe = torch.tensor(0, dtype=torch.uint8)
+    # model.load_state_dict(history_state[cfg['training']['N_epochs']])
     for i in range(N_classes):
         xb, yb = wavetorch.data.select_vowel_sample(X, Y, F, i, ind=args.vowel_samples[i] if args.vowel_samples is not None else None)
         with torch.no_grad():
-            field_dist = model(xb)
+            field_dist = model(xb, output_fields=True)
             wavetorch.plot.total_field(model, field_dist, yb, ax=ax_fields[yb.argmax().item()], cbar=True, cax=ax_fields[-1], vmin=args.vmin, vmax=args.vmax)
 
     if args.labels:
