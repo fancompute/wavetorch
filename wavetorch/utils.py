@@ -34,7 +34,7 @@ def accuracy_onehot(y_pred, y_label):
 
 
 def normalize_power(X):
-    X = X / torch.sum(X, dim=1, keepdim=True)
+    return X / torch.sum(X, dim=1, keepdim=True)
 
 def calc_cm(model, dataloader, verbose=True):
     """Calculate the confusion matrix
