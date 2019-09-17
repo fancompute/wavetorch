@@ -1,7 +1,8 @@
 import torch
 import time
 import numpy as np
-from .utils import accuracy_onehot, save_model
+from .utils import accuracy_onehot
+from .io import save_model
 
 from sklearn.metrics import confusion_matrix
 

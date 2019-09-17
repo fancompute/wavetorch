@@ -1,7 +1,5 @@
 
-name='wavetorch'
-
-from . import rnn, cell, geom, source, probe, data, plot, utils
+from . import rnn, cell, geom, source, probe, data, plot, utils, io
 
 from .cell import WaveCell
 from .rnn import WaveRNN
