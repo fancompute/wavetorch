@@ -2,35 +2,43 @@
 
 ![](../master/img/optimization.png)
 
-## Introduction
+## Overview
 
-This python package provides pytorch recurrent neural network (RNN) modules for computing time-domain solutions of the [scalar wave equation](https://en.wikipedia.org/wiki/Wave_equation). With the automatic differentiation framework provided by pytorch, the gradients of these scalar wave solutions can also be computed with respect to the spatial distribution of material density inside a user-defined region of a larger domain. Here, the wave equation is discretized with finite differences and implemented in an RNN cell, `WaveCell` subclassing `torch.nn.Module`. This allows all of the standard pytorch optimization modules to be used for training and optimization. An example of a structure's evolution during the training procedure is shown in the image above.
+This python package provides recurrent neural network (RNN) modules for pytorch that compute time-domain solutions to the [scalar wave equation](https://en.wikipedia.org/wiki/Wave_equation). The code in this package is the basis for the results presented in our [recent paper](https://arxiv.org/abs/1904.12831), where we demonstrate that [recordings](https://homepages.wmich.edu/~hillenbr/voweldata.html) of spoken vowels can be classified as their waveforms propagate through a trained inhomogeneous material distribution. 
 
-This package is designed to perform vowel recognition, using the the dataset of raw audio recordings available from Prof James Hillenbrand's [website](https://homepages.wmich.edu/~hillenbr/voweldata.html). However, the core components provided by this package, namely the `WaveCell` module and the training routines, may be easily applied to other learning tasks involving time-series data. 
+This package not only provides a numerical framework for solving the wave equation, but it also allows the gradient of the solutions to be computed *automatically* via pytorch's automatic differentiation framework. This gradient computation is equivalent to the adjoint variable method (AVM) that is has recently gained popularity in the inverse design of photonic devices.
 
-If you find this package useful in your research, please consider citing our paper:
+For additional information and discussion see our paper:
 
- * T. W. Hughes, I. A. D. Williamson, M. Minkov, and S. Fan, “[Wave Physics as an Analog Recurrent Neural Network](https://arxiv.org/abs/1904.12831),” arXiv:1904.12831 [physics], Apr. 2019.
+* T. W. Hughes, I. A. D. Williamson, M. Minkov, and S. Fan, "[Wave Physics as an Analog Recurrent Neural Network](https://arxiv.org/abs/1904.12831)," arXiv:1904.12831 [physics], Apr. 2019
 
+## Components
+
+The machine learning examples in this package are designed around the task of vowel recognition, using the dataset of raw audio recordings available from Prof James Hillenbrand's [website](https://homepages.wmich.edu/~hillenbr/voweldata.html). However, the core modules provided by this package, which are described below, may be easily applied to other learning or inverse design tasks involving time-series data. 
+
+The `wavetorch` package provides several individual modules, each subclassing `torch.nn.Module`. These modules can be combined to model the wave equation or (potentially) used as components to build other neural networks.
+
+* `WaveRNN` - A wrapper which contains *one* or more `WaveSource` modules, *zero* or more `WaveProbe` modules, and a single `WaveCell` module. The `WaveRNN` module is a convenient wrapper around the individual components and handles time-stepping the the wave equation.
+    * `WaveCell` - Implements a single time step of the [scalar wave equation](https://en.wikipedia.org/wiki/Wave_equation).
+        * `WaveGeometry` - The children of this module implement the parameterization of the physical domain use by the `WaveCell`. Although this module subclasses `torch.nn.Module`, it has no `forward()` method and functions to provide a material density distribution.
+    * `WaveSource` - Implements a source for injecting waves into the [scalar wave equation](https://en.wikipedia.org/wiki/Wave_equation).
+    * `WaveProbe` - Implements a probe for measuring wave amplitudes (or intensities) at points in the domain defined by a `WaveGeometry`.
 
 ## Usage
 
-To use this package, simply clone and/or download the repository:
-```
-git clone https://github.com/fancompute/wavetorch.git
-```
-All interactions with this package can be carried out from the top-level directory of the repository, as described below. It's also helpful to add the top-level of the repository to the `PYTHONPATH` environment variable. This can be achieved (on a Unix-like system) by executing the following command from the top-level directory of the repository:
-```
-export PYTHONPATH=$PYTHONPATH:$(pwd)
-```
+### Propagating waves
 
-## Propagating waves
-
-A simple example of modeling a monochromatic excitation is provided in [study/propagate.py](study/propagate.py). 
+See [study/propagate.py](study/propagate.py)
 
 ![](../master/img/propagate.png)
 
-### Training on vowel recognition
+### Optimization and inverse design of a lens
+
+See [study/optimize_lens.py](study/optimize_lens.py) 
+
+![](../master/img/propagate.png)
+
+### Vowel recognition
 
 To train the model using the configuration specified by the file [study/example.yml](study/example.yml), issue the following command from the top-level directory of the repository:
 ```
@@ -42,7 +50,7 @@ During training, the progress of the optimization will be printed to the screen.
 
 **WARNING:** depending on the batch size, the window length, and the sample rate for the vowel data (all of which are specified in the YAML configuration file) the gradient computation may require a significant amount of memory. It is recommended to start small with the batch size and work your way up gradually, depending on what your machine can handle.
 
-### Summary of vowel recognition results
+#### Summary of vowel recognition results
 
 A summary of a trained model which was previously saved to disk can be generated like so:
 ```
@@ -51,7 +59,7 @@ python ./study/vowel_summary.py <PATH_TO_MODEL>
 
 ![](../master/img/summary.png)
 
-### Display field snapshots during vowel recognition
+#### Display field snapshots during vowel recognition
 
 Snapshots of the scalar field distribution for randomly selected vowels samples can be generated like so:
 ```
@@ -60,7 +68,7 @@ python ./study/vowel_analyze.py fields <PATH_TO_MODEL> --times 1500 2500 3500 ..
 
 ![](../master/img/fields.png)
 
-### Display short-time Fourier transform (STFT) of vowel waveforms
+#### Display short-time Fourier transform (STFT) of vowel waveforms
 
 A matrix of short time Fourier transforms of the received signal, where the row corresponds to an input vowel and the column corresponds to a particular probe (matching the confusion matrix distribution) can be generated like so:
 ```
@@ -69,7 +77,7 @@ python ./study/vowel_analyze.py stft <PATH_TO_MODEL>
 
 ![](../master/img/stft.png)
 
-## Pacakage dependencies
+## Dependencies
 
 * `pytorch`
 * `sklearn`
