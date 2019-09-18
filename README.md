@@ -18,9 +18,9 @@ The machine learning examples in this package are designed around the task of vo
 
 The `wavetorch` package provides several individual modules, each subclassing `torch.nn.Module`. These modules can be combined to model the wave equation or (potentially) used as components to build other neural networks.
 
-* `WaveRNN` - A wrapper which contains *one* or more `WaveSource` modules, *zero* or more `WaveProbe` modules, and a single `WaveCell` module. The `WaveRNN` module is a convenient wrapper around the individual components and handles time-stepping the the wave equation.
+* `WaveRNN` - A wrapper which contains *one* or more `WaveSource` modules, *zero* or more `WaveProbe` modules, and a single `WaveCell` module. The `WaveRNN` module is a convenient wrapper around the individual components and handles time-stepping the wave equation.
     * `WaveCell` - Implements a single time step of the [scalar wave equation](https://en.wikipedia.org/wiki/Wave_equation).
-        * `WaveGeometry` - The children of this module implement the parameterization of the physical domain use by the `WaveCell`. Although this module subclasses `torch.nn.Module`, it has no `forward()` method and functions to provide a material density distribution.
+        * `WaveGeometry` - The children of this module implement the parameterization of the physical domain used by the `WaveCell` module. Although the geometry module subclasses `torch.nn.Module`, it has no `forward()` method and serves only to provide a parameterization of the material density to the `WaveCell` module. Subclassing `torch.nn.Module` was necessary in order to properly expose the trainable parameters to pytorch.
     * `WaveSource` - Implements a source for injecting waves into the [scalar wave equation](https://en.wikipedia.org/wiki/Wave_equation).
     * `WaveProbe` - Implements a probe for measuring wave amplitudes (or intensities) at points in the domain defined by a `WaveGeometry`.
 
