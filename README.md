@@ -6,7 +6,7 @@
 
 This python package provides recurrent neural network (RNN) modules for pytorch that compute time-domain solutions to the [scalar wave equation](https://en.wikipedia.org/wiki/Wave_equation). The code in this package is the basis for the results presented in our [recent paper](https://arxiv.org/abs/1904.12831), where we demonstrate that [recordings](https://homepages.wmich.edu/~hillenbr/voweldata.html) of spoken vowels can be classified as their waveforms propagate through a trained inhomogeneous material distribution. 
 
-This package not only provides a numerical framework for solving the wave equation, but it also allows the gradient of the solutions to be computed *automatically* via pytorch's automatic differentiation framework. This gradient computation is equivalent to the adjoint variable method (AVM) that is has recently gained popularity in the inverse design of photonic devices.
+This package not only provides a numerical framework for solving the wave equation, but it also allows the gradient of the solutions to be computed *automatically* via pytorch's automatic differentiation framework. This gradient computation is equivalent to the adjoint variable method (AVM) that has recently gained popularity for performing inverse design and optimization of photonic devices.
 
 For additional information and discussion see our paper:
 
@@ -14,11 +14,11 @@ For additional information and discussion see our paper:
 
 ## Components
 
-The machine learning examples in this package are designed around the task of vowel recognition, using the dataset of raw audio recordings available from Prof James Hillenbrand's [website](https://homepages.wmich.edu/~hillenbr/voweldata.html). However, the core modules provided by this package, which are described below, may be easily applied to other learning or inverse design tasks involving time-series data. 
+The machine learning examples in this package are designed around the task of vowel recognition, using the dataset of raw audio recordings available from Prof James Hillenbrand's [website](https://homepages.wmich.edu/~hillenbr/voweldata.html). However, the core modules provided by this package, which are described below, may be applied to other learning or inverse design tasks involving time-series data. 
 
-The `wavetorch` package provides several individual modules, each subclassing `torch.nn.Module`. These modules can be combined to model the wave equation or (potentially) used as components to build other neural networks.
+The `wavetorch` package provides several individual modules, each subclassing `torch.nn.Module`. These modules can be combined to model the wave equation or (potentially) used as components to build other networks.
 
-* `WaveRNN` - A wrapper which contains *one* or more `WaveSource` modules, *zero* or more `WaveProbe` modules, and a single `WaveCell` module. The `WaveRNN` module is a convenient wrapper around the individual components and handles time-stepping the wave equation.
+* `WaveRNN` - A wrapper which contains *one* or more `WaveSource` modules, *zero* or more `WaveProbe` modules, and a single `WaveCell` module. The `WaveRNN` module is a convenient wrapper around the individual components and handles time-stepping the wave equation. If no probes are present, the output of `WaveRNN` is the scalar field distribution as a function of time. If probes are present, the output will be (by default) the probe values, but this output can be overridded to instead output the field distribution.
     * `WaveCell` - Implements a single time step of the [scalar wave equation](https://en.wikipedia.org/wiki/Wave_equation).
         * `WaveGeometry` - The children of this module implement the parameterization of the physical domain used by the `WaveCell` module. Although the geometry module subclasses `torch.nn.Module`, it has no `forward()` method and serves only to provide a parameterization of the material density to the `WaveCell` module. Subclassing `torch.nn.Module` was necessary in order to properly expose the trainable parameters to pytorch.
     * `WaveSource` - Implements a source for injecting waves into the [scalar wave equation](https://en.wikipedia.org/wiki/Wave_equation).
