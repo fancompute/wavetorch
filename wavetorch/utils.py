@@ -7,7 +7,7 @@ from sklearn.metrics import confusion_matrix
 
 def to_tensor(x, dtype=torch.get_default_dtype()):
     if type(x) is np.ndarray:
-        return torch.from_numpy(x, dtype=dtype)
+        return torch.from_numpy(x).type(dtype=dtype)
     else:
         return torch.tensor(x, dtype=dtype)
 

@@ -22,9 +22,9 @@ class WaveGeometry(torch.nn.Module):
         self.register_buffer("c0", to_tensor(c0))
         self.register_buffer("c1", to_tensor(c1))
 
-        self.register_buffer("abs_N", to_tensor(abs_N, dtype=torch.int64))
+        self.register_buffer("abs_N", to_tensor(abs_N, dtype=torch.uint8))
         self.register_buffer("abs_sig", to_tensor(abs_sig))
-        self.register_buffer("abs_p", to_tensor(abs_p, dtype=torch.int64))
+        self.register_buffer("abs_p", to_tensor(abs_p, dtype=torch.uint8))
 
         self._init_b(abs_N, abs_sig, abs_p)
 

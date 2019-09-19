@@ -54,7 +54,7 @@ class WaveRNN(torch.nn.Module):
 
             # Inject source(s)
             for source in self.sources:
-                source(h1, xi.squeeze(-1))
+                h1 = source(h1, xi.squeeze(-1))
 
             if len(self.probes) > 0 and not output_fields:
                 # Measure probe(s)
