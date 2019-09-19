@@ -36,7 +36,7 @@ See [study/propagate.py](study/propagate.py)
 
 See [study/optimize_lens.py](study/optimize_lens.py) 
 
-![](../master/img/propagate.png)
+![](../master/img/inverse_design_lens.png)
 
 ### Vowel recognition
 
