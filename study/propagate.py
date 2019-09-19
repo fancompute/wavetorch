@@ -10,11 +10,10 @@ import librosa
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--show_fields', '-fields', '-f', action='store_true')
-parser.add_argument('--show_spectrum', '-spectrum', '-s', action='store_true')
 parser.add_argument('--use_vowel', action='store_true')
 args = parser.parse_args()
 
-domain_shape = (201, 101)
+domain_shape = (151, 151)
 
 dt = 0.707
 h  = 1.0
@@ -27,10 +26,11 @@ domain[rr, cc] = 1
 
 geom  = wavetorch.WaveGeometryFreeForm(domain_shape, h, c0=1.0, c1=0.5, rho=domain)
 cell  = wavetorch.WaveCell(dt, geom)
-src   = wavetorch.WaveSource(25, 50)
-probe = [wavetorch.WaveIntensityProbe(175, 75),
-         wavetorch.WaveIntensityProbe(175, 50),
-         wavetorch.WaveIntensityProbe(175, 25)]
+# src   = wavetorch.WaveSource(25, 75) # Point source
+src   = wavetorch.WaveLineSource(25, 50, 25, 100) # Line source
+probe = [wavetorch.WaveIntensityProbe(125, 100),
+         wavetorch.WaveIntensityProbe(125, 75),
+         wavetorch.WaveIntensityProbe(125, 50)]
 
 model = wavetorch.WaveRNN(cell, src, probe)
 
@@ -67,49 +67,8 @@ if args.show_fields:
         Ny=3,
         fig_width=10)
 
-if args.show_spectrum:
-    out = u.squeeze().numpy()
-
-    n_fft=1024
-    out_ft = [np.abs(librosa.core.stft(out[:,i],n_fft=n_fft)) for i in range(0, out.shape[1])]
-    out_ft_int = np.vstack([x.sum(axis=1) for x in out_ft])
-
-    fig, ax = plt.subplots(2,1,constrained_layout=True,figsize=(4,6))
-
-    ax[0].plot(out)
-    ax[0].set_xlabel('Time')
-    ax[0].set_ylabel('Probe amplitude')
-
-    for i in range(0, out_ft_int.shape[0]):
-        ax[1].fill_between(librosa.core.fft_frequencies(sr=sr, n_fft=n_fft),
-                         out_ft_int[i,:],
-                         alpha=0.2)
-    ax[1].set_yscale('log')
-    ax[1].set_xlabel('Frequency (Hz)')
-    ax[1].set_ylabel('Energy')
-    fig.align_labels()
-    plt.show()
-
-
-# wavetorch.plot.plot_structure(model)
-# wavetorch.plot.plot_structure(model, outline=True)
-# fig, axs = plt.subplots(len(out_ft),1, constrained_layout=True, figsize=(4,5))
-# for (i, ax) in enumerate(axs):
-#     librosa.display.specshow(
-#         librosa.amplitude_to_db(out_ft[i]),
-#         sr=sr,
-#         vmax=0,
-#         ax=ax,
-#         vmin=-60,
-#         y_axis='linear',
-#         x_axis='time',
-#         cmap=plt.cm.inferno
-#     )
-# plt.show()
-
-torch.save(model.state_dict(), './tmp.pt')
-new_cell  = wavetorch.WaveCell(1.0, None)
-new_src   = wavetorch.WaveSource(0, 0)
-newprobe = [wavetorch.WaveIntensityProbe(0, 0)]
-
-model = wavetorch.WaveRNN(new_cell, new_src, new_probe)
+# torch.save(model.state_dict(), './tmp.pt')
+# new_cell  = wavetorch.WaveCell(1.0, None)
+# new_src   = wavetorch.WaveSource(0, 0)
+# newprobe = [wavetorch.WaveIntensityProbe(0, 0)]
+# model = wavetorch.WaveRNN(new_cell, new_src, new_probe)
