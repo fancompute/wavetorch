@@ -1,7 +1,7 @@
 import torch
 import time
 import numpy as np
-from .utils import accuracy_onehot
+from .utils import accuracy_onehot, normalize_power
 from .io import save_model
 
 from sklearn.metrics import confusion_matrix
@@ -56,14 +56,14 @@ def train(model, optimizer, criterion, train_dl, test_dl,
         for num, (xb, yb) in enumerate(train_dl):
             def closure():
                 optimizer.zero_grad()
-                yb_pred = model(xb).sum(dim=1)
+                yb_pred = normalize_power(model(xb).sum(dim=1))
                 loss = criterion(yb_pred, yb.argmax(dim=1))
                 loss.backward()
                 return loss
 
             if epoch == 0: # Don't take a step and just characterize the starting structure
                 with torch.no_grad():
-                    yb_pred = model(xb).sum(dim=1)
+                    yb_pred = normalize_power(model(xb).sum(dim=1))
                     loss = criterion(yb_pred, yb.argmax(dim=1))
             else: # Take an optimization step
                 loss = optimizer.step(closure)
@@ -77,7 +77,7 @@ def train(model, optimizer, criterion, train_dl, test_dl,
             list_yb_pred = []
             list_yb = []
             for num, (xb, yb) in enumerate(train_dl):
-                yb_pred = model(xb).sum(dim=1)
+                yb_pred = normalize_power(model(xb).sum(dim=1))
                 list_yb_pred.append(yb_pred)
                 list_yb.append(yb)
                 if accuracy is not None:
@@ -94,7 +94,7 @@ def train(model, optimizer, criterion, train_dl, test_dl,
             cm_test = None
             if test_dl is not None:
                 for num, (xb, yb) in enumerate(test_dl):
-                    yb_pred = model(xb).sum(dim=1)
+                    yb_pred = normalize_power(model(xb).sum(dim=1))
                     list_yb_pred.append(yb_pred)
                     list_yb.append(yb)
                     loss_test_tmp.append( criterion(yb_pred, yb.argmax(dim=1)) )
