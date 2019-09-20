@@ -1,5 +1,5 @@
-import torch
 import numpy as np
+import torch
 
 from .operators import _laplacian
 from .utils import to_tensor
