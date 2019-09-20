@@ -5,3 +5,6 @@ from .probe import WaveProbe, WaveIntensityProbe
 from .rnn import WaveRNN
 from .source import WaveSource, WaveLineSource
 from .train import train
+
+__all__ = ["WaveCell", "WaveGeometryHoley", "WaveGeometryFreeForm", "WaveProbe", "WaveIntensityProbe", "WaveRNN",
+		   "WaveSource", "WaveLineSource"]
