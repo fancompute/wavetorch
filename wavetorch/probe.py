@@ -15,7 +15,7 @@ class WaveProbe(torch.nn.Module):
 		return x[:, self.x, self.y]
 
 	def plot(self, ax, color='k'):
-		marker, = ax.plot(self.x.numpy(), self.y.numpy(), 'o', color=color)
+		marker, = ax.plot(self.x.numpy(), self.y.numpy(), 'o', markeredgecolor=color, markerfacecolor='none', markeredgewidth=1.0, markersize=4)
 		return marker
 
 

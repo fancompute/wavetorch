@@ -22,7 +22,7 @@ class WaveSource(torch.nn.Module):
 		return Y + dt ** 2 * X_expanded
 
 	def plot(self, ax, color='r'):
-		marker, = ax.plot(self.x.numpy(), self.y.numpy(), 'o', color=color)
+		marker, = ax.plot(self.x.numpy(), self.y.numpy(), 'o', markeredgecolor=color, markerfacecolor='none', markeredgewidth=1.0, markersize=4)
 		return marker
 
 

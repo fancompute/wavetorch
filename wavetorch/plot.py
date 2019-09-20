@@ -320,6 +320,7 @@ def confusion_matrix(cm, ax=None, figsize=(4, 4), title=None, normalize=False, l
 		spine.set_visible(True)
 	ax.set_xlabel('Input')
 	ax.set_ylabel('Predicted')
+	ax.axis("image")
 
 	if title is not None:
 		ax.set_title(title)
