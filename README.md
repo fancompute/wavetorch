@@ -80,7 +80,8 @@ python ./study/vowel_analyze.py stft <PATH_TO_MODEL>
 ## Dependencies
 
 * `pytorch`
-* `sklearn`
+* `scikit-learn`
+* `scikit-image`
 * `librosa`
 * `seaborn`
 * `matplotlib`

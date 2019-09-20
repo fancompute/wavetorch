@@ -1,0 +1,9 @@
+pytorch>=1.2
+scikit-learn
+scikit-image
+librosa
+seaborn
+matplotlib
+numpy
+yaml
+pandas
