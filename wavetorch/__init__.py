@@ -9,4 +9,4 @@ from .train import train
 __all__ = ["WaveCell", "WaveGeometryHoley", "WaveGeometryFreeForm", "WaveProbe", "WaveIntensityProbe", "WaveRNN",
 		   "WaveSource", "WaveLineSource"]
 
-__version__ = "2.0"
+__version__ = "0.2.1"
