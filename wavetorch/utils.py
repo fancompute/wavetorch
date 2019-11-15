@@ -3,7 +3,8 @@ import torch
 from sklearn.metrics import confusion_matrix
 
 
-def to_tensor(x, dtype=torch.get_default_dtype()):
+def to_tensor(x, dtype=None):
+	dtype = dtype if dtype is not None else torch.get_default_dtype()
 	if type(x) is np.ndarray:
 		return torch.from_numpy(x).type(dtype=dtype)
 	else:

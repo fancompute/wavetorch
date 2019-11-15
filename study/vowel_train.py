@@ -43,8 +43,10 @@ if __name__ == '__main__':
 
     print("Configuration: %s" % args.config)
     with open(args.config, 'r') as ymlfile:
-         cfg = load(ymlfile, Loader=Loader)
+        cfg = load(ymlfile, Loader=Loader)
 
+    wavetorch.utils.set_dtype(cfg['dtype'])
+    
     if cfg['seed'] is not None:
         torch.manual_seed(cfg['seed'])
 

@@ -8,7 +8,7 @@ from .cell import WaveCell
 from .probe import WaveIntensityProbe
 from .rnn import WaveRNN
 from .source import WaveSource
-
+from .utils import set_dtype
 
 def save_model(model,
 			   name,
@@ -55,10 +55,7 @@ def load_model(str_filename, which_iteration=-1):
 	data = torch.load(str_filename)
 
 	# Set the type for floats from the save
-	try:
-		set_dtype(data['cfg']['dtype'])
-	except:
-		pass
+	set_dtype(data['cfg']['dtype'])
 
 	# Reconstruct Geometry
 	new_geom = new_geometry(data['model_geom_class_str'], data['history_geom_state'][which_iteration])
