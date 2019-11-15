@@ -19,7 +19,12 @@ import pandas as pd
 
 import librosa
 
-mpl.rcParams['text.usetex'] = True
+try:
+    from helpers.plot import mpl_set_latex
+    mpl_set_latex()
+except ImportError:
+    import warnings
+    warnings.warn('The helpers package is unavailable', ImportWarning)
 
 n_fft = 2048
 sr = 10000
@@ -30,7 +35,7 @@ colors = ['#fcaf3e', '#ad7fa8', '#ef2929']
 
 gender = 'both'
 
-fig,ax=plt.subplots(1,1,constrained_layout=True, figsize=(4.5,2.25))
+fig,ax=plt.subplots(1,1,constrained_layout=True, figsize=(3.5,2.75))
 
 for i, vowel in enumerate(vowels):
     X, _, _ = wavetorch.data.load_all_vowels([vowel], gender=gender, sr=sr)
@@ -43,11 +48,16 @@ for i, vowel in enumerate(vowels):
 
     ax.fill_between(librosa.core.fft_frequencies(sr=sr, n_fft=n_fft),
                      X_ft_mean,
-                     alpha=0.45, color=colors[i])
+                     alpha=0.30, color=colors[i], edgecolor="none", zorder=i ,lw=0)
     ax.plot(librosa.core.fft_frequencies(sr=sr, n_fft=n_fft),
-                     X_ft_std, '-',
-                     label=vowel + ' vowel class', color=colors[i])
+                     X_ft_mean,
+                     color=colors[i],zorder=i, label=vowel + ' vowel class', lw=1.0)
+    # ax.plot(librosa.core.fft_frequencies(sr=sr, n_fft=n_fft),
+    #                  X_ft_std, '-',
+    #                  label=vowel + ' vowel class', color=colors[i], lw=1, zorder=i)
 
+# ax.set_xlim([0,5000])
+# ax.set_ylim([0,13])
 ax.set_xlabel("Frequency (Hz)")
 ax.set_ylabel("Mean energy spectrum (a.u.)")
 ax.legend()
