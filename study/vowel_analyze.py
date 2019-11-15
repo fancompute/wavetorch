@@ -52,7 +52,7 @@ class WaveTorch(object):
         getattr(self, args.command)(args)
 
     def fields(self, args):
-        model, history, history_state, cfg = wavetorch.utils.load_model(args.filename)
+        model, history, history_state, cfg = wavetorch.io.load_model(args.filename)
 
         print("Configuration for model in %s is:" % args.filename)
         print(yaml.dump(cfg, default_flow_style=False))
@@ -70,9 +70,8 @@ class WaveTorch(object):
         for i in range(N_classes):
             xb, yb = wavetorch.data.select_vowel_sample(X, Y, F, i, ind=args.vowel_samples[i] if args.vowel_samples is not None else None)
             with torch.no_grad():
-                model.output_probe = torch.tensor(False)
-                fields = model(xb)
-                wavetorch.plot.probe_integrals(model, fields, yb, xb, ax=axs2)
+                fields = model.forward(xb, output_fields=True)
+                # wavetorch.plot.probe_integrals(model, fields, yb, xb, ax=axs2)
                 wavetorch.plot.field_snapshot(model, fields, args.times, yb, fig_width=6, block=False, axs=axs[i,:])
                 axs[i,0].text(-0.05, 0.5, vowels[i] + ' vowel', transform=axs[i,0].transAxes, ha="right", va="center")
                 # axs[i].set_ylabel(r"Probe $\int \vert u_n \vert^2 dt$")
