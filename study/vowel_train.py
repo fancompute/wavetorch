@@ -107,6 +107,8 @@ if __name__ == '__main__':
             abs_N=cfg['geom']['pml']['N'], 
             abs_p=cfg['geom']['pml']['p'],
             rho=cfg['geom']['init'],
+            blur_radius=cfg['geom']['blur_radius'],
+            blur_N=cfg['geom']['blur_N'],
             design_region=design_region
         )
 
