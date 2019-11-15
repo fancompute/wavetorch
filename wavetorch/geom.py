@@ -87,8 +87,50 @@ class WaveGeometry(torch.nn.Module):
 
 class WaveGeometryHoley(WaveGeometry):
 	def __init__(self, domain_shape: Tuple, h: float, c0: float, c1: float, abs_N: int = 20, abs_sig: float = 11,
-				 abs_p: float = 4.0):
+				 abs_p: float = 4.0, eta: float = 0.5, beta: float = 100.0, x = None, y = None, r = None):
+
 		super().__init__(domain_shape, h, c0, c1, abs_N, abs_sig, abs_p)
+
+		self.x = torch.nn.Parameter(to_tensor(x))
+		self.y = torch.nn.Parameter(to_tensor(y))
+		self.r = torch.nn.Parameter(to_tensor(r))
+
+		self.register_buffer("eta", to_tensor(eta))
+		self.register_buffer("beta", to_tensor(beta))
+
+	def state_reconstruction_args(self):
+		my_args = {"eta": self.eta.item(),
+				   "beta": self.beta.item(),
+				   "x": deepcopy(self.x.detach()),
+				   "y": deepcopy(self.y.detach()),
+				   "r": deepcopy(self.r.detach())}
+		return {**super().state_reconstruction_args(), **my_args}
+
+	def _rho(self):
+		eta = self.eta.item()
+		beta = self.beta.item()
+
+		xv = torch.arange(0, self.domain_shape[0], dtype=torch.get_default_dtype())
+		yv = torch.arange(0, self.domain_shape[1], dtype=torch.get_default_dtype())
+		x, y = torch.meshgrid(xv, yv)
+
+		rho = torch.zeros(self.domain_shape)
+
+		for i, (ri, xi, yi) in enumerate(zip(self.r, self.x, self.y)):
+			r = torch.sqrt((x-xi).pow(2) + (y-yi).pow(2))
+			rho = rho + torch.exp(-r/ri)
+
+		return (np.tanh(beta * eta) + torch.tanh(beta * (rho - eta))) / (
+				np.tanh(beta * eta) + np.tanh(beta * (1 - eta)))
+
+	@property
+	def rho(self):
+		return self._rho()
+
+	@property
+	def c(self):
+		return self.c0.item() + (self.c1.item() - self.c0.item()) * self._rho()
+
 
 
 class WaveGeometryFreeForm(WaveGeometry):
