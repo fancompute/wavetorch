@@ -4,10 +4,6 @@ import torch
 from .operators import _laplacian
 from .utils import to_tensor
 
-KERNEL_LPF = [[1 / 9, 1 / 9, 1 / 9],
-              [1 / 9, 1 / 9, 1 / 9],
-              [1 / 9, 1 / 9, 1 / 9]]
-
 
 def saturable_damping(u, uth, b0):
     return b0 / (1 + torch.abs(u / uth).pow(2))

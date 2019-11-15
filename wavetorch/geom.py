@@ -4,13 +4,9 @@ from typing import Tuple
 import numpy as np
 import torch
 from torch.nn.functional import conv2d
+from skimage.draw import circle
 
 from .utils import to_tensor
-
-KERNEL_LPF = [[1 / 9, 1 / 9, 1 / 9],
-			  [1 / 9, 1 / 9, 1 / 9],
-			  [1 / 9, 1 / 9, 1 / 9]]
-
 
 class WaveGeometry(torch.nn.Module):
 	def __init__(self, domain_shape: Tuple, h: float, c0: float, c1: float, abs_N: int = 20, abs_sig: float = 11,
@@ -97,7 +93,8 @@ class WaveGeometryHoley(WaveGeometry):
 
 class WaveGeometryFreeForm(WaveGeometry):
 	def __init__(self, domain_shape: Tuple, h: float, c0: float, c1: float, abs_N: int = 20, abs_sig: float = 11,
-				 abs_p: float = 4.0, eta: float = 0.5, beta: float = 100.0, design_region=None, rho='half'):
+				 abs_p: float = 4.0, eta: float = 0.5, beta: float = 100.0, design_region=None, rho='half',
+				 blur_radius : int = 1, blur_N : int = 1):
 
 		super().__init__(domain_shape, h, c0, c1, abs_N, abs_sig, abs_p)
 
@@ -106,13 +103,25 @@ class WaveGeometryFreeForm(WaveGeometry):
 
 		self._init_design_region(design_region, domain_shape)
 		self._init_rho(rho, domain_shape)
+
+		rr, cc = circle(blur_radius, blur_radius, blur_radius+1)
+		blur_kernel = torch.zeros((2*blur_radius+1, 2*blur_radius+1), dtype=torch.get_default_dtype())
+		blur_kernel[rr, cc] = 1
+		blur_kernel=blur_kernel/blur_kernel.sum()
+
+		self.register_buffer("blur_kernel", blur_kernel.unsqueeze(0).unsqueeze(0))
+		self.register_buffer("blur_N", to_tensor(blur_N, dtype=torch.int))
+		self.register_buffer("blur_radius", to_tensor(blur_N, dtype=torch.int))
+
 		self.constrain_to_design_region()
 
 	def state_reconstruction_args(self):
 		my_args = {"eta": self.eta.item(),
 				   "beta": self.beta.item(),
 				   "design_region": deepcopy(self.design_region),
-				   "rho": deepcopy(self.rho.detach())}
+				   "rho": deepcopy(self.rho.detach()),
+				   "blur_radius": self.blur_radius.item(),
+				   "blur_N": self.blur_N.item()}
 		return {**super().state_reconstruction_args(), **my_args}
 
 	def __repr__(self):
@@ -153,42 +162,30 @@ class WaveGeometryFreeForm(WaveGeometry):
 			self.rho[self.design_region == 0] = 0.0
 			self.rho[self.b > 0] = 0.0
 
-	def _project_rho(self):
-		"""Perform the projection of the density, rho"""
+	def _apply_blur(self, rho):
+		"""Applies the blur parameterization operator"""
+		blur_N = self.blur_N.item()
+		blur_radius = self.blur_radius.item()
+
+		for i in range(blur_N):
+			rho = conv2d(rho.unsqueeze(0).unsqueeze(0), self.blur_kernel, padding=self.blur_kernel.shape[-1]//2).squeeze() 
+
+		return rho
+
+	def _apply_projection(self, rho):
+		"""Applies the projection parameterization operator"""
 		eta = self.eta.item()
 		beta = self.beta.item()
-		LPF_rho = torch.nn.functional.conv2d(self.rho.unsqueeze(0).unsqueeze(0), torch.tensor([[KERNEL_LPF]]),
-											 padding=1).squeeze()
-		return (np.tanh(beta * eta) + torch.tanh(beta * (LPF_rho - eta))) / (
+		return (np.tanh(beta * eta) + torch.tanh(beta * (rho - eta))) / (
 				np.tanh(beta * eta) + np.tanh(beta * (1 - eta)))
+
+	def _rho_model(self):
+		"""Runs the complete parameterization model to return rho"""
+		rho = self.rho
+		rho = self._apply_blur(rho)
+		rho = self._apply_projection(rho)
+		return rho
 
 	@property
 	def c(self):
-		return self.c0.item() + (self.c1.item() - self.c0.item()) * self._project_rho()
-
-# xv = torch.linspace(0.0, 10.0, 99)
-# yv = torch.linspace(0.0, 10.0, 99)
-# x, y = torch.meshgrid(xv, yv)
-
-# r0 = torch.tensor([1.0], requires_grad=True)
-# x0 = torch.tensor([2.0], requires_grad=True)
-# y0 = torch.tensor([2.0], requires_grad=True)
-
-# def gen(r0, x0, y0):
-#     rho = torch.zeros(x.shape)
-
-#     for i, (ri, xi, yi) in enumerate(zip(r0, x0, y0)):
-#         r = torch.sqrt((x-xi).pow(2) + (y-yi).pow(2))
-#         rho = rho + torch.exp(-r/ri)
-
-#     return rho
-
-# def proj(rho, eta=torch.tensor(0.5), beta=torch.tensor(200)):
-#     return (torch.tanh(beta*eta) + torch.tanh(beta*(rho-eta))) / (torch.tanh(beta*eta) + torch.tanh(beta*(1-eta)))
-
-# rho = gen(r0, x0, y0)
-# fig, ax = plt.subplots(2,1, constrained_layout=True)
-# ax[0].pcolormesh(x.numpy(), y.numpy(), rho.detach().numpy())
-# ax[1].pcolormesh(x.numpy(), y.numpy(), proj(rho).detach().numpy())
-# ax[0].axis('image')
-# ax[1].axis('image')
+		return self.c0.item() + (self.c1.item() - self.c0.item()) * self._rho_model()
