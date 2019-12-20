@@ -10,7 +10,7 @@ This package not only provides a numerical framework for solving the wave equati
 
 For additional information and discussion see our paper:
 
-* T. W. Hughes, I. A. D. Williamson, M. Minkov, and S. Fan, "[Wave Physics as an Analog Recurrent Neural Network](https://arxiv.org/abs/1904.12831)," arXiv:1904.12831 [physics], Apr. 2019
+* T. W. Hughes*, I. A. D. Williamson*, M. Minkov, and S. Fan, [Wave physics as an analog recurrent neural network](https://advances.sciencemag.org/content/5/12/eaay6946), Science Advances, vol. 5, no. 12, p. eaay6946, Dec. 2019
 
 ## Components
 
