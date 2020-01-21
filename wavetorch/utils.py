@@ -34,23 +34,3 @@ def accuracy_onehot(y_pred, y_label):
 
 def normalize_power(X):
 	return X / torch.sum(X, dim=1, keepdim=True)
-
-
-def calc_cm(model, dataloader, verbose=True):
-	"""Calculate the confusion matrix
-	"""
-	with torch.no_grad():
-		list_yb_pred = []
-		list_yb = []
-		i = 1
-		for xb, yb in dataloader:
-			yb_pred = model(xb)
-			list_yb_pred.append(yb_pred)
-			list_yb.append(yb)
-			if verbose: print("cm: processing batch %d" % i)
-			i += 1
-
-		y_pred = torch.cat(list_yb_pred, dim=0)
-		y_truth = torch.cat(list_yb, dim=0)
-
-	return confusion_matrix(y_truth.argmax(dim=1).numpy(), y_pred.argmax(dim=1).numpy())
