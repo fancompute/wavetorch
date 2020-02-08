@@ -88,6 +88,9 @@ geom:
   # Source y-coordinate in grid cells
   src_y:
 
+  blur_radius: 1
+  blur_N: 1
+
   pml:
     N: 20    # PML thickness in number of grid cells
     p: 4.0   # PML polynomial order
